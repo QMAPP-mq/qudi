@@ -47,6 +47,12 @@ class PiezoStagePI(Base, MotorInterface):
     # This is creating a 3D double array object.
     _double3d = c_double * 3
 
+    # This is creating a 1D double object
+    _double1d = c_double * 1
+
+    # This is creating a 1D bool object
+    _bool1d = c_bool * 1
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -147,6 +153,31 @@ class PiezoStagePI(Base, MotorInterface):
         @return dict pos: dictionary with the current axis position
         """
 
+        # Move in x:
+        newpos = self._double1d(param_dict['x']/1000) # Convert mm to um
+        ax = c_char_p('1'.encode())
+        self._pidll.PI_MOV(self._devID, ax, newpos)
+        onT = self._bool1d(0)
+        while not onT[0]:
+            self._pidll.PI_qONT(self._devID, ax, onT)
+
+        # Move in y:
+        newpos = self._double1d(param_dict['y']/1000) # Convert mm to um
+        ax = c_char_p('2'.encode())
+        self._pidll.PI_MOV(self._devID, ax, newpos)
+        onT = self._bool1d(0)
+        while not onT[0]:
+            self._pidll.PI_qONT(self._devID, ax, onT)
+
+        # Move in z:
+        newpos = self._double1d(param_dict['z']/1000) # Convert mm to um
+        ax = c_char_p('3'.encode())
+        self._pidll.PI_MOV(self._devID, ax, newpos)
+        onT = self._bool1d(0)
+        while not onT[0]:
+            self._pidll.PI_qONT(self._devID, ax, onT)
+
+        param_dict = self.get_pos()
         return param_dict
 
     def abort(self):
