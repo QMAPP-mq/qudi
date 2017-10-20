@@ -22,6 +22,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 
 import time
 from ctypes import *
+import os
 
 from collections import OrderedDict
 
@@ -41,6 +42,11 @@ class PiezoStagePI(Base, MotorInterface):
     _modclass = 'PiezoStagePI'
     _modtype = 'hardware'
 
+    _devID = c_int()
+
+    # This is creating a 3D double array object.
+    _double3d = c_double * 3
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -48,10 +54,28 @@ class PiezoStagePI(Base, MotorInterface):
         """ Initialisation performed during activation of the module.
         @return: error code
         """
+        path_dll = os.path.join(self.get_main_dir(),
+                                'thirdparty',
+                                'physik_instrumente',
+                                'PI_GCS2_DLL_x64.dll'
+                                )
+        self._pidll = windll.LoadLibrary(path_dll)
 
-        # TODO: connect to USB device
+        # Find out what devices are connected
+        emptybufferpy = ' ' * 1000  # TODO find out how long this should be?
+        charBuffer = c_char_p(emptybufferpy.encode())
+        bufSize = c_int(1000)
 
-        return 0
+        numofdevs = self._pidll.PI_EnumerateUSB(charBuffer, bufSize, c_char_p(b''))
+
+        if numofdevs == 1:
+            self._pidll.PI_ConnectUSB(charBuffer)
+            self._devID = c_int(0)
+
+        if self._pidll.PI_IsConnected(self._devID) is False:
+            return 1
+        else:
+            return 0
 
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
@@ -71,6 +95,26 @@ class PiezoStagePI(Base, MotorInterface):
             (min_value, max_value, stepsize)
         """
         constraints = OrderedDict()
+
+        axis0 = {}
+        axis0['label'] = 'x'
+        axis0['pos_min'] = 0.0
+        axis0['pos_max'] = 300.0
+
+        axis1 = {}
+        axis1['label'] = 'y'
+        axis1['pos_min'] = 0.0
+        axis1['pos_max'] = 300.0
+
+        axis2 = {}
+        axis2['label'] = 'z'
+        axis2['pos_min'] = 0.0
+        axis2['pos_max'] = 300.0
+
+        # assign the parameter container for x to a name which will identify it
+        constraints[axis0['label']] = axis0
+        constraints[axis1['label']] = axis1
+        constraints[axis2['label']] = axis2
 
         return constraints
 
@@ -118,11 +162,24 @@ class PiezoStagePI(Base, MotorInterface):
         @param list param_list: optional, if a specific position of an axis
                                 is desired, then the labels of the needed
                                 axis should be passed in the param_list.
-                                If nothing is passed, then from each axis the
-                                position is asked.
+                                If nothing is passed, then the positions of
+                                all axes are returned.
 
         @return dict: with keys being the axis labels and item the current
-                      position.        """
+                      position.
+        """
+
+        # Now we create an instance of that object
+        posBuffer = self._double3d()
+        axesBuffer = c_char_p(''.encode())
+
+        err = self._pidll.PI_qPOS(c_int(0), axesBuffer, posBuffer)
+
+        param_dict = {}
+        param_dict['x'] = posBuffer[0]
+        param_dict['y'] = posBuffer[1]
+        param_dict['z'] = posBuffer[2]
+
         return param_dict
 
     def get_status(self, param_list=None):
