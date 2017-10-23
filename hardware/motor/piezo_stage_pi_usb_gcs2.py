@@ -90,6 +90,7 @@ class PiezoStagePI(Base, MotorInterface):
         @return: error code
         """
         self._toggle_servo_state(False)
+        self._pidll.PI_RTO(self._devID, c_char_p(''.encode()))
         return 0
 
     def get_constraints(self):
