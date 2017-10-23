@@ -311,7 +311,6 @@ class PiezoStagePI(Base, MotorInterface):
         axesBuffer = c_char_p(str(axis).encode())
 
         self._pidll.PI_qSVO(self._devID, axesBuffer, servo_state)
-        print('***', servo_state[0], '***')
 
         if (servo_state[0] is False) and (to_state == True):
             self._pidll.PI_SVO(self._devID, axis, self._bool1d(1))
@@ -323,7 +322,6 @@ class PiezoStagePI(Base, MotorInterface):
         axesBuffer = c_char_p(str(axis).encode())
 
         self._pidll.PI_qSVO(self._devID, axesBuffer, servo_state)
-        print('***', servo_state[0], '***')
 
         if (servo_state[0] is False) and (to_state == True):
             self._pidll.PI_SVO(self._devID, axis, self._bool1d(1))
@@ -335,7 +333,6 @@ class PiezoStagePI(Base, MotorInterface):
         axesBuffer = c_char_p(str(axis).encode())
 
         self._pidll.PI_qSVO(self._devID, axesBuffer, servo_state)
-        print('***', servo_state[0], '***')
 
         if (servo_state[0] is False) and (to_state == True):
             self._pidll.PI_SVO(self._devID, axis, self._bool1d(1))
