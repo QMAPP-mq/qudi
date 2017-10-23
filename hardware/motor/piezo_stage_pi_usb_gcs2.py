@@ -81,13 +81,15 @@ class PiezoStagePI(Base, MotorInterface):
         if self._pidll.PI_IsConnected(self._devID) is False:
             return 1
         else:
+            self._toggle_servo_state(True)
             return 0
 
+    @property
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
         @return: error code
         """
-
+        self._toggle_servo_state(False)
         return 0
 
     def get_constraints(self):
@@ -296,6 +298,49 @@ class PiezoStagePI(Base, MotorInterface):
             #self._write_xyz(axis, 'MP')
         return axis, move
 
+    def _toggle_servo_state(self, to_state):
+        """internal method enabling / disabling the servos
+
+        @param bool to_state: desired state of the servos
+        """
+
+        servo_state = self._bool1d()
+
+        # x axis
+        axis = '1'
+        axesBuffer = c_char_p(str(axis).encode())
+
+        self._pidll.PI_qSVO(self._devID, axesBuffer, servo_state)
+        print('***', servo_state[0], '***')
+
+        if (servo_state[0] is False) and (to_state == True):
+            self._pidll.PI_SVO(self._devID, axis, self._bool1d(1))
+        elif (servo_state[0] is True) and (to_state == False):
+            self._pidll.PI_SVO(self._devID, axis, self._bool1d(0))
+
+        # y axis
+        axis = '2'
+        axesBuffer = c_char_p(str(axis).encode())
+
+        self._pidll.PI_qSVO(self._devID, axesBuffer, servo_state)
+        print('***', servo_state[0], '***')
+
+        if (servo_state[0] is False) and (to_state == True):
+            self._pidll.PI_SVO(self._devID, axis, self._bool1d(1))
+        elif (servo_state[0] is True) and (to_state == False):
+            self._pidll.PI_SVO(self._devID, axis, self._bool1d(0))
+
+        # z axis
+        axis = '3'
+        axesBuffer = c_char_p(str(axis).encode())
+
+        self._pidll.PI_qSVO(self._devID, axesBuffer, servo_state)
+        print('***', servo_state[0], '***')
+
+        if (servo_state[0] is False) and (to_state == True):
+            self._pidll.PI_SVO(self._devID, axis, self._bool1d(1))
+        elif (servo_state[0] is True) and (to_state == False):
+            self._pidll.PI_SVO(self._devID, axis, self._bool1d(0))
 
 #########################################################################################
 
