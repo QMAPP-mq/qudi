@@ -21,7 +21,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 """
 
 import time
-from ctypes import *
+import ctypes
 import os
 
 from collections import OrderedDict
@@ -31,6 +31,7 @@ from interface.motor_interface import MotorInterface
 
 
 class PiezoStagePI(Base, MotorInterface):
+
     """unstable: Lachlan Rogers, Matt van Breugel
     This is the hardware module for communicating with PI Piezo scanning stages
     over USB (via the PI dll). It uses the General Command Set 2 (GCS2) from
@@ -42,16 +43,16 @@ class PiezoStagePI(Base, MotorInterface):
     _modclass = 'PiezoStagePI'
     _modtype = 'hardware'
 
-    _devID = c_int()
+    _devID = ctypes.c_int()
 
     # This is creating a 3D double array object.
-    _double3d = c_double * 3
+    _double3d = ctypes.c_double * 3
 
     # This is creating a 1D double object
-    _double1d = c_double * 1
+    _double1d = ctypes.c_double * 1
 
     # This is creating a 1D bool object
-    _bool1d = c_bool * 1
+    _bool1d = ctypes.c_bool * 1
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -65,18 +66,18 @@ class PiezoStagePI(Base, MotorInterface):
                                 'physik_instrumente',
                                 'PI_GCS2_DLL_x64.dll'
                                 )
-        self._pidll = windll.LoadLibrary(path_dll)
+        self._pidll = ctypes.windll.LoadLibrary(path_dll)
 
         # Find out what devices are connected
         emptybufferpy = ' ' * 1000  # TODO find out how long this should be?
-        charBuffer = c_char_p(emptybufferpy.encode())
-        bufSize = c_int(1000)
+        charBuffer = ctypes.c_char_p(emptybufferpy.encode())
+        bufSize = ctypes.c_int(1000)
 
-        numofdevs = self._pidll.PI_EnumerateUSB(charBuffer, bufSize, c_char_p(b''))
+        numofdevs = self._pidll.PI_EnumerateUSB(charBuffer, bufSize, ctypes.c_char_p(b''))
 
         if numofdevs == 1:
             self._pidll.PI_ConnectUSB(charBuffer)
-            self._devID = c_int(0)
+            self._devID = ctypes.c_int(0)
 
         if self._pidll.PI_IsConnected(self._devID) is False:
             return 1
@@ -90,7 +91,7 @@ class PiezoStagePI(Base, MotorInterface):
         @return: error code
         """
         self._toggle_servo_state(False)
-        self._pidll.PI_RTO(self._devID, c_char_p(''.encode()))
+        self._pidll.PI_RTO(self._devID, ctypes.c_char_p(''.encode()))
         return 0
 
     def get_constraints(self):
@@ -157,24 +158,24 @@ class PiezoStagePI(Base, MotorInterface):
         """
 
         # Move in x:
-        newpos = self._double1d(param_dict['x']/1000) # Convert mm to um
-        ax = c_char_p('1'.encode())
+        newpos = self._double1d(param_dict['x'] / 1000)  # Convert mm to um
+        ax = ctypes.c_char_p('1'.encode())
         self._pidll.PI_MOV(self._devID, ax, newpos)
         onT = self._bool1d(0)
         while not onT[0]:
             self._pidll.PI_qONT(self._devID, ax, onT)
 
         # Move in y:
-        newpos = self._double1d(param_dict['y']/1000) # Convert mm to um
-        ax = c_char_p('2'.encode())
+        newpos = self._double1d(param_dict['y'] / 1000)  # Convert mm to um
+        ax = ctypes.c_char_p('2'.encode())
         self._pidll.PI_MOV(self._devID, ax, newpos)
         onT = self._bool1d(0)
         while not onT[0]:
             self._pidll.PI_qONT(self._devID, ax, onT)
 
         # Move in z:
-        newpos = self._double1d(param_dict['z']/1000) # Convert mm to um
-        ax = c_char_p('3'.encode())
+        newpos = self._double1d(param_dict['z'] / 1000)  # Convert mm to um
+        ax = ctypes.c_char_p('3'.encode())
         self._pidll.PI_MOV(self._devID, ax, newpos)
         onT = self._bool1d(0)
         while not onT[0]:
@@ -205,9 +206,9 @@ class PiezoStagePI(Base, MotorInterface):
 
         # Now we create an instance of that object
         posBuffer = self._double3d()
-        axesBuffer = c_char_p(''.encode())
+        axesBuffer = ctypes.c_char_p(''.encode())
 
-        err = self._pidll.PI_qPOS(c_int(0), axesBuffer, posBuffer)
+        err = self._pidll.PI_qPOS(ctypes.c_int(0), axesBuffer, posBuffer)
 
         param_dict = {}
         param_dict['x'] = posBuffer[0]
@@ -245,6 +246,7 @@ class PiezoStagePI(Base, MotorInterface):
 
         @return dict pos: dictionary with the current position of the ac#xis
         """
+        pos = {}
 
         return pos
 
@@ -260,7 +262,6 @@ class PiezoStagePI(Base, MotorInterface):
         @return dict : with the axis label as key and the velocity as item.
             """
 
-
     def set_velocity(self, param_dict):
         """ Write new value for velocity in m/s.
 
@@ -272,9 +273,6 @@ class PiezoStagePI(Base, MotorInterface):
 
         @return dict param_dict2: dictionary with the updated axis velocity
         """
-
-
-
 
 ########################## internal methods ##################################
 
@@ -292,10 +290,10 @@ class PiezoStagePI(Base, MotorInterface):
         #self.log.info(axis + 'MA{0}'.format(int(move*1e8)))
         if not(constraints[axis]['pos_min'] <= move <= constraints[axis]['pos_max']):
             self.log.warning('Cannot make the movement of the axis "{0}"'
-                'since the border [{1},{2}] would be crossed! Ignore command!'
-                ''.format(axis, constraints[axis]['pos_min'], constraints[axis]['pos_max']))
+                             'since the border [{1},{2}] would be crossed! Ignore command!'
+                             ''.format(axis, constraints[axis]['pos_min'], constraints[axis]['pos_max']))
         else:
-            self._write_xyz(axis,'MA{0}'.format(int(move*1e7)))  # 1e7 to convert meter to SI units
+            self._write_xyz(axis, 'MA{0}'.format(int(move * 1e7)))  # 1e7 to convert meter to SI units
             #self._write_xyz(axis, 'MP')
         return axis, move
 
@@ -309,42 +307,35 @@ class PiezoStagePI(Base, MotorInterface):
 
         # x axis
         axis = '1'
-        axesBuffer = c_char_p(str(axis).encode())
+        axesBuffer = ctypes.c_char_p(str(axis).encode())
 
         self._pidll.PI_qSVO(self._devID, axesBuffer, servo_state)
 
-        if (servo_state[0] is False) and (to_state == True):
+        if (servo_state[0] is False) and (to_state is True):
             self._pidll.PI_SVO(self._devID, axis, self._bool1d(1))
-        elif (servo_state[0] is True) and (to_state == False):
+        elif (servo_state[0] is True) and (to_state is False):
             self._pidll.PI_SVO(self._devID, axis, self._bool1d(0))
 
         # y axis
         axis = '2'
-        axesBuffer = c_char_p(str(axis).encode())
+        axesBuffer = ctypes.c_char_p(str(axis).encode())
 
         self._pidll.PI_qSVO(self._devID, axesBuffer, servo_state)
 
-        if (servo_state[0] is False) and (to_state == True):
+        if (servo_state[0] is False) and (to_state is True):
             self._pidll.PI_SVO(self._devID, axis, self._bool1d(1))
-        elif (servo_state[0] is True) and (to_state == False):
+        elif (servo_state[0] is True) and (to_state is False):
             self._pidll.PI_SVO(self._devID, axis, self._bool1d(0))
 
         # z axis
         axis = '3'
-        axesBuffer = c_char_p(str(axis).encode())
+        axesBuffer = ctypes.c_char_p(str(axis).encode())
 
         self._pidll.PI_qSVO(self._devID, axesBuffer, servo_state)
 
-        if (servo_state[0] is False) and (to_state == True):
+        if (servo_state[0] is False) and (to_state is True):
             self._pidll.PI_SVO(self._devID, axis, self._bool1d(1))
-        elif (servo_state[0] is True) and (to_state == False):
+        elif (servo_state[0] is True) and (to_state is False):
             self._pidll.PI_SVO(self._devID, axis, self._bool1d(0))
 
 #########################################################################################
-
-
-
-
-
-
-
