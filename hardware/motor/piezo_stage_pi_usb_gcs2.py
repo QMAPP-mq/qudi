@@ -151,14 +151,14 @@ class PiezoStagePI(Base, MotorInterface):
                                  {'axis_label': <the-abs-pos-value>}.
                                  'axis_label' must correspond to a label given
                                  to one of the axis.
-                                The values for the axes are in millimeter,
+                                The values for the axes are in meter,
                                 the value for the rotation is in degrees.
 
         @return dict pos: dictionary with the current axis position
         """
 
         # Move in x:
-        newpos = self._double1d(param_dict['x'] / 1000)  # Convert mm to um
+        newpos = self._double1d(param_dict['x'])  # Convert mm to um
         ax = ctypes.c_char_p('1'.encode())
         self._pidll.PI_MOV(self._devID, ax, newpos)
         onT = self._bool1d(0)
@@ -166,7 +166,7 @@ class PiezoStagePI(Base, MotorInterface):
             self._pidll.PI_qONT(self._devID, ax, onT)
 
         # Move in y:
-        newpos = self._double1d(param_dict['y'] / 1000)  # Convert mm to um
+        newpos = self._double1d(param_dict['y'])  # Convert mm to um
         ax = ctypes.c_char_p('2'.encode())
         self._pidll.PI_MOV(self._devID, ax, newpos)
         onT = self._bool1d(0)
@@ -174,7 +174,7 @@ class PiezoStagePI(Base, MotorInterface):
             self._pidll.PI_qONT(self._devID, ax, onT)
 
         # Move in z:
-        newpos = self._double1d(param_dict['z'] / 1000)  # Convert mm to um
+        newpos = self._double1d(param_dict['z'])  # Convert mm to um
         ax = ctypes.c_char_p('3'.encode())
         self._pidll.PI_MOV(self._devID, ax, newpos)
         onT = self._bool1d(0)

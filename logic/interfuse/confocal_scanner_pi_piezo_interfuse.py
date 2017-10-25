@@ -37,23 +37,17 @@ class PiezoPIScannerInterfuse(Base, ConfocalScannerInterface):
     _modtype = 'hardware'
 
     # connectors
-    fitlogic = Connector(interface='FitLogic')
+    counterlogic = Connector(interface='CounterLogic')
     stage1 = Connector(interface='MotorInterface')
-    counter1 = Connector(interface='SlowCounterInterface')
-
-    # config options
-    _clock_frequency = ConfigOption('clock_frequency', 100, missing='warn')
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
 
         # Internal parameters
         self._line_length = None
-        self._scanner_counter_daq_task = None
-        self._voltage_range = [-10., 10.]
 
-        self._position_range = [[0., 100.], [0., 100.], [0., 100.], [0., 1.]]
-        self._current_position = [0., 0., 0., 0.]
+        self._position_range = [[0., 300.], [0., 300.], [0., 300.]]
+        self._current_position = [0., 0., 0.]
 
         self._num_points = 500
 
@@ -61,9 +55,8 @@ class PiezoPIScannerInterfuse(Base, ConfocalScannerInterface):
         """ Initialisation performed during activation of the module.
         """
 
-        self._fit_logic = self.get_connector('fitlogic')
+        self._counter_logic = self.get_connector('counterlogic')
         self._stage_hw = self.get_connector('stage1')
-        self._counter_hw = self.get_connector('counter1')
 
 
     def on_deactivate(self):
@@ -74,7 +67,7 @@ class PiezoPIScannerInterfuse(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self.log.warning('Scanning Device will be reset.')
+        self.log.warning('TODO: reset Stage.')
         return 0
 
     def get_position_range(self):
@@ -83,7 +76,10 @@ class PiezoPIScannerInterfuse(Base, ConfocalScannerInterface):
 
         @return float [4][2]: array of 4 ranges with an array containing lower and upper limit
         """
-        return self._scanner_hw.get_position_range()
+        pos_range = self._position_range.append([0,0])
+        pos_range = [[0., 300.], [0., 300.], [0., 300.], [0., 0.]]
+        # print(pos_range)
+        return pos_range
 
     def set_position_range(self, myrange=None):
         """ Sets the physical range of the scanner.
@@ -93,10 +89,8 @@ class PiezoPIScannerInterfuse(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        if myrange is None:
-            myrange = [[0,1],[0,1],[0,1],[0,1]]
-
-        self._scanner_hw.set_position_range(myrange=myrange)
+        # TODO
+        self.log.warning('Cannot set position range yet - fix TODO')
 
         return 0
 
@@ -108,11 +102,19 @@ class PiezoPIScannerInterfuse(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        if myrange is None:
-            myrange = [-10.,10.]
+        # TODO
+        self.log.warning('Voltage range is not sensible for PiezoStagePI. Fix TODO')
 
-        self._scanner_hw.set_voltage_range(myrange=myrange)
         return 0
+
+    def get_scanner_count_channels(self):
+        """ Returns the list of channels that are recorded while scanning an image.
+
+        @return list(str): channel names
+
+        Most methods calling this might just care about the number of channels.
+        """
+        return ['APD1']
 
     def set_up_scanner_clock(self, clock_frequency = None, clock_channel = None):
         """ Configures the hardware clock of the NiDAQ card to give the timing.
@@ -144,7 +146,7 @@ class PiezoPIScannerInterfuse(Base, ConfocalScannerInterface):
 
     def get_scanner_axes(self):
         """ Pass through scanner axes. """
-        return self._scanner_hw.get_scanner_axes()
+        return ['x', 'y', 'z', 'a']
 
     def scanner_set_position(self, x = None, y = None, z = None, a = None):
         """Move stage to x, y, z, a (where a is the fourth voltage channel).
@@ -158,7 +160,12 @@ class PiezoPIScannerInterfuse(Base, ConfocalScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
 
-        self._scanner_hw.scanner_set_position(x=x, y=y, z=z, a=a)
+        move_dict = {}
+        move_dict['x'] = x
+        move_dict['y'] = y
+        move_dict['z'] = z
+
+        self._stage_hw.move_abs(move_dict)
         return 0
 
     def get_scanner_position(self):
@@ -167,7 +174,11 @@ class PiezoPIScannerInterfuse(Base, ConfocalScannerInterface):
         @return float[]: current position in (x, y, z, a).
         """
 
-        return self._scanner_hw.get_scanner_position()
+        pos_dict = self._stage_hw.get_pos()
+
+        position = [pos_dict['x'], pos_dict['y'], pos_dict['z'], 0]
+
+        return position
 
     def set_up_line(self, length=100):
         """ Set the line length
@@ -184,6 +195,8 @@ class PiezoPIScannerInterfuse(Base, ConfocalScannerInterface):
         """ Scans a line and returns the counts on that line.
 
         @param float[][4] line_path: array of 4-part tuples defining the voltage points
+        TODO: This SHOULD NOT be voltage - it should be position in metres or unit-sensitive distance.
+
         @param bool pixel_clock: whether we need to output a pixel clock for this line
 
         @return float[]: the photon counts per second
@@ -195,27 +208,24 @@ class PiezoPIScannerInterfuse(Base, ConfocalScannerInterface):
         #
         #self.lock()
 
-        if not isinstance( line_path, (frozenset, list, set, tuple, np.ndarray, ) ):
-            self.log.error('Given voltage list is no array type.')
+        if not isinstance(line_path, (frozenset, list, set, tuple, np.ndarray, )):
+            self.log.error('The given line to scan is not the right format or array type.')
             return np.array([-1.])
 
         self.set_up_line(np.shape(line_path)[1])
 
         count_data = np.zeros(self._line_length)
+        # TODO: is it necessary for line_length to be a class variable?
 
-        for i in xrange(self._line_length):
+        for i in range(self._line_length):
             coords = line_path[:, i]
             self.scanner_set_position(x=coords[0], y=coords[1], z=coords[2], a=coords[3])
-            print(coords)
-            print(i)
 
-            # record spectral data
-            this_spectrum_data = self._spectrometer_hw.recordSpectrum()
-            #this_spectrum_data = [1,2,3,4,5]
-            count_data[i] = np.sum(this_spectrum_data)
-            time.sleep(0.2)
+            # record count data
+            this_count_data = self._counter_logic.countdata[0,-1]
+            count_data[i] = this_count_data
 
-        return count_data
+        return np.array([count_data]).T
 
     def close_scanner(self):
         """ Closes the scanner and cleans up afterwards.
