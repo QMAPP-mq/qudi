@@ -158,7 +158,7 @@ class PiezoStagePI(Base, MotorInterface):
         """
 
         # Move in x:
-        newpos = self._double1d(param_dict['x'])  # Convert mm to um
+        newpos = self._double1d(param_dict['x'] * 1e6)
         ax = ctypes.c_char_p('1'.encode())
         self._pidll.PI_MOV(self._devID, ax, newpos)
         onT = self._bool1d(0)
@@ -166,7 +166,7 @@ class PiezoStagePI(Base, MotorInterface):
             self._pidll.PI_qONT(self._devID, ax, onT)
 
         # Move in y:
-        newpos = self._double1d(param_dict['y'])  # Convert mm to um
+        newpos = self._double1d(param_dict['y'] * 1e6)
         ax = ctypes.c_char_p('2'.encode())
         self._pidll.PI_MOV(self._devID, ax, newpos)
         onT = self._bool1d(0)
@@ -174,7 +174,7 @@ class PiezoStagePI(Base, MotorInterface):
             self._pidll.PI_qONT(self._devID, ax, onT)
 
         # Move in z:
-        newpos = self._double1d(param_dict['z'])  # Convert mm to um
+        newpos = self._double1d(param_dict['z'] * 1e6)
         ax = ctypes.c_char_p('3'.encode())
         self._pidll.PI_MOV(self._devID, ax, newpos)
         onT = self._bool1d(0)
@@ -211,9 +211,9 @@ class PiezoStagePI(Base, MotorInterface):
         err = self._pidll.PI_qPOS(ctypes.c_int(0), axesBuffer, posBuffer)
 
         param_dict = {}
-        param_dict['x'] = posBuffer[0]
-        param_dict['y'] = posBuffer[1]
-        param_dict['z'] = posBuffer[2]
+        param_dict['x'] = posBuffer[0] / 1e6
+        param_dict['y'] = posBuffer[1] / 1e6
+        param_dict['z'] = posBuffer[2] / 1e6
 
         return param_dict
 
