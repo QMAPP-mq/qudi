@@ -63,7 +63,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
     def on_deactivate(self):
         """ Deactivate module.
         """
-        pass
+        self.s.close() # close the connection
 
     def get_power_range(self):
         """ Return optical power range
