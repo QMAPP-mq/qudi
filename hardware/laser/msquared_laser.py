@@ -41,6 +41,8 @@ class MSquaredLaser(Base, SimpleLaserInterface):
     _ipaddy = ip
     _port = port
 
+    _target_wavelength = 785.0e-9 # TODO: pass this from interface
+
     def __init__(self, **kwargs):
         """ """
         super().__init__(**kwargs)
@@ -49,6 +51,8 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         self.mode = ControlMode.POWER
         self.current_setpoint = 0
         self.power_setpoint = 0
+
+        self.wavelength
 
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -245,6 +249,49 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         """
         return "Dummy laser v0.9.9\nnot used very much\nvery cheap price very good quality"
 
+    def get_wavelength(self):
+        """ Get the current laser wavelength
+
+            @return float: the laser wavelength in metres
+        """
+        self.wavelength = _get_status('wavelength')
+
+    def set_wavelength(self, target_wavelength):
+        """ Set the wavelength of the laser
+
+            @return float: the laser wavelength, or -1 if error
+        """
+        message = {'transmission_id' : [3], 'op':'set_wave_m', 
+               'parameters':{'wavelength': [target_wavelength],
+               'report':'finished'}}
+        response = self.send(message)
+        if response['status'][0] != 0:
+            return False
+        self.s.settimeout(300)
+        while True:
+            time.sleep(0.1)
+            response = self.s.recv(1024)
+            response = json.loads(response)
+            response = response["message"]["parameters"]
+            if  len(response) == 0:
+                continue
+            else:
+                break
+        if 'report' in response:   #because the stop tuning response will be captured here as well
+            if response['report'][0] != 0:
+                return False
+            else:
+                return True
+        else:
+            return 'stopped'
+
+        self.wavelength = get_wavelength(self)
+
+        if self.wavelength != target_wavelength:
+            return -1
+        else:
+            return self.wavelength
+
     def _connect(self, ip_addry, port):
         """ Establish a connection to the laser
 
@@ -289,3 +336,10 @@ class MSquaredLaser(Base, SimpleLaserInterface):
                 return -1
         except:
             return -1
+
+    def _get_status(self, param):
+        """ Querey the status of the status of the laser and return the requested parameter
+
+            @return various
+        """
+        pass # TODO: implement this function
