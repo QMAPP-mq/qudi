@@ -52,8 +52,8 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         self.current_setpoint = 0
         self.power_setpoint = 0
 
-        self.wavelength
-        self.wavelength_lock
+        self.wavelength = self._target_wavelength
+        self.wavelength_lock = False
 
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -61,8 +61,8 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         """ Activate module.
         """
         try:
-            _connect(_ip, _port)
-        else:
+            self._connect(self._ipaddy, self._port)
+        except:
             pass # TODO: throw a 'Could not connect to the laser' error
 
     def on_deactivate(self):
@@ -252,21 +252,21 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return float: the laser wavelength in metres
         """
-        self.wavelength = _get_status('wavelength')
+        self.wavelength = self._get_status('wavelength')
 
     def set_wavelength(self, target_wavelength):
         """ Set the wavelength of the laser
 
             @return float: the laser wavelength, or -1 if error
         """
-        self.wavelength_lock = _lock_wavelength(self, 'off')
+        self.wavelength_lock = self._lock_wavelength(self, 'off')
 
         message = {'transmission_id' : [3], 'op':'set_wave_m', 
                'parameters':{'wavelength': [target_wavelength],
                'report':'finished'}}
-        response = self.send(message)
+        response = self._send_command(message)
         if response['status'][0] != 0:
-            return False
+            return -1
         self.s.settimeout(300)
         while True:
             time.sleep(0.1)
@@ -279,34 +279,34 @@ class MSquaredLaser(Base, SimpleLaserInterface):
                 break
         if 'report' in response:   #because the stop tuning response will be captured here as well
             if response['report'][0] != 0:
-                return False
+                return -1
             else:
-                return True
+                return 0
         else:
             return 'stopped'
 
-        self.wavelength = get_wavelength(self)
+        self.wavelength = self.get_wavelength(self)
 
-        self.wavelength_lock = _lock_wavelength(self, 'on')
+        self.wavelength_lock = self._lock_wavelength(self, 'on')
 
         if self.wavelength != target_wavelength:
             return -1
         else:
-            return self.wavelength
+            return 0
 
-    def _connect(self, ip_addry, port):
+    def _connect(self, ip_addy, port):
         """ Establish a connection to the laser
 
             @return int: 0 if ok, -1 if error
         """
         try:
             self.s.settimeout(5)
-            self.s.connect((ip_addry,port))
+            self.s.connect((ip_addy,port))
             myIP = self.s.getsockname()[0]
-            msg = {"transmission_id" : [1] , "op":"start_link",
+            message = {"transmission_id" : [1] , "op":"start_link",
                    "parameters":{ "ip_address": myIP}}
-            reply = self.send(msg)
-            if reply['status'] == 'ok':
+            response = self._send_command(message)
+            if response['status'] == 'ok':
                 return 0
             else:
                 return -1
@@ -331,7 +331,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         try:
             message = {'transmission_id' : [2], 'op':'ping',
                    'parameters':{'text_in':'TESTING'}}
-            response = self.send(message)
+            response = self._send_command(message)
             if response['text_out'] == 'testing':
                 return 0
             else:
@@ -354,4 +354,4 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         message = {'transmission_id':[6], 'op':'lock_wave_m',
         'parameters':{'operation':target_state}}
         # return self.send(message)
-        # TODO: return lock state
+        # TODO: return lock state as bool
