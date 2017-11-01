@@ -245,7 +245,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return str: much laser, very useful
         """
-        return "Dummy laser v0.9.9\nnot used very much\nvery cheap price very good quality"
+        return "SolsTiS 3 TCP/IP Protocol"
 
     def get_wavelength(self):
         """ Get the current laser wavelength
