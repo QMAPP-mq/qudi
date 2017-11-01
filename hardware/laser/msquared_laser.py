@@ -224,24 +224,21 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return dict: dict of temperature namce and value in degrees Celsius
         """
-        return {
-            'psu': 32.2 * random.gauss(1, 0.1),
-            'head': 42.0 * random.gauss(1, 0.2)
-            }
+        pass
 
     def set_temperatures(self, temps):
         """ Set temperatures for lasers with tunable temperatures.
 
             @return {}: empty dict, dummy not a tunable laser
         """
-        return {}
+        pass
 
     def get_temperature_setpoints(self):
         """ Get temperature setpoints.
 
             @return dict: temperature setpoints for temperature tunable lasers
         """
-        return {'psu': 32.2, 'head': 42.0}
+        pass
 
     def get_extra_info(self):
         """ Multiple lines of dignostic information
@@ -263,7 +260,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             @return float: the laser wavelength, or -1 if error
         """
         self.wavelength_lock = _lock_wavelength(self, 'off')
-        
+
         message = {'transmission_id' : [3], 'op':'set_wave_m', 
                'parameters':{'wavelength': [target_wavelength],
                'report':'finished'}}
