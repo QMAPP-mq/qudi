@@ -28,6 +28,10 @@ import math
 import random
 import time
 
+import socket
+# import numpy as np
+import json
+
 class MSquaredLaser(Base, SimpleLaserInterface):
     """
     M Squared ultra narrow linewidth, Ti:Sapphire laser
@@ -38,8 +42,8 @@ class MSquaredLaser(Base, SimpleLaserInterface):
     laser_ip = '192.168.1.222' # TODO: pass this from config file
     laser_port = 39933 # TODO pass this from config file
     
-    _ipaddy = ip
-    _port = port
+    _ipaddy = laser_ip
+    _port = laser_port
 
     _target_wavelength = 785.0e-9 # TODO: pass this from interface
 
