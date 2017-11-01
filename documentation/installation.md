@@ -38,8 +38,8 @@ https://www.jetbrains.com/pycharm/help/configuring-python-interpreter-for-a-proj
 
 3. Install a conda package manager.  [Miniconda](https://conda.io/miniconda.html) is nice and easy.
 
-4. Install the qudi conda environment from `tools/conda-env-linx64-qt5.yml` .
+4. Install the qudi conda environment from `tools/conda-env-linx64-qt5.yml`, do ` conda env create -f conda-env-linx64-qt5.yml` .
 
-5. Activate the qudi conda environment.
+5. Activate the qudi conda environment, do `source activate qudi`.
 
 6. Change to the qudi code directory and run start.py using `./start.py` or `python3 start.py` or similar.
