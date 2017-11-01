@@ -55,7 +55,10 @@ class MSquaredLaser(Base, SimpleLaserInterface):
     def on_activate(self):
         """ Activate module.
         """
-        _connect(_ip, _port)
+        try:
+            _connect(_ip, _port)
+        else:
+            pass # TODO: throw a 'Could not connect to the laser' error
 
     def on_deactivate(self):
         """ Deactivate module.
@@ -255,6 +258,32 @@ class MSquaredLaser(Base, SimpleLaserInterface):
                    "parameters":{ "ip_address": myIP}}
             reply = self.send(msg)
             if reply['status'] == 'ok':
+                return 0
+            else:
+                return -1
+        except:
+            return -1
+
+    def _send_command(self, message):
+        """ Send a command to the laser
+
+        @return json: message + params
+        """
+        self.s.sendall(json.dumps( { "message" : message }))
+        response = self.s.recv(1024)
+        response = json.loads(response)
+        return response["message"]["parameters"]
+        
+    def _ping(self):
+        """ Ping the laser
+
+            @return int: 0 if ok, -1 if error
+        """
+        try:
+            message = {'transmission_id' : [2], 'op':'ping',
+                   'parameters':{'text_in':'TESTING'}}
+            response = self.send(message)
+            if response['text_out'] == 'testing':
                 return 0
             else:
                 return -1
