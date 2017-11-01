@@ -35,6 +35,12 @@ class MSquaredLaser(Base, SimpleLaserInterface):
     _modclass = 'msquaredlaser'
     _modtype = 'hardware'
 
+    laser_ip = '192.168.1.222' # TODO: pass this from config file
+    laser_port = 39933 # TODO pass this from config file
+    
+    _ipaddy = ip
+    _port = port
+
     def __init__(self, **kwargs):
         """ """
         super().__init__(**kwargs)
@@ -44,10 +50,12 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         self.current_setpoint = 0
         self.power_setpoint = 0
 
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
     def on_activate(self):
         """ Activate module.
         """
-        pass
+        _connect(_ip, _port)
 
     def on_deactivate(self):
         """ Deactivate module.
@@ -234,3 +242,21 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         """
         return "Dummy laser v0.9.9\nnot used very much\nvery cheap price very good quality"
 
+    def _connect(self, ip_addry, port):
+        """ Establish a connection to the laser
+
+            @return int: 0 if ok, -1 if error
+        """
+        try:
+            self.s.settimeout(5)
+            self.s.connect((ip_addry,port))
+            myIP = self.s.getsockname()[0]
+            msg = {"transmission_id" : [1] , "op":"start_link",
+                   "parameters":{ "ip_address": myIP}}
+            reply = self.send(msg)
+            if reply['status'] == 'ok':
+                return 0
+            else:
+                return -1
+        except:
+            return -1
