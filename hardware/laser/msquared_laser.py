@@ -53,6 +53,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         self.power_setpoint = 0
 
         self.wavelength
+        self.wavelength_lock
 
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -261,6 +262,8 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return float: the laser wavelength, or -1 if error
         """
+        self.wavelength_lock = _lock_wavelength(self, 'off')
+        
         message = {'transmission_id' : [3], 'op':'set_wave_m', 
                'parameters':{'wavelength': [target_wavelength],
                'report':'finished'}}
@@ -286,6 +289,8 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             return 'stopped'
 
         self.wavelength = get_wavelength(self)
+
+        self.wavelength_lock = _lock_wavelength(self, 'on')
 
         if self.wavelength != target_wavelength:
             return -1
@@ -343,3 +348,13 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             @return various
         """
         pass # TODO: implement this function
+
+    def _lock_wavelength(self, target_state):
+        """ Set the wavelength lock either `on' or `off'
+
+            @return None
+        """
+        message = {'transmission_id':[6], 'op':'lock_wave_m',
+        'parameters':{'operation':target_state}}
+        # return self.send(message)
+        # TODO: return lock state
