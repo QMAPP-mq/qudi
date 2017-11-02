@@ -367,7 +367,12 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return various
         """
-        pass # TODO: implement this function
+        message = {'transmission_id': [8],
+                   'op': 'get_status'
+                  }
+        self._send_command(message)
+        response = self._read_response()
+        return response[param]
 
     def _lock_wavelength(self, target_state):
         """ Set the wavelength lock either `on' or `off'
