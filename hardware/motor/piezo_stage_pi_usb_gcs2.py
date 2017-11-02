@@ -79,6 +79,9 @@ class PiezoStagePI(Base, MotorInterface):
             self._pidll.PI_ConnectUSB(charBuffer)
             self._devID = ctypes.c_int(0)
 
+        else:
+            self.log.warning('There is more than 1 PI device connected, I do not know which one to choose!')
+
         if self._pidll.PI_IsConnected(self._devID) is False:
             return 1
         else:
