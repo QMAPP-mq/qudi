@@ -51,6 +51,12 @@ class PiezoPIScannerInterfuse(Base, ConfocalScannerInterface):
 
         self._num_points = 500
 
+        # The number of counter logic bins to include in count data for a scan pixel
+        self._dwell_cnt_bins = 1
+
+        # The dwell time (seconds) to wait before sampling counter logic counts for the scan pixel
+        self._dwell_delay = 0.0
+
     def on_activate(self):
         """ Initialisation performed during activation of the module.
         """
@@ -78,7 +84,6 @@ class PiezoPIScannerInterfuse(Base, ConfocalScannerInterface):
         """
         pos_range = self._position_range.append([0,0])
         pos_range = [[0., 300e-6], [0., 300e-6], [0., 300e-6], [0., 0.]]
-        # print(pos_range)
         return pos_range
 
     def set_position_range(self, myrange=None):
@@ -221,9 +226,11 @@ class PiezoPIScannerInterfuse(Base, ConfocalScannerInterface):
             coords = line_path[:, i]
             self.scanner_set_position(x=coords[0], y=coords[1], z=coords[2], a=coords[3])
 
+            # dwell to accumulate count data
+            time.sleep(self._dwell_delay)
             # record count data
-            this_count_data = self._counter_logic.countdata[0,-1]
-            count_data[i] = this_count_data
+            this_count_data = self._counter_logic.countdata[0, -self._dwell_cnt_bins:]
+            count_data[i] = np.mean(this_count_data)
 
         return np.array([count_data]).T
 
@@ -244,3 +251,40 @@ class PiezoPIScannerInterfuse(Base, ConfocalScannerInterface):
         """
         #self._scanner_hw.close_scanner_clock()
         return 0
+
+    def set_dwell_count_bins(self, num_of_bins):
+        """ Sets the number of bins to be considered from counter logic when providing the count data
+        at a pixel.
+
+        @param int num_of_bins: How many count bins of data from the counter logic will be used to
+                                provide the count data at a pixel in the scan.
+        @return:
+        """
+
+        self._dwell_cnt_bins = num_of_bins
+
+    def set_dwell_delay(self, delay):
+        """ Sets the dwell time. This is the waiting time before querying the counter logic
+        This gives time for the count readings to accumulate before we ask for them to find the
+        count value at a given "pixel".
+
+        It is probably most sensible to set this as a multiple of  1/count_freq so that it corresponds
+        to an integer number of count bins.
+
+        @param float delay: delay time in seconds
+        """
+        self._dwell_delay = delay
+
+    def get_dwell_count_bins(self):
+        """
+
+        @return int: number of count bins from counter logic that are considered for a pixel in the scan.
+        """
+        return self._dwell_cnt_bins
+
+    def get_dwell_delay(self):
+        """
+
+        @return float: dwell delay time while waiting for count data to accumulate
+        """
+        return self._dwell_delay
