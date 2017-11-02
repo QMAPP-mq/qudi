@@ -2,6 +2,10 @@
 """
 This module controlls an M Squares laser (SolsTiS head).
 
+NOTE: It is important that the computer connecting to the SolsTiS
+has the same IP address as configured on the SolsTiS under
+Network Settings -> Remote Interface
+
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -19,11 +23,6 @@ Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
-from core.module import Base
-from interface.simple_laser_interface import SimpleLaserInterface
-from interface.simple_laser_interface import LaserState
-from interface.simple_laser_interface import ShutterState
-from interface.simple_laser_interface import ControlMode
 import math
 import random
 import time
@@ -32,20 +31,27 @@ import socket
 # import numpy as np
 import json
 
+from core.module import Base
+from interface.simple_laser_interface import SimpleLaserInterface
+from interface.simple_laser_interface import LaserState
+from interface.simple_laser_interface import ShutterState
+from interface.simple_laser_interface import ControlMode
+
 class MSquaredLaser(Base, SimpleLaserInterface):
+
     """
     M Squared ultra narrow linewidth, Ti:Sapphire laser
     """
     _modclass = 'msquaredlaser'
     _modtype = 'hardware'
 
-    laser_ip = '192.168.1.222' # TODO: pass this from config file
-    laser_port = 39933 # TODO pass this from config file
-    
-    _ipaddy = laser_ip
+    laser_ip = '192.168.1.222'  # TODO: pass this from config file
+    laser_port = 39933  # TODO pass this from config file
+
+    _ipaddr = laser_ip
     _port = laser_port
 
-    _target_wavelength = 785.0e-9 # TODO: pass this from interface
+    _target_wavelength = 785.0e-9  # TODO: pass this from interface
 
     def __init__(self, **kwargs):
         """ """
@@ -65,14 +71,20 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         """ Activate module.
         """
         try:
-            self._connect(self._ipaddy, self._port)
+            err = self._connect(self._ipaddr, self._port)
+            if err == 0:
+                self.log.info('Connected to M-Squared hardware')
+            else:
+                self.log.error('Attempt to connect M-Squared laser returned'
+                               'error code {}'.format(err)
+                               )
         except:
-            pass # TODO: throw a 'Could not connect to the laser' error
+            self.log.error('The attempt to connect raised an exception.')
 
     def on_deactivate(self):
         """ Deactivate module.
         """
-        self.s.close() # close the connection
+        self.s.close()  # close the connection
 
     def get_power_range(self):
         """ Return optical power range
@@ -103,7 +115,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             @return float: actual new power setpoint
         """
         self.power_setpoint = power
-        self.current_setpoint = math.sqrt(4*self.power_setpoint)*100
+        self.current_setpoint = math.sqrt(4 * self.power_setpoint) * 100
         return self.power_setpoint
 
     def get_current_unit(self):
@@ -142,7 +154,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             @return float: actual laser current setpoint
         """
         self.current_setpoint = current
-        self.power_setpoint = math.pow(self.current_setpoint/100, 2) / 4
+        self.power_setpoint = math.pow(self.current_setpoint / 100, 2) / 4
         return self.current_setpoint
 
     def allowed_control_modes(self):
@@ -265,23 +277,24 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         """
         self.wavelength_lock = self._lock_wavelength(self, 'off')
 
-        message = {'transmission_id' : [3], 'op':'set_wave_m', 
-               'parameters':{'wavelength': [target_wavelength],
-               'report':'finished'}}
+        message = {'transmission_id': [3],
+                   'op': 'set_wave_m',
+                   'parameters': {'wavelength': [target_wavelength],
+                                  'report': 'finished'
+                                  }
+                   }
         response = self._send_command(message)
         if response['status'][0] != 0:
             return -1
         self.s.settimeout(300)
         while True:
             time.sleep(0.1)
-            response = self.s.recv(1024)
-            response = json.loads(response)
-            response = response["message"]["parameters"]
-            if  len(response) == 0:
+            response = self._read_response()
+            if len(response) == 0:
                 continue
             else:
                 break
-        if 'report' in response:   #because the stop tuning response will be captured here as well
+        if 'report' in response:  # because the stop tuning response will be captured here as well
             if response['report'][0] != 0:
                 return -1
             else:
@@ -298,35 +311,41 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         else:
             return 0
 
-    def _connect(self, ip_addy, port):
+    def _connect(self, ipaddr, port):
         """ Establish a connection to the laser
 
             @return int: 0 if ok, -1 if error
         """
         try:
             self.s.settimeout(5)
-            self.s.connect((ip_addy,port))
+            self.s.connect((ipaddr, port))
             myIP = self.s.getsockname()[0]
-            message = {"transmission_id" : [1] , "op":"start_link",
-                   "parameters":{ "ip_address": myIP}}
-            response = self._send_command(message)
+            message = {"transmission_id": [1],
+                       "op": "start_link",
+                       "parameters": {"ip_address": myIP}
+                       }
+            self._send_command(message)
+            response = self._read_response()
             if response['status'] == 'ok':
                 return 0
             else:
                 return -1
         except:
-            return -1
+            return -2
 
     def _send_command(self, message):
         """ Send a command to the laser
 
         @return json: message + params
         """
-        self.s.sendall(json.dumps( { "message" : message }))
+        self.s.sendall(json.dumps({"message": message}).encode())
+        return 0
+
+    def _read_response(self):
         response = self.s.recv(1024)
         response = json.loads(response)
         return response["message"]["parameters"]
-        
+
     def _ping(self):
         """ Ping the laser
 
