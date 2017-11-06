@@ -85,7 +85,7 @@ class PiezoStagePI(Base, MotorInterface):
         if self._pidll.PI_IsConnected(self._devID) is False:
             return 1
         else:
-            self._toggle_servo_state(True)
+            self._set_servo_state(True)
             return 0
 
     @property
@@ -93,7 +93,7 @@ class PiezoStagePI(Base, MotorInterface):
         """ Deinitialisation performed during deactivation of the module.
         @return: error code
         """
-        self._toggle_servo_state(False)
+        self._set_servo_state(False)
         self._pidll.PI_RTO(self._devID, ctypes.c_char_p(''.encode()))
         return 0
 
@@ -300,7 +300,7 @@ class PiezoStagePI(Base, MotorInterface):
             #self._write_xyz(axis, 'MP')
         return axis, move
 
-    def _toggle_servo_state(self, to_state):
+    def _set_servo_state(self, to_state):
         """internal method enabling / disabling the servos
 
         @param bool to_state: desired state of the servos
@@ -322,7 +322,7 @@ class PiezoStagePI(Base, MotorInterface):
                 self._pidll.PI_SVO(self._devID, axis, self._bool1d(0))
 
         """ Replaced by loop, maintaining pending verification
-        
+
         # x axis
         axis = '1'
         axesBuffer = ctypes.c_char_p(str(axis).encode())
