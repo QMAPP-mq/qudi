@@ -308,7 +308,6 @@ class PiezoStagePI(Base, MotorInterface):
 
         servo_state = self._bool1d()
 
-
         axis_list = ['1', '2', '3']
 
         for axis in axis_list:
@@ -320,42 +319,5 @@ class PiezoStagePI(Base, MotorInterface):
                 self._pidll.PI_SVO(self._devID, axis, self._bool1d(1))
             elif (servo_state[0] is True) and (to_state is False):
                 self._pidll.PI_SVO(self._devID, axis, self._bool1d(0))
-
-        """ Replaced by loop, maintaining pending verification
-
-        # x axis
-        axis = '1'
-        axesBuffer = ctypes.c_char_p(str(axis).encode())
-
-        self._pidll.PI_qSVO(self._devID, axesBuffer, servo_state)
-
-        if (servo_state[0] is False) and (to_state is True):
-            self._pidll.PI_SVO(self._devID, axis, self._bool1d(1))
-        elif (servo_state[0] is True) and (to_state is False):
-            self._pidll.PI_SVO(self._devID, axis, self._bool1d(0))
-
-        # y axis
-        axis = '2'
-        axesBuffer = ctypes.c_char_p(str(axis).encode())
-
-        self._pidll.PI_qSVO(self._devID, axesBuffer, servo_state)
-
-        if (servo_state[0] is False) and (to_state is True):
-            self._pidll.PI_SVO(self._devID, axis, self._bool1d(1))
-        elif (servo_state[0] is True) and (to_state is False):
-            self._pidll.PI_SVO(self._devID, axis, self._bool1d(0))
-
-        # z axis
-        axis = '3'
-        axesBuffer = ctypes.c_char_p(str(axis).encode())
-
-        self._pidll.PI_qSVO(self._devID, axesBuffer, servo_state)
-
-        if (servo_state[0] is False) and (to_state is True):
-            self._pidll.PI_SVO(self._devID, axis, self._bool1d(1))
-        elif (servo_state[0] is True) and (to_state is False):
-            self._pidll.PI_SVO(self._devID, axis, self._bool1d(0))
-
-        """
 
 #########################################################################################
