@@ -268,7 +268,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return float: the laser wavelength in metres
         """
-        self.wavelength = self._get_status('wavelength')
+        return self._get_status('wavelength')[0]
 
     def set_wavelength(self, target_wavelength):
         """ Set the wavelength of the laser
