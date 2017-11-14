@@ -85,7 +85,7 @@ class PiezoStagePI(Base, MotorInterface):
         if self._pidll.PI_IsConnected(self._devID) is False:
             return 1
         else:
-            self._toggle_servo_state(True)
+            self._set_servo_state(True)
             return 0
 
     @property
@@ -93,7 +93,7 @@ class PiezoStagePI(Base, MotorInterface):
         """ Deinitialisation performed during deactivation of the module.
         @return: error code
         """
-        self._toggle_servo_state(False)
+        self._set_servo_state(False)
         self._pidll.PI_RTO(self._devID, ctypes.c_char_p(''.encode()))
         return 0
 
@@ -300,7 +300,7 @@ class PiezoStagePI(Base, MotorInterface):
             #self._write_xyz(axis, 'MP')
         return axis, move
 
-    def _toggle_servo_state(self, to_state):
+    def _set_servo_state(self, to_state):
         """internal method enabling / disabling the servos
 
         @param bool to_state: desired state of the servos
@@ -308,37 +308,16 @@ class PiezoStagePI(Base, MotorInterface):
 
         servo_state = self._bool1d()
 
-        # x axis
-        axis = '1'
-        axesBuffer = ctypes.c_char_p(str(axis).encode())
+        axis_list = ['1', '2', '3']
 
-        self._pidll.PI_qSVO(self._devID, axesBuffer, servo_state)
+        for axis in axis_list:
+            axesBuffer = ctypes.c_char_p(str(axis).encode())
 
-        if (servo_state[0] is False) and (to_state is True):
-            self._pidll.PI_SVO(self._devID, axis, self._bool1d(1))
-        elif (servo_state[0] is True) and (to_state is False):
-            self._pidll.PI_SVO(self._devID, axis, self._bool1d(0))
+            self._pidll.PI_qSVO(self._devID, axesBuffer, servo_state)
 
-        # y axis
-        axis = '2'
-        axesBuffer = ctypes.c_char_p(str(axis).encode())
-
-        self._pidll.PI_qSVO(self._devID, axesBuffer, servo_state)
-
-        if (servo_state[0] is False) and (to_state is True):
-            self._pidll.PI_SVO(self._devID, axis, self._bool1d(1))
-        elif (servo_state[0] is True) and (to_state is False):
-            self._pidll.PI_SVO(self._devID, axis, self._bool1d(0))
-
-        # z axis
-        axis = '3'
-        axesBuffer = ctypes.c_char_p(str(axis).encode())
-
-        self._pidll.PI_qSVO(self._devID, axesBuffer, servo_state)
-
-        if (servo_state[0] is False) and (to_state is True):
-            self._pidll.PI_SVO(self._devID, axis, self._bool1d(1))
-        elif (servo_state[0] is True) and (to_state is False):
-            self._pidll.PI_SVO(self._devID, axis, self._bool1d(0))
+            if (servo_state[0] is False) and (to_state is True):
+                self._pidll.PI_SVO(self._devID, axis, self._bool1d(1))
+            elif (servo_state[0] is True) and (to_state is False):
+                self._pidll.PI_SVO(self._devID, axis, self._bool1d(0))
 
 #########################################################################################
