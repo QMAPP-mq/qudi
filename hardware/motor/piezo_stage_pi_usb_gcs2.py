@@ -75,12 +75,22 @@ class PiezoStagePI(Base, MotorInterface):
 
         numofdevs = self._pidll.PI_EnumerateUSB(charBuffer, bufSize, ctypes.c_char_p(b''))
 
-        if numofdevs == 1:
-            self._pidll.PI_ConnectUSB(charBuffer)
+        # read the device list out of ctype charBuffer into a regular python list of strings
+        device_list = charBuffer.value.decode().split('\n')
+
+        # split list into elements, check for PI devices
+        pi_devices = [device for device in device_list if 'PI' in device]
+
+        if len(pi_devices) == 1:
+            device_name = ctypes.c_char_p(pi_devices[0].encode())
+            self._pidll.PI_ConnectUSB(device_name)
             self._devID = ctypes.c_int(0)
 
-        else:
+        elif len(pi_devices) > 1:
             self.log.warning('There is more than 1 PI device connected, I do not know which one to choose!')
+
+        else:
+            self.log.warning('I cannot find any connected devices with "PI" in their name.')
 
         if self._pidll.PI_IsConnected(self._devID) is False:
             return 1
@@ -88,7 +98,6 @@ class PiezoStagePI(Base, MotorInterface):
             self._set_servo_state(True)
             return 0
 
-    @property
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
         @return: error code
