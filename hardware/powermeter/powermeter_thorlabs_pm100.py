@@ -29,7 +29,8 @@ http://pythonhosted.org/ThorlabsPM100/thorlabsPM100.html
 
 class ThorlabsPM(Base, SlowCounterInterface):
 
-    """ This is the hardware module for communicating with a Thorlabs power meter 
+    """ unstable: Matt van Breugel
+    This is the hardware module for communicating with a Thorlabs power meter 
     (PM100) over USB. It uses the Thorlabs PM100 python module.
     """
     _modclass = 'ThorlabsPM'
