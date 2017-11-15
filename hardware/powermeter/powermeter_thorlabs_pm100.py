@@ -102,8 +102,9 @@ class ThorlabsPM(Base, SlowCounterInterface):
 
         @return int: the wavelength in meters
         """
+        self._wavelength = self.ThorlabsPM.sense.correction.wavelength * 1e-9
 
-        return self.ThorlabsPM.sense.correction.wavelength * 1e-9
+        return self._wavelength
 
     def set_wavelength(self, _target_wavelength):
         """ Sets the wavelength setting of the powermeter.
