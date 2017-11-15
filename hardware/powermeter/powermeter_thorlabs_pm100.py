@@ -80,7 +80,7 @@ class ThorlabsPM(Base, SlowCounterInterface):
 
         return constraints
 
-    def get_power(self, _averaging_window=1):
+    def get_power(self, _averaging_window=100):
         """ Returns the current power of the powermeter.
 
         @param int averaging_window: if defined, number of samples over which to average
