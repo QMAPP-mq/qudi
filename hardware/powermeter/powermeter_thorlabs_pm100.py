@@ -29,8 +29,8 @@ http://pythonhosted.org/ThorlabsPM100/thorlabsPM100.html
 
 class ThorlabsPM(Base, SlowCounterInterface):
 
-    """This is the Interface class to define the controls for the simple
-    microwave hardware.
+    """ This is the hardware module for communicating with a Thorlabs power meter 
+    (PM100) over USB. It uses the Thorlabs PM100 python module.
     """
     _modclass = 'ThorlabsPM'
     _modtype = 'hardware'
