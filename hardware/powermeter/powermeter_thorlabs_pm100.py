@@ -44,6 +44,8 @@ class ThorlabsPM(Base, SlowCounterInterface):
 
     def on_activate(self):
         """ Initialisation performed during activation of the module.
+
+        @return error code
         """
         # search and connect
        device_list = visa.ResourceManager()
@@ -53,16 +55,22 @@ class ThorlabsPM(Base, SlowCounterInterface):
            instance = rm.open_resource(pm_devices[0])
            self.ThorlabsPM = ThorlabsPM100(inst=instance)
         #    self.ThorlabsPM100.display.brightness = 10 # TODO: dim the display for measurements
+            return 0
         elif len(pm_devices > 1):
             self.log.warning('There is more than 1 Thorlabs PM100 connected, I do not know which one to choose.')
+            return 1
         else:
             self.log.warning('I cannot find any Thorlabs PM100 connected.')
+            return 1
 
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
+
+        @return error code
         """
         # self.ThorlabsPM100.display.brightness = 100 # TODO: restore display brightness
         self.ThorlabsPM100.abort()
+        return 0
 
     def get_constraints(self):
         """ Return a constraints class for the slow counter."""
