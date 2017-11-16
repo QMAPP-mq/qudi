@@ -53,7 +53,7 @@ class ThorlabsPM(Base, SlowCounterInterface):
        pm_devices = [device for device in device_list.list_resources() if 'P100' in device]
 
        if len(pm_devices) == 1:
-           instance = rm.open_resource(pm_devices[0])
+           instance = device_list.open_resource(pm_devices[0])
            self.ThorlabsPM = ThorlabsPM100(inst=instance)
            self.constraints = self.get_constraints() # read the contraints directly from the hardware
         #    self.ThorlabsPM100.display.brightness = 10 # TODO: dim the display for measurements
