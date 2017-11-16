@@ -120,7 +120,7 @@ class ThorlabsPM(Base, SlowCounterInterface):
         @return int: the wavelength in meters
         """
 
-        if _target_wavelength > self.constraints.max_wavelength) or (_target_wavelength < self.constraints.min_wavelength):
+        if (_target_wavelength > self.constraints.max_wavelength) or (_target_wavelength < self.constraints.min_wavelength):
             self.ThorlabsPM.system.beeper.immediate() # Issue an audible signal (Thorlabs PM100A not very loud)
             self.log.warning('Target wavelength is outside the constraints, I can not go to that wavelength.')
         else:
