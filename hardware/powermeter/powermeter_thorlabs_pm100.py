@@ -77,9 +77,9 @@ class ThorlabsPM(Base, SlowCounterInterface):
     def get_constraints(self):
         """ Return a constraints class for the powermeter."""
         constraints = PM_constraints()
-        constraints.min_wavelength = self.ThorlabsPM100.sense.correction.minimum_wavelength
-        constraints.max_wavelength = self.ThorlabsPM100.sense.correction.maximum_wavelength
-        constraints.threshold = self.ThorlabsPM100.sense.peakdetector.maximum_threshold
+        constraints.min_wavelength = self.ThorlabsPM.sense.correction.minimum_wavelength
+        constraints.max_wavelength = self.ThorlabsPM.sense.correction.maximum_wavelength
+        # constraints.threshold = self.ThorlabsPM.sense.peakdetector.maximum_threshold # not working, unsure of usage
 
         return constraints
 
@@ -94,9 +94,12 @@ class ThorlabsPM(Base, SlowCounterInterface):
         self.ThorlabsPM.sense.average.count = _averaging_window
         # self.ThorlabsPM.sense.average.count  # get the current averaging window
         # self.ThorlabsPM.read  # get the current power reading
+
+        ''' not working, unsure of threshold usage
         if self.ThorlabsPM.read >= self.constraints.threshold:
-            self.ThorlabsPM100.system.beeper.immediate() # Issue an audible signal (Thorlabs PM100A not very loud)
+            self.ThorlabsPM.system.beeper.immediate() # Issue an audible signal (Thorlabs PM100A not very loud)
             self.log.warning('Power is above maximum detector threshold.')
+        '''
 
         return self.ThorlabsPM.read
 
@@ -118,7 +121,7 @@ class ThorlabsPM(Base, SlowCounterInterface):
         """
 
         if _target_wavelength > self.constraints.max_wavelength) or (_target_wavelength < self.constraints.min_wavelength):
-            self.ThorlabsPM100.system.beeper.immediate() # Issue an audible signal (Thorlabs PM100A not very loud)
+            self.ThorlabsPM.system.beeper.immediate() # Issue an audible signal (Thorlabs PM100A not very loud)
             self.log.warning('Target wavelength is outside the constraints, I can not go to that wavelength.')
         else:
             self.ThorlabsPM.sense.correction.wavelength = _target_wavelength / 1e-9
