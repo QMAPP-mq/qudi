@@ -95,7 +95,7 @@ class ThorlabsPM(Base, SlowCounterInterface):
         # self.ThorlabsPM.sense.average.count  # get the current averaging window
         # self.ThorlabsPM.read  # get the current power reading
         if self.ThorlabsPM.read >= self.constraints.threshold:
-            self.ThorlabsPM100.system.beeper.immediate() # Issue an audible signal.
+            self.ThorlabsPM100.system.beeper.immediate() # Issue an audible signal (Thorlabs PM100 not very loud)
             self.log.warning('Power is above maximum detector threshold.')
 
         return self.ThorlabsPM.read
@@ -118,7 +118,7 @@ class ThorlabsPM(Base, SlowCounterInterface):
         """
 
         if _target_wavelength > self.constraints.max_wavelength) or (_target_wavelength < self.constraints.min_wavelength):
-            self.ThorlabsPM100.system.beeper.immediate() # Issue an audible signal.
+            self.ThorlabsPM100.system.beeper.immediate() # Issue an audible signal (Thorlabs PM100 not very loud)
             self.log.warning('Target wavelength is outside the constraints, I can not go to that wavelength.')
         else:
             self.ThorlabsPM.sense.correction.wavelength = _target_wavelength / 1e-9
