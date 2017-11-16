@@ -20,6 +20,9 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 """
 
 import visa
+
+from core.module import Base, ConfigOption
+from interface.powermeter_interface import PowermeterInterface
 from ThorlabsPM100 import ThorlabsPM100
 # TODO: ensure these imports are on the Qudi install list
 
@@ -27,7 +30,7 @@ from ThorlabsPM100 import ThorlabsPM100
 http://pythonhosted.org/ThorlabsPM100/thorlabsPM100.html
 """
 
-class ThorlabsPM(Base, SlowCounterInterface):
+class ThorlabsPM(Base, PowermeterInterface):
 
     """ unstable: Matt van Breugel
     This is the hardware module for communicating with a Thorlabs power meter 
@@ -37,8 +40,10 @@ class ThorlabsPM(Base, SlowCounterInterface):
     _modtype = 'hardware'
 
     # config
-    self. _wavelength = 532e-9 # defult wavelength on startup
-    self._averaging_window = 100 # TODO: read from config file
+    self._wavelength = 532e-9 # default wavelength on startup
+    self._averaging_window = 1 # the default value of the PM100A # TODO: read from config file
+
+    self.sampling_time = 3e-3  # 3ms # TODO: read this from the config file
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -83,6 +88,30 @@ class ThorlabsPM(Base, SlowCounterInterface):
 
         return constraints
 
+    def set_averaging_window(self, target_averaging_window=300e-3):
+        """ Set the averaging window of the powermeter.
+
+        @param int target_averaging_window: if defined, time over which to average (in seconds)
+        (For the PM100A: 1 sample takes approx. 3ms)
+
+        @return int: the averaging window in seconds
+        """
+
+        self.ThorlabsPM.sense.average.count = target_averaging_window / self.sampling_time
+        self._averaging_window = self.ThorlabsPM.sense.average.count * self.sampling_time
+
+        return self._averaging_window
+
+    def get_averaging_window(self):
+        """ Get the averaging window of the powermeter.
+
+        @return int: the averaging window in seconds
+        """
+
+        self._averaging_window = self.ThorlabsPM.sense.average.count * self.sampling_time
+
+        return self._averaging_window
+
     def get_power(self, _averaging_window=100):
         """ Returns the current power of the powermeter.
 
@@ -91,7 +120,7 @@ class ThorlabsPM(Base, SlowCounterInterface):
 
         @return float: the power in Watts
         """
-        self.ThorlabsPM.sense.average.count = _averaging_window
+        self.ThorlabsPM.sense.average.count = self._averaging_window
         # self.ThorlabsPM.sense.average.count  # get the current averaging window
         # self.ThorlabsPM.read  # get the current power reading
 
@@ -115,7 +144,7 @@ class ThorlabsPM(Base, SlowCounterInterface):
     def set_wavelength(self, _target_wavelength):
         """ Sets the wavelength setting of the powermeter.
 
-        @param int _target_wavelength: to wavelength to set the powermeter to
+        @param int _target_wavelength: wavelength to set the powermeter to (in meters)
 
         @return int: the wavelength in meters
         """
