@@ -77,8 +77,8 @@ class ThorlabsPM(Base, SlowCounterInterface):
     def get_constraints(self):
         """ Return a constraints class for the powermeter."""
         constraints = PM_constraints()
-        constraints.min_wavelength = self.ThorlabsPM.sense.correction.minimum_wavelength
-        constraints.max_wavelength = self.ThorlabsPM.sense.correction.maximum_wavelength
+        constraints.min_wavelength = self.ThorlabsPM.sense.correction.minimum_wavelength * 1e-9
+        constraints.max_wavelength = self.ThorlabsPM.sense.correction.maximum_wavelength * 1e-9
         # constraints.threshold = self.ThorlabsPM.sense.peakdetector.maximum_threshold # not working, unsure of usage
 
         return constraints
