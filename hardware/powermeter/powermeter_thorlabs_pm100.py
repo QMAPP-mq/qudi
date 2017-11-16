@@ -49,14 +49,14 @@ class ThorlabsPM(Base, SlowCounterInterface):
         @return error code
         """
         # search and connect
-       device_list = visa.ResourceManager()
-       pm_devices = [device for device in device_list.list_resources() if 'P100' in device]
+        device_list = visa.ResourceManager()
+        pm_devices = [device for device in device_list.list_resources() if 'P100' in device]
 
-       if len(pm_devices) == 1:
-           instance = device_list.open_resource(pm_devices[0])
-           self.ThorlabsPM = ThorlabsPM100(inst=instance)
-           self.constraints = self.get_constraints() # read the contraints directly from the hardware
-        #    self.ThorlabsPM.display.brightness = 10 # TODO: dim the display for measurements
+        if len(pm_devices) == 1:
+            instance = device_list.open_resource(pm_devices[0])
+            self.ThorlabsPM = ThorlabsPM100(inst=instance)
+            self.constraints = self.get_constraints() # read the contraints directly from the hardware
+            self.ThorlabsPM.display.brightness = 0.01 # dim the display for measurements
             return 0
         elif len(pm_devices > 1):
             self.log.warning('There is more than 1 Thorlabs PM100 connected, I do not know which one to choose.')
@@ -70,7 +70,7 @@ class ThorlabsPM(Base, SlowCounterInterface):
 
         @return error code
         """
-        # self.ThorlabsPM.display.brightness = 100 # TODO: restore display brightness
+        self.ThorlabsPM.display.brightness = 1 # restore display brightness to full
         self.ThorlabsPM.abort()
         return 0
 
