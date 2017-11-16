@@ -76,9 +76,9 @@ class ThorlabsPM(Base, SlowCounterInterface):
 
     def get_constraints(self):
         """ Return a constraints class for the powermeter."""
-        constraints = PM_constraints()
-        constraints.min_wavelength = self.ThorlabsPM.sense.correction.minimum_wavelength * 1e-9
-        constraints.max_wavelength = self.ThorlabsPM.sense.correction.maximum_wavelength * 1e-9
+        constraints = {}
+        constraints['min_wavelength'] = self.ThorlabsPM.sense.correction.minimum_wavelength * 1e-9
+        constraints['max_wavelength'] = self.ThorlabsPM.sense.correction.maximum_wavelength * 1e-9
         # constraints.threshold = self.ThorlabsPM.sense.peakdetector.maximum_threshold # not working, unsure of usage
 
         return constraints
@@ -120,7 +120,7 @@ class ThorlabsPM(Base, SlowCounterInterface):
         @return int: the wavelength in meters
         """
 
-        if (_target_wavelength > self.constraints.max_wavelength) or (_target_wavelength < self.constraints.min_wavelength):
+        if (_target_wavelength > self.constraints['max_wavelength']) or (_target_wavelength < self.constraints['min_wavelength']):
             self.ThorlabsPM.system.beeper.immediate() # Issue an audible signal (Thorlabs PM100A not very loud)
             self.log.warning('Target wavelength is outside the constraints, I can not go to that wavelength.')
         else:
