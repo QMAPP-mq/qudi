@@ -40,10 +40,10 @@ class ThorlabsPM(Base, PowermeterInterface):
     _modtype = 'hardware'
 
     # config
-    self._wavelength = 532e-9 # default wavelength on startup
-    self._averaging_window = 1 # the default value of the PM100A # TODO: read from config file
+    _wavelength = 532e-9 # default wavelength on startup
+    _averaging_window = 1 # the default value of the PM100A # TODO: read from config file
 
-    self.sampling_time = 3e-3  # 3ms # TODO: read this from the config file
+    _sampling_time = 3e-3  # 3ms # TODO: read this from the config file
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -97,8 +97,8 @@ class ThorlabsPM(Base, PowermeterInterface):
         @return int: the averaging window in seconds
         """
 
-        self.ThorlabsPM.sense.average.count = target_averaging_window / self.sampling_time
-        self._averaging_window = self.ThorlabsPM.sense.average.count * self.sampling_time
+        self.ThorlabsPM.sense.average.count = target_averaging_window / self._sampling_time
+        self._averaging_window = self.ThorlabsPM.sense.average.count * self._sampling_time
 
         return self._averaging_window
 
@@ -108,7 +108,7 @@ class ThorlabsPM(Base, PowermeterInterface):
         @return int: the averaging window in seconds
         """
 
-        self._averaging_window = self.ThorlabsPM.sense.average.count * self.sampling_time
+        self._averaging_window = self.ThorlabsPM.sense.average.count * self._sampling_time
 
         return self._averaging_window
 

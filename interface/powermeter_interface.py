@@ -85,4 +85,4 @@ class PowermeterInterface(metaclass=InterfaceMetaclass):
 
         @return int: the averaging window in seconds
         """
-       pass
+        pass
