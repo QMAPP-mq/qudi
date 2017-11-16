@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-This file contains the Qudi hardware for the Thorlabs PM100 Powermeter.
+This file contains the Qudi hardware for the Thorlabs PM100A Powermeter.
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ class ThorlabsPM(Base, SlowCounterInterface):
 
     """ unstable: Matt van Breugel
     This is the hardware module for communicating with a Thorlabs power meter 
-    (PM100) over USB. It uses the Thorlabs PM100 python module.
+    (PM100A) over USB. It uses the Thorlabs PM100 python module.
     """
     _modclass = 'ThorlabsPM'
     _modtype = 'hardware'
@@ -56,7 +56,7 @@ class ThorlabsPM(Base, SlowCounterInterface):
            instance = device_list.open_resource(pm_devices[0])
            self.ThorlabsPM = ThorlabsPM100(inst=instance)
            self.constraints = self.get_constraints() # read the contraints directly from the hardware
-        #    self.ThorlabsPM100.display.brightness = 10 # TODO: dim the display for measurements
+        #    self.ThorlabsPM.display.brightness = 10 # TODO: dim the display for measurements
             return 0
         elif len(pm_devices > 1):
             self.log.warning('There is more than 1 Thorlabs PM100 connected, I do not know which one to choose.')
@@ -70,13 +70,13 @@ class ThorlabsPM(Base, SlowCounterInterface):
 
         @return error code
         """
-        # self.ThorlabsPM100.display.brightness = 100 # TODO: restore display brightness
-        self.ThorlabsPM100.abort()
+        # self.ThorlabsPM.display.brightness = 100 # TODO: restore display brightness
+        self.ThorlabsPM.abort()
         return 0
 
     def get_constraints(self):
         """ Return a constraints class for the powermeter."""
-        constraints = PM100_constraints()
+        constraints = PM_constraints()
         constraints.min_wavelength = self.ThorlabsPM100.sense.correction.minimum_wavelength
         constraints.max_wavelength = self.ThorlabsPM100.sense.correction.maximum_wavelength
         constraints.threshold = self.ThorlabsPM100.sense.peakdetector.maximum_threshold
@@ -95,7 +95,7 @@ class ThorlabsPM(Base, SlowCounterInterface):
         # self.ThorlabsPM.sense.average.count  # get the current averaging window
         # self.ThorlabsPM.read  # get the current power reading
         if self.ThorlabsPM.read >= self.constraints.threshold:
-            self.ThorlabsPM100.system.beeper.immediate() # Issue an audible signal (Thorlabs PM100 not very loud)
+            self.ThorlabsPM100.system.beeper.immediate() # Issue an audible signal (Thorlabs PM100A not very loud)
             self.log.warning('Power is above maximum detector threshold.')
 
         return self.ThorlabsPM.read
@@ -118,7 +118,7 @@ class ThorlabsPM(Base, SlowCounterInterface):
         """
 
         if _target_wavelength > self.constraints.max_wavelength) or (_target_wavelength < self.constraints.min_wavelength):
-            self.ThorlabsPM100.system.beeper.immediate() # Issue an audible signal (Thorlabs PM100 not very loud)
+            self.ThorlabsPM100.system.beeper.immediate() # Issue an audible signal (Thorlabs PM100A not very loud)
             self.log.warning('Target wavelength is outside the constraints, I can not go to that wavelength.')
         else:
             self.ThorlabsPM.sense.correction.wavelength = _target_wavelength / 1e-9
