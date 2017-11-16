@@ -50,7 +50,7 @@ class ThorlabsPM(Base, SlowCounterInterface):
         """
         # search and connect
        device_list = visa.ResourceManager()
-       pm_devices = [device for device in device_list if 'P100' in device]
+       pm_devices = [device for device in device_list.list_resources() if 'P100' in device]
 
        if len(pm_devices) == 1:
            instance = rm.open_resource(pm_devices[0])
