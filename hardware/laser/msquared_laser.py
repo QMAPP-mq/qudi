@@ -39,7 +39,7 @@ from interface.simple_laser_interface import ControlMode
 
 class MSquaredLaser(Base, SimpleLaserInterface):
 
-    """
+    """ Matt van Breugel, Lachlan J. Rogers
     M Squared ultra narrow linewidth, Ti:Sapphire laser
     """
     _modclass = 'msquaredlaser'
