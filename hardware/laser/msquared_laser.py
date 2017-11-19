@@ -379,7 +379,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
     def _set_wavelength_lock(self, target_state):
         """ Set the wavelength lock either `on' or `off'
 
-            @return None
+            @return bool status of the wavelength lock
         """
         message = {'transmission_id':[6], 'op':'lock_wave_m',
                    'parameters':{'operation':target_state}}
@@ -401,3 +401,17 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             self.log.error('Unable to {} wavelength lock!').format(verb)
             return state
+
+    def _get_wavelength_lock(self, target_state):
+        """ Get the wavelength lock status
+
+            @return bool status of the wavelength lock
+        """
+        message = {'transmission_id':[7], 'op':'poll_wave_m'}
+
+        response = self._send_command(message)
+
+        if response['lock_status'][0] == 3:
+            return True
+        else:
+            return False
