@@ -74,6 +74,8 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             err = self._connect(self._ipaddr, self._port)
             if err == 0:
                 self.log.info('Connected to M-Squared hardware')
+                self.log.info('Applying wavelength lock')
+                self.wavelength_lock = self._lock_wavelength(self, 'on')
             else:
                 self.log.error('Attempt to connect M-Squared laser returned'
                                'error code {}'.format(err)
