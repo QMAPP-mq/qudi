@@ -399,7 +399,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
                 verb = 'remove'
                 state = True
 
-            self.log.error('Unable to {} wavelength lock!').format(verb)
+            self.log.error('Unable to {} wavelength lock!'.format(verb))
             return state
 
     def _get_wavelength_lock(self, target_state):
