@@ -380,6 +380,22 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             @return None
         """
         message = {'transmission_id':[6], 'op':'lock_wave_m',
-        'parameters':{'operation':target_state}}
-        # return self.send(message)
-        # TODO: return lock state as bool
+                   'parameters':{'operation':target_state}}
+
+        response = self._send_command(message)
+
+        if response['status'][0] == 0:
+            if target_state == 'on':
+                return True
+            else:
+                return False
+        else:
+            if target_state == 'on':
+                verb = 'apply'
+                state = False
+            else:
+                verb = 'remove'
+                state = True
+
+            self.log.error('Unable to {} wavelength lock!').format(verb)
+            return state
