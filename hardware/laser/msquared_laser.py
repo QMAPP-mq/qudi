@@ -51,8 +51,6 @@ class MSquaredLaser(Base, SimpleLaserInterface):
     _ipaddr = laser_ip
     _port = laser_port
 
-    _target_wavelength = 785.0e-9  # TODO: pass this from interface
-
     def __init__(self, **kwargs):
         """ """
         super().__init__(**kwargs)
@@ -62,7 +60,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         self.current_setpoint = 0
         self.power_setpoint = 0
 
-        self.wavelength = self._target_wavelength
+        self.wavelength = None
         self.wavelength_lock = False
 
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -74,6 +72,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             err = self._connect(self._ipaddr, self._port)
             if err == 0:
                 self.log.info('Connected to M-Squared hardware')
+                self.wavelength = self.get_wavelength(self)
                 self.log.info('Applying wavelength lock')
                 self.wavelength_lock = self._set_wavelength_lock(self, 'on')
             else:
