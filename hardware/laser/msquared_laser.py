@@ -309,6 +309,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         self.wavelength_lock = self._set_wavelength_lock(self, 'on')
 
         if self.wavelength != target_wavelength:
+            self.log.error('Something went wrong, the wavelength was unable to be changed.')
             return -1
         else:
             return 0
