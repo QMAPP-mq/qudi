@@ -6,6 +6,9 @@ NOTE: It is important that the computer connecting to the SolsTiS
 has the same IP address as configured on the SolsTiS under
 Network Settings -> Remote Interface
 
+NOTE: This hardware module is currently not utilising a wavelength
+meter, which may have been installed with your M Squared laser.
+
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -39,7 +42,7 @@ from interface.simple_laser_interface import ControlMode
 
 class MSquaredLaser(Base, SimpleLaserInterface):
 
-    """
+    """ Matt van Breugel, Lachlan J. Rogers
     M Squared ultra narrow linewidth, Ti:Sapphire laser
     """
     _modclass = 'msquaredlaser'
@@ -51,8 +54,6 @@ class MSquaredLaser(Base, SimpleLaserInterface):
     _ipaddr = laser_ip
     _port = laser_port
 
-    _target_wavelength = 785.0e-9  # TODO: pass this from interface
-
     def __init__(self, **kwargs):
         """ """
         super().__init__(**kwargs)
@@ -62,7 +63,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         self.current_setpoint = 0
         self.power_setpoint = 0
 
-        self.wavelength = self._target_wavelength
+        self.wavelength = None
         self.wavelength_lock = False
 
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -74,6 +75,8 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             err = self._connect(self._ipaddr, self._port)
             if err == 0:
                 self.log.info('Connected to M-Squared hardware')
+                self.wavelength = self.get_wavelength()
+                # self.wavelength_lock = self._set_wavelength_lock('on')  # For use with attached wavelength meter
             else:
                 self.log.error('Attempt to connect M-Squared laser returned'
                                'error code {}'.format(err)
@@ -90,21 +93,21 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         """ Return optical power range
 
             @return (float, float): power range
-        """
+        """ # Not support by this laser
         return (0, 0.250)
 
     def get_power(self):
         """ Return laser power
 
             @return float: Laser power in watts
-        """
+        """ # Not support by this laser
         return self.power_setpoint * random.gauss(1, 0.01)
 
     def get_power_setpoint(self):
         """ Return optical power setpoint.
 
             @return float: power setpoint in watts
-        """
+        """ # Not support by this laser
         return self.power_setpoint
 
     def set_power(self, power):
@@ -113,7 +116,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             @param float power: power setpoint
 
             @return float: actual new power setpoint
-        """
+        """ # Not support by this laser
         self.power_setpoint = power
         self.current_setpoint = math.sqrt(4 * self.power_setpoint) * 100
         return self.power_setpoint
@@ -122,28 +125,28 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         """ Get unit for laser current.
 
             @return str: unit
-        """
+        """ # Not support by this laser
         return '%'
 
     def get_current_range(self):
         """ Get laser current range.
 
             @return (float, float): laser current range
-        """
+        """ # Not support by this laser
         return (0, 100)
 
     def get_current(self):
         """ Get current laser current
 
             @return float: laser current in current curent units
-        """
+        """ # Not support by this laser
         return self.current_setpoint * random.gauss(1, 0.05)
 
     def get_current_setpoint(self):
         """ Get laser curent setpoint
 
             @return float: laser current setpoint
-        """
+        """ # Not support by this laser
         return self.current_setpoint
 
     def set_current(self, current):
@@ -152,7 +155,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             @prarm float current: desired laser current setpoint
 
             @return float: actual laser current setpoint
-        """
+        """ # Not support by this laser
         self.current_setpoint = current
         self.power_setpoint = math.pow(self.current_setpoint / 100, 2) / 4
         return self.current_setpoint
@@ -161,14 +164,14 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         """ Get supported control modes
 
             @return list(): list of supported ControlMode
-        """
+        """ # Not support by this laser
         return [ControlMode.POWER, ControlMode.CURRENT]
 
     def get_control_mode(self):
         """ Get the currently active control mode
 
             @return ControlMode: active control mode
-        """
+        """ # Not support by this laser
         return self.mode
 
     def set_control_mode(self, control_mode):
@@ -177,7 +180,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             @param ControlMode control_mode: desired control mode
 
             @return ControlMode: actual active ControlMode
-        """
+        """ # Not support by this laser
         self.mode = control_mode
         return self.mode
 
@@ -185,7 +188,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         """ Turn on laser.
 
             @return LaserState: actual laser state
-        """
+        """ # Not support by this laser
         time.sleep(1)
         self.lstate = LaserState.ON
         return self.lstate
@@ -194,7 +197,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         """ Turn off laser.
 
             @return LaserState: actual laser state
-        """
+        """ # Not support by this laser
         time.sleep(1)
         self.lstate = LaserState.OFF
         return self.lstate
@@ -203,7 +206,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         """ Get laser state
 
             @return LaserState: actual laser state
-        """
+        """ # Not support by this laser
         return self.lstate
 
     def set_laser_state(self, state):
@@ -212,7 +215,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             @param LaserState state: desired laser state
 
             @return LaserState: actual laser state
-        """
+        """ # Not support by this laser
         time.sleep(1)
         self.lstate = state
         return self.lstate
@@ -221,7 +224,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         """ Get laser shutter state
 
             @return ShutterState: actual laser shutter state
-        """
+        """ # Not support by this laser
         return self.shutter
 
     def set_shutter_state(self, state):
@@ -230,7 +233,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             @param ShutterState state: desired laser shutter state
 
             @return ShutterState: actual laser shutter state
-        """
+        """ # Not support by this laser
         time.sleep(1)
         self.shutter = state
         return self.shutter
@@ -239,21 +242,21 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         """ Get all available temperatures.
 
             @return dict: dict of temperature namce and value in degrees Celsius
-        """
+        """ # Not support by this laser
         pass
 
     def set_temperatures(self, temps):
         """ Set temperatures for lasers with tunable temperatures.
 
             @return {}: empty dict, dummy not a tunable laser
-        """
+        """ # Not support by this laser
         pass
 
     def get_temperature_setpoints(self):
         """ Get temperature setpoints.
 
             @return dict: temperature setpoints for temperature tunable lasers
-        """
+        """ # Not support by this laser
         pass
 
     def get_extra_info(self):
@@ -275,15 +278,20 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return float: the laser wavelength, or -1 if error
         """
-        self.wavelength_lock = self._lock_wavelength(self, 'off')
+        # self.wavelength_lock = self._set_wavelength_lock('off')  # For use with attached wavelength meter
+
+        self.log.info('M Squared hardware module not configured for use with wavelength meter')
 
         message = {'transmission_id': [3],
-                   'op': 'set_wave_m',
+                   'op': 'move_wave_t', # use set_wave_m if using a wavelength meter
                    'parameters': {'wavelength': [target_wavelength],
                                   'report': 'finished'
                                   }
                    }
-        response = self._send_command(message)
+        self._send_command(message)
+        time.sleep(0.1)
+        response = self._read_response()
+
         if response['status'][0] != 0:
             return -1
         self.s.settimeout(300)
@@ -294,22 +302,36 @@ class MSquaredLaser(Base, SimpleLaserInterface):
                 continue
             else:
                 break
-        if 'report' in response:  # because the stop tuning response will be captured here as well
+        if 'report' in response:  # The stop tuning response will be captured here as well
             if response['report'][0] != 0:
                 return -1
             else:
+                if self._tuning_status() is True:  # I do not think this will get triggered
+                    self.log.warning('M Squared wavelength tuning may not be complete')
+                # self.wavelength_lock = self._set_wavelength_lock('on') # For use with attached wavelength meter
+                self.wavelength = self.get_wavelength()
+                self._tuning_status()
                 return 0
         else:
             return 'stopped'
 
-        self.wavelength = self.get_wavelength(self)
+    def _tuning_status(self):
+        """ Check the tuning status of the laser
 
-        self.wavelength_lock = self._lock_wavelength(self, 'on')
+            @return bool True if still tuning, False if complete
+        """
+        message = {'transmission_id': [8],
+                   'op': 'poll_move_wave_t'
+                   }
+        self._send_command(message)
+        time.sleep(0.1)
+        response = self._read_response()
 
-        if self.wavelength != target_wavelength:
-            return -1
+        if response['status'][0] != 0:
+            return True
         else:
-            return 0
+            return False
+
 
     def _connect(self, ipaddr, port):
         """ Establish a connection to the laser
@@ -326,6 +348,8 @@ class MSquaredLaser(Base, SimpleLaserInterface):
                        }
             self._send_command(message)
             response = self._read_response()
+            # TODO catch this and remind the user to double check IP address in SolsTiS config
+            #print('protocol error: ', response['protocol_error'])
             if response['status'] == 'ok':
                 return 0
             else:
@@ -354,7 +378,11 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         try:
             message = {'transmission_id' : [2], 'op':'ping',
                    'parameters':{'text_in':'TESTING'}}
-            response = self._send_command(message)
+
+            self._send_command(message)
+            time.sleep(0.1)
+            response = self._read_response()
+
             if response['text_out'] == 'testing':
                 return 0
             else:
@@ -374,12 +402,44 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         response = self._read_response()
         return response[param]
 
-    def _lock_wavelength(self, target_state):
+    def _set_wavelength_lock(self, target_state):
         """ Set the wavelength lock either `on' or `off'
 
-            @return None
+            @return bool status of the wavelength lock
         """
+
         message = {'transmission_id':[6], 'op':'lock_wave_m',
-        'parameters':{'operation':target_state}}
-        # return self.send(message)
-        # TODO: return lock state as bool
+                   'parameters':{'operation':target_state}}
+
+        self._send_command(message)
+        response = self._read_response()
+
+        if response['status'][0] == 0:
+            if target_state == 'on':
+                return True
+            else:
+                return False
+        else:
+            if target_state == 'on':
+                verb = 'apply'
+                state = False
+            else:
+                verb = 'remove'
+                state = True
+
+            self.log.error('Unable to {} wavelength lock!'.format(verb))
+            return state
+
+    def _get_wavelength_lock(self, target_state):
+        """ Get the wavelength lock status
+
+            @return bool status of the wavelength lock
+        """
+        message = {'transmission_id':[7], 'op':'poll_wave_m'}
+
+        response = self._send_command(message)
+
+        if response['lock_status'][0] == 3:
+            return True
+        else:
+            return False
