@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-This module controlls an M Squares laser (SolsTiS head).
+This module controlls an M Squared laser (SolsTiS head).
 
 NOTE: It is important that the computer connecting to the SolsTiS
 has the same IP address as configured on the SolsTiS under
@@ -8,6 +8,11 @@ Network Settings -> Remote Interface
 
 NOTE: This hardware module is currently not utilising a wavelength
 meter, which may have been installed with your M Squared laser.
+
+NOTE: Testing on M Squared SolsTiS running:
+Interface version: Solstis_3_NS_V54
+DSP version: Solstis 3 Rel 5.22 06-09-16 10:23
+This information can be found under Configure > Interface Update
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
