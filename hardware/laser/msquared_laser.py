@@ -54,6 +54,11 @@ class MSquaredLaser(Base, SimpleLaserInterface):
     _ipaddr = laser_ip
     _port = laser_port
 
+    # good starting positions for QMAPP Diamond Nanoscience Lab M Squared
+    # TODO: pass this from the config file
+    _beam_align_x = 77.85
+    _beam_align_y = 62.80
+
     def __init__(self, **kwargs):
         """ """
         super().__init__(**kwargs)
