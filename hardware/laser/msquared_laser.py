@@ -277,13 +277,21 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         """
         # self.wavelength_lock = self._set_wavelength_lock('off')
 
+        self.log.info('M Squared hardware module not configured for use with wavelength meter')
+
         message = {'transmission_id': [3],
-                   'op': 'set_wave_m',
+                   'op': 'move_wave_t',
                    'parameters': {'wavelength': [target_wavelength],
                                   'report': 'finished'
                                   }
                    }
-        response = self._send_command(message)
+        self._send_command(message)
+        time.sleep(0.1)
+        response = self._read_response()
+
+        print(message)
+        print(response)
+
         if response['status'][0] != 0:
             return -1
         self.s.settimeout(300)
@@ -298,13 +306,15 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             if response['report'][0] != 0:
                 return -1
             else:
+                # self.wavelength_lock = self._set_wavelength_lock('on')
+                self.wavelength = self.get_wavelength()
                 return 0
         else:
             return 'stopped'
 
-        self.wavelength = self.get_wavelength()
 
-        # self.wavelength_lock = self._set_wavelength_lock('on')
+
+
 
         if self.wavelength != target_wavelength:
             self.log.error('Something went wrong, the wavelength was unable to be changed.')
@@ -357,7 +367,11 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         try:
             message = {'transmission_id' : [2], 'op':'ping',
                    'parameters':{'text_in':'TESTING'}}
-            response = self._send_command(message)
+
+            self._send_command(message)
+            time.sleep(0.1)
+            response = self._read_response()
+
             if response['text_out'] == 'testing':
                 return 0
             else:
