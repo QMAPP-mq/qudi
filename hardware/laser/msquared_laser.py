@@ -59,6 +59,8 @@ class MSquaredLaser(Base, SimpleLaserInterface):
     _beam_align_x = 77.85
     _beam_align_y = 62.80
 
+    _beam_align_mode = None
+
     def __init__(self, **kwargs):
         """ """
         super().__init__(**kwargs)
@@ -417,6 +419,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
                    'parameters':{'operation':target_state}}
 
         self._send_command(message)
+        time.sleep(0.1)
         response = self._read_response()
 
         if response['status'][0] == 0:
@@ -442,9 +445,31 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         """
         message = {'transmission_id':[7], 'op':'poll_wave_m'}
 
-        response = self._send_command(message)
+        self._send_command(message)
+        time.sleep(0.1)
+        response = self._read_response()
 
         if response['lock_status'][0] == 3:
             return True
         else:
             return False
+
+    def _get_beam_align(self):
+        """ Get the Beam X and Beam Y alignment variables
+
+            @return: None
+        """
+        message = {'transmission_id':[11], 'op':'get_alignment_status'}
+
+        self._send_command(message)
+        time.sleep(0.1)
+        response = self._read_response()
+
+        _beam_align_mode = response['condition'][0]
+
+        _beam_align_x = response['x_alignment'][0]
+        _beam_align_y = response['y_alignment'][0]
+
+        print('mode: ', _beam_align_mode)
+        print('beam x: ', _beam_align_x)
+        print('beam y: ', _beam_align_y)
