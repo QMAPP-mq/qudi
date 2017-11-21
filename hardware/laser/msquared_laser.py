@@ -73,8 +73,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             if err == 0:
                 self.log.info('Connected to M-Squared hardware')
                 self.wavelength = self.get_wavelength()
-                self.log.info('Applying wavelength lock')
-                self.wavelength_lock = self._set_wavelength_lock('on')
+                # self.wavelength_lock = self._set_wavelength_lock('on')
             else:
                 self.log.error('Attempt to connect M-Squared laser returned'
                                'error code {}'.format(err)
@@ -276,7 +275,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return float: the laser wavelength, or -1 if error
         """
-        self.wavelength_lock = self._set_wavelength_lock('off')
+        # self.wavelength_lock = self._set_wavelength_lock('off')
 
         message = {'transmission_id': [3],
                    'op': 'set_wave_m',
@@ -305,7 +304,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
         self.wavelength = self.get_wavelength()
 
-        self.wavelength_lock = self._set_wavelength_lock('on')
+        # self.wavelength_lock = self._set_wavelength_lock('on')
 
         if self.wavelength != target_wavelength:
             self.log.error('Something went wrong, the wavelength was unable to be changed.')
@@ -383,10 +382,14 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return bool status of the wavelength lock
         """
+
         message = {'transmission_id':[6], 'op':'lock_wave_m',
                    'parameters':{'operation':target_state}}
 
-        response = self._send_command(message)
+        self._send_command(message)
+        response = self._read_response()
+        print(response)
+        print(response['status'][0])
 
         if response['status'][0] == 0:
             if target_state == 'on':
