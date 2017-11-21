@@ -76,7 +76,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             if err == 0:
                 self.log.info('Connected to M-Squared hardware')
                 self.wavelength = self.get_wavelength()
-                # self.wavelength_lock = self._set_wavelength_lock('on')
+                # self.wavelength_lock = self._set_wavelength_lock('on')  # For use with attached wavelength meter
             else:
                 self.log.error('Attempt to connect M-Squared laser returned'
                                'error code {}'.format(err)
@@ -278,7 +278,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return float: the laser wavelength, or -1 if error
         """
-        # self.wavelength_lock = self._set_wavelength_lock('off')
+        # self.wavelength_lock = self._set_wavelength_lock('off')  # For use with attached wavelength meter
 
         self.log.info('M Squared hardware module not configured for use with wavelength meter')
 
@@ -292,9 +292,6 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         time.sleep(0.1)
         response = self._read_response()
 
-        print(message)
-        print(response)
-
         if response['status'][0] != 0:
             return -1
         self.s.settimeout(300)
@@ -305,25 +302,36 @@ class MSquaredLaser(Base, SimpleLaserInterface):
                 continue
             else:
                 break
-        if 'report' in response:  # because the stop tuning response will be captured here as well
+        if 'report' in response:  # The stop tuning response will be captured here as well
             if response['report'][0] != 0:
                 return -1
             else:
-                # self.wavelength_lock = self._set_wavelength_lock('on')
+                if self._tuning_status() is True:  # I do not think this will get triggered
+                    self.log.warning('M Squared wavelength tuning may not be complete')
+                # self.wavelength_lock = self._set_wavelength_lock('on') # For use with attached wavelength meter
                 self.wavelength = self.get_wavelength()
+                self._tuning_status()
                 return 0
         else:
             return 'stopped'
 
+    def _tuning_status(self):
+        """ Check the tuning status of the laser
 
+            @return bool True if still tuning, False if complete
+        """
+        message = {'transmission_id': [8],
+                   'op': 'poll_move_wave_t'
+                   }
+        self._send_command(message)
+        time.sleep(0.1)
+        response = self._read_response()
 
-
-
-        if self.wavelength != target_wavelength:
-            self.log.error('Something went wrong, the wavelength was unable to be changed.')
-            return -1
+        if response['status'][0] != 0:
+            return True
         else:
-            return 0
+            return False
+
 
     def _connect(self, ipaddr, port):
         """ Establish a connection to the laser
