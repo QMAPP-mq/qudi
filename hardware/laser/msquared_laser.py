@@ -6,6 +6,9 @@ NOTE: It is important that the computer connecting to the SolsTiS
 has the same IP address as configured on the SolsTiS under
 Network Settings -> Remote Interface
 
+NOTE: This hardware module is currently not utilising a wavelength
+meter, which may have been installed with your M Squared laser.
+
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -280,7 +283,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         self.log.info('M Squared hardware module not configured for use with wavelength meter')
 
         message = {'transmission_id': [3],
-                   'op': 'move_wave_t',
+                   'op': 'move_wave_t', # use set_wave_m if using a wavelength meter
                    'parameters': {'wavelength': [target_wavelength],
                                   'report': 'finished'
                                   }
