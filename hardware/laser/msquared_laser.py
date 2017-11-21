@@ -388,8 +388,6 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
         self._send_command(message)
         response = self._read_response()
-        print(response)
-        print(response['status'][0])
 
         if response['status'][0] == 0:
             if target_state == 'on':
