@@ -100,7 +100,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
                 if self._get_beam_align() != (50., 50.):  # if Beam X and Beam Y are not set to defaults
                     self._beam_align_x, self._beam_align_y = self._get_beam_align() # update the beam alignment variables
                 else:  # else set the beam alignment parameters to my defaults and update the beam alignment variables
-                    self._beam_align_x, self._beam_align_y = self._set_beam_align(_my_beam_align_x_default, _my_beam_align_y_default)
+                    self._beam_align_x, self._beam_align_y = self._set_beam_align(self._my_beam_align_x_default, self._my_beam_align_y_default)
 
             else:
                 self.log.error('Attempt to connect M-Squared laser returned'
@@ -296,7 +296,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return float: the laser wavelength in metres
         """
-        return self._get_status('wavelength')[0]
+        return self._get_status('wavelength')[0] * 1e-9
 
     def set_wavelength(self, target_wavelength):
         """ Set the wavelength of the laser
@@ -309,7 +309,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
         message = {'transmission_id': [3],
                    'op': 'move_wave_t', # use set_wave_m if using a wavelength meter
-                   'parameters': {'wavelength': [target_wavelength],
+                   'parameters': {'wavelength': [target_wavelength * 1e9],
                                   'report': 'finished'
                                   }
                    }
