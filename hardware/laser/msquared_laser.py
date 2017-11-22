@@ -65,7 +65,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
     # good starting positions for QMAPP Diamond Nanoscience Lab M Squared
     # TODO: pass this from the config file
     _my_beam_align_x_default = 77.85
-    _my_beam_align_x_default = 62.80
+    _my_beam_align_y_default = 62.80
 
     # _beam_align_mode = None  # message not returning expected response, documentation update requested
                                # get_alignment_status response['condition'][0] returns "hold"
