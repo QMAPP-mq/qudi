@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-This module controlls an M Squares laser (SolsTiS head).
+This module controlls an M Squared laser (SolsTiS head).
 
 NOTE: It is important that the computer connecting to the SolsTiS
 has the same IP address as configured on the SolsTiS under
@@ -8,6 +8,11 @@ Network Settings -> Remote Interface
 
 NOTE: This hardware module is currently not utilising a wavelength
 meter, which may have been installed with your M Squared laser.
+
+NOTE: Testing on M Squared SolsTiS running:
+Interface version: Solstis_3_NS_V54
+DSP version: Solstis 3 Rel 5.22 06-09-16 10:23
+This information can be found under Configure > Interface Update
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -49,10 +54,22 @@ class MSquaredLaser(Base, SimpleLaserInterface):
     _modtype = 'hardware'
 
     laser_ip = '192.168.1.222'  # TODO: pass this from config file
-    laser_port = 39933  # TODO pass this from config file
+    laser_port = 39933  # TODO: pass this from config file
 
     _ipaddr = laser_ip
     _port = laser_port
+
+    _beam_align_x = None
+    _beam_align_y = None
+
+    # good starting positions for QMAPP Diamond Nanoscience Lab M Squared
+    # TODO: pass this from the config file
+    _my_beam_align_x_default = 77.85
+    _my_beam_align_y_default = 62.80
+
+    # _beam_align_mode = None  # message not returning expected response, documentation update requested
+                               # get_alignment_status response['condition'][0] returns "hold"
+                               # TODO: ensure beam alignment mode is set to Manual
 
     def __init__(self, **kwargs):
         """ """
@@ -77,6 +94,14 @@ class MSquaredLaser(Base, SimpleLaserInterface):
                 self.log.info('Connected to M-Squared hardware')
                 self.wavelength = self.get_wavelength()
                 # self.wavelength_lock = self._set_wavelength_lock('on')  # For use with attached wavelength meter
+
+                self._set_beam_align_manual() # regardless of mode, switch beam alignment operation to Manual
+
+                if self._get_beam_align() != (50., 50.):  # if Beam X and Beam Y are not set to defaults
+                    self._beam_align_x, self._beam_align_y = self._get_beam_align() # update the beam alignment variables
+                else:  # else set the beam alignment parameters to my defaults and update the beam alignment variables
+                    self._beam_align_x, self._beam_align_y = self._set_beam_align(self._my_beam_align_x_default, self._my_beam_align_y_default)
+
             else:
                 self.log.error('Attempt to connect M-Squared laser returned'
                                'error code {}'.format(err)
@@ -271,7 +296,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return float: the laser wavelength in metres
         """
-        return self._get_status('wavelength')[0]
+        return self._get_status('wavelength')[0] * 1e-9
 
     def set_wavelength(self, target_wavelength):
         """ Set the wavelength of the laser
@@ -284,7 +309,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
         message = {'transmission_id': [3],
                    'op': 'move_wave_t', # use set_wave_m if using a wavelength meter
-                   'parameters': {'wavelength': [target_wavelength],
+                   'parameters': {'wavelength': [target_wavelength * 1e9],
                                   'report': 'finished'
                                   }
                    }
@@ -412,6 +437,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
                    'parameters':{'operation':target_state}}
 
         self._send_command(message)
+        time.sleep(0.1)
         response = self._read_response()
 
         if response['status'][0] == 0:
@@ -437,9 +463,99 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         """
         message = {'transmission_id':[7], 'op':'poll_wave_m'}
 
-        response = self._send_command(message)
+        self._send_command(message)
+        time.sleep(0.1)
+        response = self._read_response()
 
         if response['lock_status'][0] == 3:
             return True
         else:
             return False
+
+    def _get_beam_align(self):
+        """ Get the Beam X and Beam Y alignment variables
+
+            @return: float : the Beam X alignment parameter
+                     float : the Beam X alignment parameter
+        """
+        message = {'transmission_id':[11], 'op':'get_alignment_status'}
+
+        self._send_command(message)
+        time.sleep(0.1)
+        response = self._read_response()
+
+        return response['x_alignment'][0], response['y_alignment'][0]
+
+    def _set_beam_align(self, beam_x, beam_y):
+        """ Set the beam alignment
+
+            @return: float : the Beam X alignment parameter
+                        float : the Beam X alignment parameter
+        """
+        self._set_beam_align_x(beam_x)
+        self._set_beam_align_y(beam_y)
+
+        return self._get_beam_align()
+
+    def _set_beam_align_x(self, beam_x):
+        """ Set the beam x alignment
+
+            @return: None
+        """  # TODO: combine _set_beam_align_x and _set_beam_align_y into a single function
+        message = {'transmission_id': [11],
+                    'op': 'beam_adjust_x',
+                    'parameters': {'x_value': [beam_x]
+                                    }
+            }
+
+        self._send_command(message)
+        time.sleep(0.1)
+        response = self._read_response()
+
+        if response['status'][0] == 3:
+            self.log.error('Beam x alignment operation failed - not in manual mode')
+        elif response['status'][0] != 0:
+            self.log.error('An error has occured setting the Beam X parameter')
+        else:
+            self._beam_align_x = beam_x  # only update if operation completed
+
+    def _set_beam_align_y(self, beam_y):
+        """ Set the beam y alignment
+
+            @return: None
+        """  # TODO: combine _set_beam_align_x and _set_beam_align_y into a single function
+        message = {'transmission_id': [12],
+                    'op': 'beam_adjust_y',
+                    'parameters': {'y_value': [beam_y]
+                                    }
+            }
+
+        self._send_command(message)
+        time.sleep(0.1)
+        response = self._read_response()
+
+        if response['status'][0] == 3:
+            self.log.error('Beam y alignment operation failed - not in manual mode')
+        elif response['status'][0] != 0:
+            self.log.error('An error has occured setting the Beam Y parameter')
+        else:
+            self._beam_align_y = beam_y  # only update if operation completed
+
+    def _set_beam_align_manual(self):
+        """ Set the beam alignment mode to Manual
+
+            @return None
+        """
+        
+        message = {'transmission_id': [13],
+                    'op': 'beam_alignment',
+                    'parameters': {'mode': [1],  # 1 for Manual
+                                    }
+            }
+
+        self._send_command(message)
+        time.sleep(0.1)
+        response = self._read_response()
+
+        if response['status'][0] != 0:
+            self.log.error('Could not set the SolsTiS alignment mode to Manual')
