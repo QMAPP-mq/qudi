@@ -307,7 +307,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
         self.log.info('M Squared hardware module not configured for use with wavelength meter')
 
-        message = {'transmission_id': [3],
+        message = {'transmission_id': [1],
                    'op': 'move_wave_t', # use set_wave_m if using a wavelength meter
                    'parameters': {'wavelength': [target_wavelength * 1e9]
                                   }
@@ -353,7 +353,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return bool True if still tuning, False if complete
         """
-        message = {'transmission_id': [8],
+        message = {'transmission_id': [2],
                    'op': 'poll_move_wave_t'
                    }
         self._send_command(message)
@@ -375,7 +375,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             self.s.settimeout(5)
             self.s.connect((ipaddr, port))
             myIP = self.s.getsockname()[0]
-            message = {"transmission_id": [1],
+            message = {"transmission_id": [3],
                        "op": "start_link",
                        "parameters": {"ip_address": myIP}
                        }
@@ -409,7 +409,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             @return int: 0 if ok, -1 if error
         """
         try:
-            message = {'transmission_id' : [2], 'op':'ping',
+            message = {'transmission_id' : [4], 'op':'ping',
                    'parameters':{'text_in':'TESTING'}}
 
             self._send_command(message)
@@ -428,7 +428,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return various
         """
-        message = {'transmission_id': [8],
+        message = {'transmission_id': [5],
                    'op': 'get_status'
                   }
         self._send_command(message)
@@ -486,7 +486,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             @return: float : the Beam X alignment parameter
                      float : the Beam X alignment parameter
         """
-        message = {'transmission_id':[11], 'op':'get_alignment_status'}
+        message = {'transmission_id':[8], 'op':'get_alignment_status'}
 
         self._send_command(message)
         time.sleep(0.1)
@@ -510,7 +510,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return: None
         """  # TODO: combine _set_beam_align_x and _set_beam_align_y into a single function
-        message = {'transmission_id': [11],
+        message = {'transmission_id': [9],
                     'op': 'beam_adjust_x',
                     'parameters': {'x_value': [beam_x]
                                     }
@@ -532,7 +532,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return: None
         """  # TODO: combine _set_beam_align_x and _set_beam_align_y into a single function
-        message = {'transmission_id': [12],
+        message = {'transmission_id': [10],
                     'op': 'beam_adjust_y',
                     'parameters': {'y_value': [beam_y]
                                     }
@@ -574,7 +574,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             self.log.error('Invalid mode selected')
             return -1
         
-        message = {'transmission_id': [13],
+        message = {'transmission_id': [11],
                     'op': 'beam_alignment',
                     'parameters': {'mode': [new_mode],
                                     }
@@ -595,7 +595,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             @return str mode : the beam alignment mode
         """
 
-        message = {'transmission_id':[14], 'op':'get_alignment_status'}
+        message = {'transmission_id':[12], 'op':'get_alignment_status'}
 
         self._send_command(message)
         time.sleep(0.1)
