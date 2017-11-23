@@ -601,4 +601,4 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         time.sleep(0.1)
         response = self._read_response()
 
-        return response['condition'][0]
+        return response['condition']
