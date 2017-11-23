@@ -95,7 +95,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
                 self.wavelength = self.get_wavelength()
                 # self.wavelength_lock = self._set_wavelength_lock('on')  # For use with attached wavelength meter
 
-                self._beam_align_mode = self._set_beam_align_mode('manual') # regardless of mode, switch beam alignment operation to Manual
+                self._beam_align_mode = self._set_beam_align_mode('hold')
 
                 if self._get_beam_align() != (50., 50.):  # if Beam X and Beam Y are not set to defaults
                     self._beam_align_x, self._beam_align_y = self._get_beam_align() # update the beam alignment variables
