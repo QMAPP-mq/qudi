@@ -14,6 +14,8 @@ Interface version: Solstis_3_NS_V54
 DSP version: Solstis 3 Rel 5.22 06-09-16 10:23
 This information can be found under Configure > Interface Update
 
+NOTE: SolsTiS 3 TCP/IP Protocol Version 21 used for this system.
+
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -67,9 +69,10 @@ class MSquaredLaser(Base, SimpleLaserInterface):
     _my_beam_align_x_default = 77.85
     _my_beam_align_y_default = 62.80
 
-    # _beam_align_mode = None  # message not returning expected response, documentation update requested
-                               # get_alignment_status response['condition'][0] returns "hold"
-                               # TODO: ensure beam alignment mode is set to Manual
+    _beam_align_mode = None
+
+    wavelength = None
+    wavelength_lock = False
 
     def __init__(self, **kwargs):
         """ """
@@ -79,9 +82,6 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         self.mode = ControlMode.POWER
         self.current_setpoint = 0
         self.power_setpoint = 0
-
-        self.wavelength = None
-        self.wavelength_lock = False
 
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -95,7 +95,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
                 self.wavelength = self.get_wavelength()
                 # self.wavelength_lock = self._set_wavelength_lock('on')  # For use with attached wavelength meter
 
-                self._set_beam_align_manual() # regardless of mode, switch beam alignment operation to Manual
+                self._beam_align_mode = self._set_beam_align_mode('manual') # regardless of mode, switch beam alignment operation to Manual
 
                 if self._get_beam_align() != (50., 50.):  # if Beam X and Beam Y are not set to defaults
                     self._beam_align_x, self._beam_align_y = self._get_beam_align() # update the beam alignment variables
@@ -289,7 +289,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return str: much laser, very useful
         """
-        return "SolsTiS 3 TCP/IP Protocol"
+        return "SolsTiS 3 TCP/IP Protocol Version 21"
 
     def get_wavelength(self):
         """ Get the current laser wavelength
@@ -342,7 +342,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
         # self.wavelength_lock = self._set_wavelength_lock('on') # For use with attached wavelength meter
         self.wavelength = self.get_wavelength()
-        
+
         #         self._tuning_status()
         #         return 0
         # else:
@@ -549,15 +549,34 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         else:
             self._beam_align_y = beam_y  # only update if operation completed
 
-    def _set_beam_align_manual(self):
-        """ Set the beam alignment mode to Manual
+    def _set_beam_align_mode(self, mode):
+        """ Set the beam alignment mode
 
-            @return None
+            @params mode str: 'manual'
+                              'automatic'
+                              'hold' (stop and hold current values)
+                              'one shot'
+
+            @return mode str : the new alignment mode
+                    err  int : -1 if error
         """
+
+        if mode == 'manual':
+            new_mode = 1
+        elif mode == 'automatic':
+            new_mode = 2
+        elif mode == 'hold':
+            new_mode = 3
+        elif mode == 'one shot':
+            new_mode = 4
+            self.log.info('Alignment mode should switch back to Manual once One Shot optimisation is complete')
+        else:
+            self.log.error('Invalid mode selected')
+            return -1
         
         message = {'transmission_id': [13],
                     'op': 'beam_alignment',
-                    'parameters': {'mode': [1],  # 1 for Manual
+                    'parameters': {'mode': [new_mode],
                                     }
             }
 
@@ -566,4 +585,20 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         response = self._read_response()
 
         if response['status'][0] != 0:
-            self.log.error('Could not set the SolsTiS alignment mode to Manual')
+            self.log.error('Could not set the SolsTiS alignment mode to {}'.format(mode))
+
+        return self._get_beam_align_mode()
+
+    def _get_beam_align_mode(self):
+        """ Get the beam alignment mode
+
+            @return str mode : the beam alignment mode
+        """
+
+        message = {'transmission_id':[14], 'op':'get_alignment_status'}
+
+        self._send_command(message)
+        time.sleep(0.1)
+        response = self._read_response()
+
+        return response['condition'][0]
