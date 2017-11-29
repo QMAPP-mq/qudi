@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-This file contains the Qudi hardware for the Thorlabs PM100A Powermeter.
+This file contains the Qudi hardware for the Thorlabs PM100x powermeter series.
 
 NOTE: To find your Thorlabs PM100x serial number: On the device go to:
 System Menue > Consol Info > S/N
@@ -37,7 +37,7 @@ class ThorlabsPM(Base, PowermeterInterface):
 
     """ unstable: Matt van Breugel
     This is the hardware module for communicating with a Thorlabs power meter 
-    (PM100A) over USB. It uses the Thorlabs PM100 python module.
+    (PM100x) over USB. It uses the Thorlabs PM100 python module.
     """
     _modclass = 'ThorlabsPM'
     _modtype = 'hardware'
@@ -46,7 +46,7 @@ class ThorlabsPM(Base, PowermeterInterface):
 
     # config
     _wavelength = 532e-9 # default wavelength on startup
-    _averaging_window = 1 # the default value of the PM100A # TODO: read from config file
+    _averaging_window = 1 # the default value of a PM100x # TODO: read from config file
 
     _sampling_time = 3e-3  # 3ms # TODO: read this from the config file, and if not defined set to 3ms
 
@@ -69,10 +69,10 @@ class ThorlabsPM(Base, PowermeterInterface):
             self.ThorlabsPM.display.brightness = 0.01 # dim the display for measurements
             return 0
         elif len(pm_devices > 1): # this should never be the case
-            self.log.warning('There is more than 1 Thorlabs PM100 connected containig S/N: {}'.format(self._serial_number))
+            self.log.warning('There is more than 1 Thorlabs PM100x connected containig S/N: {}'.format(self._serial_number))
             return 1
         else:
-            self.log.warning('I cannot find any Thorlabs PM100 connected with the S/N: {}'.format(self._serial_number))
+            self.log.warning('I cannot find any Thorlabs PM100x connected with the S/N: {}'.format(self._serial_number))
             return 1
 
     def on_deactivate(self):
@@ -97,7 +97,7 @@ class ThorlabsPM(Base, PowermeterInterface):
         """ Set the averaging window of the powermeter.
 
         @param int target_averaging_window: if defined, time over which to average (in seconds)
-        (For the PM100A: 1 sample takes approx. 3ms)
+        (For the PM100x: 1 sample takes approx. 3ms)
 
         @return int: the averaging window in seconds
         """
