@@ -2,6 +2,9 @@
 """
 This file contains the Qudi hardware for the Thorlabs PM100A Powermeter.
 
+NOTE: To find your Thorlabs PM100x serial number: On the device go to:
+System Menue > Consol Info > S/N
+
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -39,11 +42,13 @@ class ThorlabsPM(Base, PowermeterInterface):
     _modclass = 'ThorlabsPM'
     _modtype = 'hardware'
 
+    _serial_number = 'P0006671' # TODO: read this from config
+
     # config
     _wavelength = 532e-9 # default wavelength on startup
     _averaging_window = 1 # the default value of the PM100A # TODO: read from config file
 
-    _sampling_time = 3e-3  # 3ms # TODO: read this from the config file
+    _sampling_time = 3e-3  # 3ms # TODO: read this from the config file, and if not defined set to 3ms
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -55,7 +60,7 @@ class ThorlabsPM(Base, PowermeterInterface):
         """
         # search and connect
         device_list = visa.ResourceManager()
-        pm_devices = [device for device in device_list.list_resources() if 'P100' in device]
+        pm_devices = [device for device in device_list.list_resources() if self._serial_number in device]
 
         if len(pm_devices) == 1:
             instance = device_list.open_resource(pm_devices[0])
@@ -63,11 +68,11 @@ class ThorlabsPM(Base, PowermeterInterface):
             self.constraints = self.get_constraints() # read the contraints directly from the hardware
             self.ThorlabsPM.display.brightness = 0.01 # dim the display for measurements
             return 0
-        elif len(pm_devices > 1):
-            self.log.warning('There is more than 1 Thorlabs PM100 connected, I do not know which one to choose.')
+        elif len(pm_devices > 1): # this should never be the case
+            self.log.warning('There is more than 1 Thorlabs PM100 connected containig S/N: {}'.format(self._serial_number))
             return 1
         else:
-            self.log.warning('I cannot find any Thorlabs PM100 connected.')
+            self.log.warning('I cannot find any Thorlabs PM100 connected with the S/N: {}'.format(self._serial_number))
             return 1
 
     def on_deactivate(self):
