@@ -34,6 +34,7 @@ from ThorlabsPM100 import ThorlabsPM100
 http://pythonhosted.org/ThorlabsPM100/thorlabsPM100.html
 """
 
+
 class ThorlabsPM(Base, PowermeterInterface):
 
     """ unstable: Matt van Breugel
@@ -103,16 +104,16 @@ class ThorlabsPM(Base, PowermeterInterface):
         """
         instance = device_list.open_resource(device_name)
         self.ThorlabsPM = ThorlabsPM100(inst=instance)
-        self.constraints = self.get_constraints() # read the contraints directly from the hardware
-        self.ThorlabsPM.display.brightness = 0.01 # dim the display for measurements
-        self._wavelength = self.get_wavelength() # update the class wavelength value
+        self.constraints = self.get_constraints()  # read the contraints directly from the hardware
+        self.ThorlabsPM.display.brightness = 0.01  # dim the display for measurements
+        self._wavelength = self.get_wavelength()  # update the class wavelength value
 
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
 
         @return error code
         """
-        self.ThorlabsPM.display.brightness = 1 # restore display brightness to full
+        self.ThorlabsPM.display.brightness = 1  # restore display brightness to full
         self.ThorlabsPM.abort()
         return 0
 
@@ -190,7 +191,7 @@ class ThorlabsPM(Base, PowermeterInterface):
         """
 
         if (_target_wavelength > self.constraints['max_wavelength']) or (_target_wavelength < self.constraints['min_wavelength']):
-            self.ThorlabsPM.system.beeper.immediate() # Issue an audible signal (Thorlabs PM100A not very loud)
+            self.ThorlabsPM.system.beeper.immediate()  # Issue an audible signal (Thorlabs PM100A not very loud)
             self.log.error('Target wavelength is outside the constraints, I can not go to that wavelength.')
         else:
             self.ThorlabsPM.sense.correction.wavelength = _target_wavelength / 1e-9
