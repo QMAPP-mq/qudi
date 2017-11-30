@@ -23,6 +23,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 """
 
 import visa
+import time
 
 from core.module import Base, ConfigOption
 from interface.powermeter_interface import PowermeterInterface
@@ -45,7 +46,8 @@ class ThorlabsPM(Base, PowermeterInterface):
     _wavelength = None
 
     _serial_number = ConfigOption('serial_number', missing='error')
-    _averaging_window = ConfigOption('averaging_window', 1, missing='warn') # the default value of a PM100x
+    _averaging_window = ConfigOption('averaging_window', 300e-3, missing='warn') # the default value of a PM100x
+    # TODO note that this is not used at the moment
     _sampling_time = ConfigOption('sampling_time', 3e-3, missing='warn')  # 3ms, the expected sampling time of a PM100x
 
     def __init__(self, config, **kwargs):
@@ -102,6 +104,7 @@ class ThorlabsPM(Base, PowermeterInterface):
         """
 
         self.ThorlabsPM.sense.average.count = target_averaging_window / self._sampling_time
+        time.sleep(0.1)
         self._averaging_window = self.ThorlabsPM.sense.average.count * self._sampling_time
 
         return self._averaging_window
