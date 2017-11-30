@@ -42,13 +42,11 @@ class ThorlabsPM(Base, PowermeterInterface):
     _modclass = 'ThorlabsPM'
     _modtype = 'hardware'
 
-    _serial_number = 'P0006671' # TODO: read this from config
+    _wavelength = None
 
-    # config
-    _wavelength = 532e-9 # default wavelength on startup
-    _averaging_window = 1 # the default value of a PM100x # TODO: read from config file
-
-    _sampling_time = 3e-3  # 3ms # TODO: read this from the config file, and if not defined set to 3ms
+    _serial_number = ConfigOption('serial_number', missing='error')
+    _averaging_window = ConfigOption('averaging_window', 1, missing='warn') # the default value of a PM100x
+    _sampling_time = ConfigOption('sampling_time', 3e-3, missing='warn')  # 3ms, the expected sampling time of a PM100x
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -67,6 +65,7 @@ class ThorlabsPM(Base, PowermeterInterface):
             self.ThorlabsPM = ThorlabsPM100(inst=instance)
             self.constraints = self.get_constraints() # read the contraints directly from the hardware
             self.ThorlabsPM.display.brightness = 0.01 # dim the display for measurements
+            self._wavelength = self.get_wavelength() # update the class wavelength value
             return 0
         elif len(pm_devices > 1): # this should never be the case
             self.log.warning('There is more than 1 Thorlabs PM100x connected containig S/N: {}'.format(self._serial_number))
