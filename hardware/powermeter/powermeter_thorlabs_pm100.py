@@ -37,7 +37,7 @@ http://pythonhosted.org/ThorlabsPM100/thorlabsPM100.html
 class ThorlabsPM(Base, PowermeterInterface):
 
     """ unstable: Matt van Breugel
-    This is the hardware module for communicating with a Thorlabs power meter 
+    This is the hardware module for communicating with a Thorlabs power meter
     (PM100x) over USB. It uses the Thorlabs PM100 python module.
     """
     _modclass = 'ThorlabsPM'
@@ -45,8 +45,8 @@ class ThorlabsPM(Base, PowermeterInterface):
 
     _wavelength = None
 
-    _serial_number = ConfigOption('serial_number', missing='error')
-    _averaging_window = ConfigOption('averaging_window', 300e-3, missing='warn') # the default value of a PM100x
+    _serial_number = ConfigOption('serial_number', None)
+    _averaging_window = ConfigOption('averaging_window', 300e-3, missing='warn')  # the default value of a PM100x
     # TODO note that this is not used at the moment
     _sampling_time = ConfigOption('sampling_time', 3e-3, missing='warn')  # 3ms, the expected sampling time of a PM100x
 
@@ -60,21 +60,52 @@ class ThorlabsPM(Base, PowermeterInterface):
         """
         # search and connect
         device_list = visa.ResourceManager()
-        pm_devices = [device for device in device_list.list_resources() if self._serial_number in device]
 
-        if len(pm_devices) == 1:
-            instance = device_list.open_resource(pm_devices[0])
-            self.ThorlabsPM = ThorlabsPM100(inst=instance)
-            self.constraints = self.get_constraints() # read the contraints directly from the hardware
-            self.ThorlabsPM.display.brightness = 0.01 # dim the display for measurements
-            self._wavelength = self.get_wavelength() # update the class wavelength value
-            return 0
-        elif len(pm_devices > 1): # this should never be the case
-            self.log.warning('There is more than 1 Thorlabs PM100x connected containig S/N: {}'.format(self._serial_number))
-            return 1
+        # simple use case: no S/N in config so there should be just one powermeter connected.
+        if self._serial_number is None:
+            pm_device = [device for device in device_list.list_resources() if 'PM' in device]
+
+            if len(pm_device) == 1:
+                self._connect(device_list, pm_device[0])
+                return 0
+            elif len(pm_device) > 1:
+                self.log.warning('There is more than 1 Thorlabs PM100x connected.'
+                                 'You need to specify the serial number in your config file.'
+                                 )
+                return 1
+            else:
+                self.log.warning('No Thorlabs PM100x devices found.')
+
+        # More advanced: with S/N in config there can be many PM devices connected
         else:
-            self.log.warning('I cannot find any Thorlabs PM100x connected with the S/N: {}'.format(self._serial_number))
-            return 1
+            pm_devices = [device for device in device_list.list_resources() if self._serial_number in device]
+
+            if len(pm_devices) == 1:
+                self._connect(device_list, pm_device[0])
+                return 0
+            elif len(pm_devices > 1):  # this should never be the case
+                self.log.warning('There is more than 1 Thorlabs PM100x connected containig'
+                                 'S/N: {}'.format(self._serial_number)
+                                 )
+                return 1
+            else:
+                self.log.warning('I cannot find any Thorlabs PM100x connected with the '
+                                 'S/N: {}'.format(self._serial_number)
+                                 )
+                return 1
+
+    def _connect(self, device_list, device_name):
+        """ Do the actual connection to a powermeter device
+
+        @param object device_list: visa.ResourceManager() object
+
+        @param string device_name: name of the device to connect
+        """
+        instance = device_list.open_resource(device_name)
+        self.ThorlabsPM = ThorlabsPM100(inst=instance)
+        self.constraints = self.get_constraints() # read the contraints directly from the hardware
+        self.ThorlabsPM.display.brightness = 0.01 # dim the display for measurements
+        self._wavelength = self.get_wavelength() # update the class wavelength value
 
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
@@ -127,6 +158,8 @@ class ThorlabsPM(Base, PowermeterInterface):
 
         @return float: the power in Watts
         """
+
+        # TODO: Check if this following line is related to issue #8
         self.ThorlabsPM.sense.average.count = self._averaging_window
         # self.ThorlabsPM.sense.average.count  # get the current averaging window
         # self.ThorlabsPM.read  # get the current power reading
