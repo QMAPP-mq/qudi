@@ -161,7 +161,7 @@ class ThorlabsPM(Base, PowermeterInterface):
         """
 
         # TODO: Check if this following line is related to issue #8
-        self.ThorlabsPM.sense.average.count = self._averaging_window
+        # self.ThorlabsPM.sense.average.count = self._averaging_window  # removing as per qmapp issue #8
         # self.ThorlabsPM.sense.average.count  # get the current averaging window
         # self.ThorlabsPM.read  # get the current power reading
 
