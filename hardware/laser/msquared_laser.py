@@ -324,29 +324,8 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             self.log.warning('An error occured setting the wavelength')
             return -1
 
-        #     return -1
-        # self.s.settimeout(300)
-        # while True:
-        #     time.sleep(0.1)
-        #     response = self._read_response()
-        #     if len(response) == 0:
-        #         continue
-        #     else:
-        #         break
-        # if 'report' in response:  # The stop tuning response will be captured here as well
-        #     if response['report'][0] != 0:
-        #         return -1
-        #     else:
-        #         if self._tuning_status() is True:  # I do not think this will get triggered
-        #             self.log.warning('M Squared wavelength tuning may not be complete')
-
         # self.wavelength_lock = self._set_wavelength_lock('on') # For use with attached wavelength meter
         self.wavelength = self.get_wavelength()
-
-        #         self._tuning_status()
-        #         return 0
-        # else:
-        #     return 'stopped'
 
     def _tuning_status(self):
         """ Check the tuning status of the laser
