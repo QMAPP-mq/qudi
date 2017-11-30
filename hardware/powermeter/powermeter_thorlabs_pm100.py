@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-This file contains the Qudi hardware for the Thorlabs PM100A Powermeter.
+This file contains the Qudi hardware for the Thorlabs PM100x powermeter series.
+
+NOTE: To find your Thorlabs PM100x serial number: On the device go to:
+System Menue > Consol Info > S/N
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -34,16 +37,16 @@ class ThorlabsPM(Base, PowermeterInterface):
 
     """ unstable: Matt van Breugel
     This is the hardware module for communicating with a Thorlabs power meter 
-    (PM100A) over USB. It uses the Thorlabs PM100 python module.
+    (PM100x) over USB. It uses the Thorlabs PM100 python module.
     """
     _modclass = 'ThorlabsPM'
     _modtype = 'hardware'
 
-    # config
-    _wavelength = 532e-9 # default wavelength on startup
-    _averaging_window = 1 # the default value of the PM100A # TODO: read from config file
+    _wavelength = None
 
-    _sampling_time = 3e-3  # 3ms # TODO: read this from the config file
+    _serial_number = ConfigOption('serial_number', missing='error')
+    _averaging_window = ConfigOption('averaging_window', 1, missing='warn') # the default value of a PM100x
+    _sampling_time = ConfigOption('sampling_time', 3e-3, missing='warn')  # 3ms, the expected sampling time of a PM100x
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -55,19 +58,20 @@ class ThorlabsPM(Base, PowermeterInterface):
         """
         # search and connect
         device_list = visa.ResourceManager()
-        pm_devices = [device for device in device_list.list_resources() if 'P100' in device]
+        pm_devices = [device for device in device_list.list_resources() if self._serial_number in device]
 
         if len(pm_devices) == 1:
             instance = device_list.open_resource(pm_devices[0])
             self.ThorlabsPM = ThorlabsPM100(inst=instance)
             self.constraints = self.get_constraints() # read the contraints directly from the hardware
             self.ThorlabsPM.display.brightness = 0.01 # dim the display for measurements
+            self._wavelength = self.get_wavelength() # update the class wavelength value
             return 0
-        elif len(pm_devices > 1):
-            self.log.warning('There is more than 1 Thorlabs PM100 connected, I do not know which one to choose.')
+        elif len(pm_devices > 1): # this should never be the case
+            self.log.warning('There is more than 1 Thorlabs PM100x connected containig S/N: {}'.format(self._serial_number))
             return 1
         else:
-            self.log.warning('I cannot find any Thorlabs PM100 connected.')
+            self.log.warning('I cannot find any Thorlabs PM100x connected with the S/N: {}'.format(self._serial_number))
             return 1
 
     def on_deactivate(self):
@@ -92,7 +96,7 @@ class ThorlabsPM(Base, PowermeterInterface):
         """ Set the averaging window of the powermeter.
 
         @param int target_averaging_window: if defined, time over which to average (in seconds)
-        (For the PM100A: 1 sample takes approx. 3ms)
+        (For the PM100x: 1 sample takes approx. 3ms)
 
         @return int: the averaging window in seconds
         """
