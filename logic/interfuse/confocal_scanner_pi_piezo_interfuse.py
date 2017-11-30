@@ -146,7 +146,6 @@ class PiezoPIScannerInterfuse(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self.log.warning('ConfocalScannerInterfaceDummy>set_up_scanner')
         return 0
 
     def get_scanner_axes(self):
