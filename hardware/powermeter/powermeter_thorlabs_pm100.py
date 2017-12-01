@@ -82,7 +82,7 @@ class ThorlabsPM(Base, PowermeterInterface):
             pm_devices = [device for device in device_list.list_resources() if self._serial_number in device]
 
             if len(pm_devices) == 1:
-                self._connect(device_list, pm_device[0])
+                self._connect(device_list, pm_devices[0])
                 return 0
             elif len(pm_devices > 1):  # this should never be the case
                 self.log.warning('There is more than 1 Thorlabs PM100x connected containig'
