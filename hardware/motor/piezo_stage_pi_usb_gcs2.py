@@ -45,14 +45,9 @@ class PiezoStagePI(Base, MotorInterface):
 
     _devID = ctypes.c_int()
 
-    # This is creating a 3D double array object.
-    _double3d = ctypes.c_double * 3
-
-    # This is creating a 1D double object
-    _double1d = ctypes.c_double * 1
-
-    # This is creating a 1D bool object
-    _bool1d = ctypes.c_bool * 1
+    _double3d = ctypes.c_double * 3  # This is creating a 3D double array object
+    _double1d = ctypes.c_double * 1  # This is creating a 1D double object
+    _bool1d = ctypes.c_bool * 1  # This is creating a 1D bool object
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
