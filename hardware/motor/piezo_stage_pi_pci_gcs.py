@@ -30,17 +30,17 @@ from core.module import Base, ConfigOption
 from interface.motor_interface import MotorInterface
 
 
-class PiezoStagePI(Base, MotorInterface):
+class PiezoStagePI_GCS1(Base, MotorInterface):
 
     """unstable: Cyril Laplane, Matt van Breugel
     This is the hardware module for communicating with PI Piezo scanning stages
     over PCI (via the PI dll). It uses the General Command Set (GCS) from
     the PI documentation.
 
-    This module has been developed for the E-725 Digital Piezo Controller,
+    This module has been developed for the E-761 Digital Piezo Controller,
     but probably works with any PI controller that talks GCS over PCI.
     """
-    _modclass = 'PiezoStagePI'
+    _modclass = 'PiezoStagePI_GCS1'
     _modtype = 'hardware'
 
     _devID = ctypes.c_int()
@@ -57,6 +57,7 @@ class PiezoStagePI(Base, MotorInterface):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+    # Open connection with the PCI board and get ID 
     def on_activate(self):
         """ Initialisation performed during activation of the module.
         @return: error code
@@ -64,46 +65,31 @@ class PiezoStagePI(Base, MotorInterface):
         path_dll = os.path.join(self.get_main_dir(),
                                 'thirdparty',
                                 'physik_instrumente',
-                                'PI_GCS2_DLL_x64.dll'
+                                'E7XX_GCS_DLL.dll'
                                 )
         self._pidll = ctypes.windll.LoadLibrary(path_dll)
+        
+        # Open a PCI connection to the E761 board (there is only one board so its number is 1)
+        board_number = 1
+        device_name = self._pidll.E7XX_ConnectPci(board_number)
+        # self._devID = ctypes.c_int(0)
+        self._devID = device_name
 
-        # Find out what devices are connected
-        emptybufferpy = ' ' * 1000  # TODO find out how long this should be?
-        charBuffer = ctypes.c_char_p(emptybufferpy.encode())
-        bufSize = ctypes.c_int(1000)
-
-        numofdevs = self._pidll.PI_EnumerateUSB(charBuffer, bufSize, ctypes.c_char_p(b''))
-
-        # read the device list out of ctype charBuffer into a regular python list of strings
-        device_list = charBuffer.value.decode().split('\n')
-
-        # split list into elements, check for PI devices
-        pi_devices = [device for device in device_list if 'PI' in device]
-
-        if len(pi_devices) == 1:
-            device_name = ctypes.c_char_p(pi_devices[0].encode())
-            self._pidll.PI_ConnectUSB(device_name)
-            self._devID = ctypes.c_int(0)
-
-        elif len(pi_devices) > 1:
-            self.log.warning('There is more than 1 PI device connected, I do not know which one to choose!')
-
+        if device_name < 0:
+            self.log.warning('Cant connect with the PCI board !!')
         else:
-            self.log.warning('I cannot find any connected devices with "PI" in their name.')
-
-        if self._pidll.PI_IsConnected(self._devID) is False:
-            return 1
-        else:
-            self._set_servo_state(True)
-            return 0
+            if self._pidll.E7XX_IsConnected(self._devID) is False:
+                return 1
+            else:
+                self._set_servo_state(True)
+                return 0
 
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
         @return: error code
         """
         self._set_servo_state(False)
-        self._pidll.PI_RTO(self._devID, ctypes.c_char_p(''.encode()))
+        self._pidll.E7XX_CloseConnection(self._devID)
         return 0
 
     def get_constraints(self):
@@ -172,26 +158,26 @@ class PiezoStagePI(Base, MotorInterface):
         # Move in x:
         newpos = self._double1d(param_dict['x'] * 1e6)
         ax = ctypes.c_char_p('1'.encode())
-        self._pidll.PI_MOV(self._devID, ax, newpos)
+        self._pidll.E7XX_MOV(self._devID, ax, newpos)
         onT = self._bool1d(0)
         while not onT[0]:
-            self._pidll.PI_qONT(self._devID, ax, onT)
+            self._pidll.E7XX_qONT(self._devID, ax, onT)
 
         # Move in y:
         newpos = self._double1d(param_dict['y'] * 1e6)
         ax = ctypes.c_char_p('2'.encode())
-        self._pidll.PI_MOV(self._devID, ax, newpos)
+        self._pidll.E7XX_MOV(self._devID, ax, newpos)
         onT = self._bool1d(0)
         while not onT[0]:
-            self._pidll.PI_qONT(self._devID, ax, onT)
+            self._pidll.E7XX_qONT(self._devID, ax, onT)
 
         # Move in z:
         newpos = self._double1d(param_dict['z'] * 1e6)
         ax = ctypes.c_char_p('3'.encode())
-        self._pidll.PI_MOV(self._devID, ax, newpos)
+        self._pidll.E7XX_MOV(self._devID, ax, newpos)
         onT = self._bool1d(0)
         while not onT[0]:
-            self._pidll.PI_qONT(self._devID, ax, onT)
+            self._pidll.E7XX_qONT(self._devID, ax, onT)
 
         param_dict = self.get_pos()
         return param_dict
@@ -220,7 +206,7 @@ class PiezoStagePI(Base, MotorInterface):
         posBuffer = self._double3d()
         axesBuffer = ctypes.c_char_p(''.encode())
 
-        err = self._pidll.PI_qPOS(ctypes.c_int(0), axesBuffer, posBuffer)
+        err = self._pidll.E7XX_qPOS(ctypes.c_int(0), axesBuffer, posBuffer)
 
         param_dict = {}
         param_dict['x'] = posBuffer[0] / 1e6
@@ -322,11 +308,11 @@ class PiezoStagePI(Base, MotorInterface):
         for axis in axis_list:
             axesBuffer = ctypes.c_char_p(str(axis).encode())
 
-            self._pidll.PI_qSVO(self._devID, axesBuffer, servo_state)
+            self._pidll.E7XX_qSVO(self._devID, axesBuffer, servo_state)
 
             if (servo_state[0] is False) and (to_state is True):
-                self._pidll.PI_SVO(self._devID, axis, self._bool1d(1))
+                self._pidll.E7XX_SVO(self._devID, axis, self._bool1d(1))
             elif (servo_state[0] is True) and (to_state is False):
-                self._pidll.PI_SVO(self._devID, axis, self._bool1d(0))
+                self._pidll.E7XX_SVO(self._devID, axis, self._bool1d(0))
 
 #########################################################################################
