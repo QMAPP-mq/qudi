@@ -66,7 +66,7 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
         self._pidll = ctypes.windll.LoadLibrary(path_dll)
         
         # Open a PCI connection to the E761 board (there is only one board so its number is 1)
-        device_name = self._pidll.E7XX_ConnectPci(self._board_number)
+        device_name = self._pidll.E7XX_ConnectPciBoard(self._board_number)
         # self._devID = ctypes.c_int(0)
         self._devID = device_name
 
