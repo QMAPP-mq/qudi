@@ -44,7 +44,7 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
     _modtype = 'hardware'
 
     _devID = ctypes.c_int()
-    _board_number = ConfigOption('averaging_window', 1, missing='warn')
+    _board_number = ConfigOption('board_number', 1, missing='warn')
 
     _double3d = ctypes.c_double * 3  # This is creating a 3D double array object
     _double1d = ctypes.c_double * 1  # This is creating a 1D double object
@@ -61,7 +61,7 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
         path_dll = os.path.join(self.get_main_dir(),
                                 'thirdparty',
                                 'physik_instrumente',
-                                'E7XX_GCS_DLL.dll'
+                                'E7XX_GCS_DLL_x64.dll'
                                 )
         self._pidll = ctypes.windll.LoadLibrary(path_dll)
         
