@@ -201,7 +201,7 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
         posBuffer = self._double3d()
         axesBuffer = ctypes.c_char_p(''.encode())
 
-        err = self._pidll.E7XX_qPOS(ctypes.c_int(0), axesBuffer, posBuffer)
+        err = self._pidll.E7XX_qPOS(self._devID, axesBuffer, posBuffer)
 
         param_dict = {}
         param_dict['x'] = posBuffer[0] / 1e6
