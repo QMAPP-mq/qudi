@@ -152,7 +152,7 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
 
         # Move in x:
         newpos = self._double1d(param_dict['x'] * 1e6)
-        ax = ctypes.c_char_p('1'.encode())
+        ax = ctypes.c_char_p('x'.encode())
         self._pidll.E7XX_MOV(self._devID, ax, newpos)
         onT = self._bool1d(0)
         while not onT[0]:
@@ -160,7 +160,7 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
 
         # Move in y:
         newpos = self._double1d(param_dict['y'] * 1e6)
-        ax = ctypes.c_char_p('2'.encode())
+        ax = ctypes.c_char_p('y'.encode())
         self._pidll.E7XX_MOV(self._devID, ax, newpos)
         onT = self._bool1d(0)
         while not onT[0]:
@@ -168,7 +168,7 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
 
         # Move in z:
         newpos = self._double1d(param_dict['z'] * 1e6)
-        ax = ctypes.c_char_p('3'.encode())
+        ax = ctypes.c_char_p('z'.encode())
         self._pidll.E7XX_MOV(self._devID, ax, newpos)
         onT = self._bool1d(0)
         while not onT[0]:
@@ -298,7 +298,7 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
 
         servo_state = self._bool1d()
 
-        axis_list = ['1', '2', '3']
+        axis_list = ['x', 'y', 'z']
 
         for axis in axis_list:
             axesBuffer = ctypes.c_char_p(str(axis).encode())
