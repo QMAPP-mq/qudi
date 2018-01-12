@@ -55,7 +55,7 @@ class PiezoStagePI(Base, MotorInterface):
         path_dll = os.path.join(self.get_main_dir(),
                                 'thirdparty',
                                 'nt_mdt',
-                                'NovaSDK.dll'
+                                'NovaSDK_x64.dll'
                                 )
         self._novadll = ctypes.windll.LoadLibrary(path_dll)
 
