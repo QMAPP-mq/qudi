@@ -320,4 +320,13 @@ class PiezoStagePI(Base, MotorInterface):
             elif (servo_state[0] is True) and (to_state is False):
                 self._pidll.PI_SVO(self._devID, axis, self._bool1d(0))
 
+########################## Nova PX Communication ##################################
+
+def _run_script_text(command):
+    """ execute a command in Nova Px
+
+    @param string command: VBScript code to be executed
+    """
+    self._novadll.RunScriptText(command.encode())
+
 #########################################################################################
