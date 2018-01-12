@@ -329,4 +329,19 @@ def _run_script_text(command):
     """
     self._novadll.RunScriptText(command.encode())
 
+def _get_shared_float(variable):
+    """ retreive a shared data variable of type float from Nova Px
+
+    @param string variable: The variable must have already been created
+
+    @returns float value: The value of variable
+    """
+    outbuf = ctypes.c_double()
+    buflen = ctypes.c_int()
+
+    _novadll.GetSharedData(variable.encode(), None, ctypes.byref(buflen))  # get the required buffer size
+    _novadll.GetSharedData(variable.encode(), ctypes.byref(outbuf), ctypes.byref(buflen))  # fill the buffer
+
+    return outbuf.value
+
 #########################################################################################
