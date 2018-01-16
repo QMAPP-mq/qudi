@@ -213,10 +213,10 @@ class PiezoStagePI(Base, MotorInterface):
         for axis in ['x', 'y', 'z']:
             command =   ('{axis}Pos = GetParam(tBase, cValue, pi_ScrPos{axis}, 0, False)\n\n'
                         'SetSharedDataVal "shared{axis}Pos", {axis}Pos, "F64", 8'
-                        .format(axis.upper()))
+                        .format(axis=axis.upper()))
             
             self._run_script_text(command)
-            param_dict[axis] = self._get_shared_float('shared{axis}Pos'.format(axis.upper()))  # TODO check returned units
+            param_dict[axis] = self._get_shared_float('shared{axis}Pos'.format(axis=axis.upper()))  # TODO check returned units
 
         if param_list:
             param_list = [x.lower() for x in param_list]  # make all param_list elements lower case
@@ -307,24 +307,14 @@ class PiezoStagePI(Base, MotorInterface):
         return axis, move
 
     def _set_servo_state(self, to_state):
-        """internal method enabling / disabling the servos
+        """internal method enabling / disabling the stage feedback
 
-        @param bool to_state: desired state of the servos
+        @param bool to_state: desired state of the feedback servos
         """
-
-        servo_state = self._bool1d()
-
-        axis_list = ['1', '2', '3']
-
-        for axis in axis_list:
-            axesBuffer = ctypes.c_char_p(str(axis).encode())
-
-            self._pidll.PI_qSVO(self._devID, axesBuffer, servo_state)
-
-            if (servo_state[0] is False) and (to_state is True):
-                self._pidll.PI_SVO(self._devID, axis, self._bool1d(1))
-            elif (servo_state[0] is True) and (to_state is False):
-                self._pidll.PI_SVO(self._devID, axis, self._bool1d(0))
+        # TODO this is unlikely to be the correct command
+        for axis in ['x', 'y', 'z']:
+            command =   ('SetParam tBase, cValue, pi_Scr{axis}}FBState, 0, {to_state}'
+                        .format(axis=axis.upper(), to_state=int(to_state)))  # bool to int
 
 ########################## Nova PX Communication ##################################
 
