@@ -316,6 +316,25 @@ class PiezoStagePI(Base, MotorInterface):
             command =   ('SetParam tBase, cValue, pi_Scr{axis}}FBState, 0, {to_state}'
                         .format(axis=axis.upper(), to_state=int(to_state)))  # bool to int
 
+    def _get_scanner_range(self):
+        """ get the range of movement of the scanner
+        
+        @returns dict axis_constraints: contains maximum positional values
+        """
+        axis_constraints = {}
+
+        for axis in ['x', 'y', 'z']:
+            command =   ('Set ParInfo = GetParam(tBase, cInfo, pi_ScrPos{axis}, 0)\n\n'
+                        'Val{axis} = ParInfo.MaxValue'
+                        'SetSharedDataVal "shared{}PosMax", Val{axis}, "F64", 8'
+                        .format(axis=axis.upper()))
+            
+            self._run_script_text(command)
+            axis_constraints[axis] = self._get_shared_float('shared{axis}PosMax'.format(axis=axis.upper()))  # TODO check returned units
+
+        return axis_constraints
+
+
 ########################## Nova PX Communication ##################################
 
 def _run_script_text(command):
