@@ -348,4 +348,12 @@ def _get_shared_float(variable):
 
     return outbuf.value
 
+def _update_gui():
+    """ update the Nova Px graphical user unterface
+
+    this operation is noted to be "not threadsafe" in the original documentation
+    """
+    command = 'Perform tGlobal, gGuiUpdate'
+    self._run_script_text(command)
+
 #########################################################################################
