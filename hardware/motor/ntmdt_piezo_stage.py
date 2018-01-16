@@ -206,19 +206,23 @@ class PiezoStagePI(Base, MotorInterface):
         @return dict: with keys being the axis labels and item the current
                       position.
         """
-
-        # Now we create an instance of that object
-        posBuffer = self._double3d()
-        axesBuffer = ctypes.c_char_p(''.encode())
-
-        err = self._pidll.PI_qPOS(ctypes.c_int(0), axesBuffer, posBuffer)
-
         param_dict = {}
-        param_dict['x'] = posBuffer[0] / 1e6
-        param_dict['y'] = posBuffer[1] / 1e6
-        param_dict['z'] = posBuffer[2] / 1e6
 
-        return param_dict
+        for axis in ['x', 'y', 'z']:
+            command =   ('{axis}Pos = GetParam(tBase, cValue, pi_ScrPos{axis}, 0, False)\n\n'
+                        'SetSharedDataVal "shared{axis}Pos", {axis}Pos, "F64", 8'
+                        .format(axis.upper()))
+            
+            self._run_script_text(command)
+            param_dict[axis] = self._get_shared_float('shared{axis}Pos'.format(axis.upper()))  # TODO check returned units
+
+        if param_list:
+            param_list = [x.lower() for x in param_list]  # make all param_list elements lower case
+            for axis in list(set(param_dict.keys()) - set(param_list)):  # axes not in param_list
+                del param_dict[axis]
+            return param_dict
+        else:
+            return param_dict
 
     def get_status(self, param_list=None):
         """ Get the status of the position
