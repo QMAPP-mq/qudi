@@ -111,20 +111,22 @@ class PiezoStagePI(Base, MotorInterface):
         """
         constraints = OrderedDict()
 
+        axis_max_constraints = self._get_scanner_range()
+
         axis0 = {}
         axis0['label'] = 'x'
         axis0['pos_min'] = 0.0
-        axis0['pos_max'] = 300.0
+        axis0['pos_max'] = axis_max_constraints['x']
 
         axis1 = {}
         axis1['label'] = 'y'
         axis1['pos_min'] = 0.0
-        axis1['pos_max'] = 300.0
+        axis1['pos_max'] = axis_max_constraints['y']
 
         axis2 = {}
         axis2['label'] = 'z'
         axis2['pos_min'] = 0.0
-        axis2['pos_max'] = 300.0
+        axis2['pos_max'] = axis_max_constraints['z']
 
         # assign the parameter container for x to a name which will identify it
         constraints[axis0['label']] = axis0
@@ -319,9 +321,9 @@ class PiezoStagePI(Base, MotorInterface):
     def _get_scanner_range(self):
         """ get the range of movement of the scanner
         
-        @returns dict axis_constraints: contains maximum positional values
+        @returns dict axis_max_constraints: contains maximum positional values
         """
-        axis_constraints = {}
+        axis_max_constraints = {}
 
         for axis in ['x', 'y', 'z']:
             command =   ('Set ParInfo = GetParam(tBase, cInfo, pi_ScrPos{axis}, 0)\n\n'
@@ -332,7 +334,7 @@ class PiezoStagePI(Base, MotorInterface):
             self._run_script_text(command)
             axis_constraints[axis] = self._get_shared_float('shared{axis}PosMax'.format(axis=axis.upper()))  # TODO check returned units
 
-        return axis_constraints
+        return axis_max_constraints
 
 
 ########################## Nova PX Communication ##################################
