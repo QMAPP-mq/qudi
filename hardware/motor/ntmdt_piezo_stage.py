@@ -345,8 +345,8 @@ def _get_shared_float(variable):
     outbuf = ctypes.c_double()
     buflen = ctypes.c_int()
 
-    _novadll.GetSharedData(variable.encode(), None, ctypes.byref(buflen))  # get the required buffer size
-    _novadll.GetSharedData(variable.encode(), ctypes.byref(outbuf), ctypes.byref(buflen))  # fill the buffer
+    self._novadll.GetSharedData(variable.encode(), None, ctypes.byref(buflen))  # get the required buffer size
+    self._novadll.GetSharedData(variable.encode(), ctypes.byref(outbuf), ctypes.byref(buflen))  # fill the buffer
 
     return outbuf.value
 
