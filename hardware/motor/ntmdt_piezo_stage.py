@@ -41,12 +41,6 @@ class PiezoStagePI(Base, MotorInterface):
     _modclass = 'PiezoStageNTMDT'
     _modtype = 'hardware'
 
-    _devID = ctypes.c_int()
-
-    _double3d = ctypes.c_double * 3  # This is creating a 3D double array object
-    _double1d = ctypes.c_double * 1  # This is creating a 1D double object
-    _bool1d = ctypes.c_bool * 1  # This is creating a 1D bool object
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -61,42 +55,18 @@ class PiezoStagePI(Base, MotorInterface):
                                 )
         self._novadll = ctypes.windll.LoadLibrary(path_dll)
 
-        # Find out what devices are connected
-        emptybufferpy = ' ' * 1000
-        charBuffer = ctypes.c_char_p(emptybufferpy.encode())
-        bufSize = ctypes.c_int(1000)
-
-        numofdevs = self._pidll.PI_EnumerateUSB(charBuffer, bufSize, ctypes.c_char_p(b''))
-
-        # read the device list out of ctype charBuffer into a regular python list of strings
-        device_list = charBuffer.value.decode().split('\n')
-
-        # split list into elements, check for PI devices
-        pi_devices = [device for device in device_list if 'PI' in device]
-
-        if len(pi_devices) == 1:
-            device_name = ctypes.c_char_p(pi_devices[0].encode())
-            self._pidll.PI_ConnectUSB(device_name)
-            self._devID = ctypes.c_int(0)
-
-        elif len(pi_devices) > 1:
-            self.log.warning('There is more than 1 PI device connected, I do not know which one to choose!')
-
-        else:
-            self.log.warning('I cannot find any connected devices with "PI" in their name.')
-
-        if self._pidll.PI_IsConnected(self._devID) is False:
-            return 1
-        else:
+        if self._check_connection():
             self._set_servo_state(True)
             return 0
+        else:
+            self.log.error('I cannot connect to Nova Px.')
+            return 1
 
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
         @return: error code
         """
         self._set_servo_state(False)
-        self._pidll.PI_RTO(self._devID, ctypes.c_char_p(''.encode()))
         return 0
 
     def get_constraints(self):
@@ -356,5 +326,14 @@ def _update_gui(self):
     """
     command = 'Perform tGlobal, gGuiUpdate'
     self._run_script_text(command)
+
+def _check_connection(self):
+    """ set and get a shared variable to check the connection with Nova Px
+
+    @returns bool success: True if values match
+    """
+    command = 'SetSharedDataVal "test_connection", 1.61803398875, "F64", 8'
+    self._run_script_text(command)
+    return self._get_shared_float('test_connection') == 1.61803398875
 
 #########################################################################################
