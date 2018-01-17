@@ -25,6 +25,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 import time
 import ctypes
 import os
+import platform
 
 from collections import OrderedDict
 
@@ -48,11 +49,21 @@ class PiezoStagePI(Base, MotorInterface):
         """ Initialisation performed during activation of the module.
         @return: error code
         """
-        path_dll = os.path.join(self.get_main_dir(),
-                                'thirdparty',
-                                'nt_mdt',
-                                'NovaSDK_x64.dll'
-                                )
+        if platform.architecture()[0] == '64bit':
+            path_dll = os.path.join(self.get_main_dir(),
+                                    'thirdparty',
+                                    'nt_mdt',
+                                    'NovaSDK_x64.dll'
+                                    )
+        elif platform.architecture()[0] == '32bit':
+            path_dll = os.path.join(self.get_main_dir(),
+                                    'thirdparty',
+                                    'nt_mdt',
+                                    'NovaSDK.dll'
+                                    )
+        else:
+            self.log.error('Unknown platform, cannot load the Nova SDK dll.')
+
         self._novadll = ctypes.windll.LoadLibrary(path_dll)
 
         if self._check_connection():
