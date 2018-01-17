@@ -153,7 +153,7 @@ class PiezoStagePI(Base, MotorInterface):
                      '\tIdle\n\n'
                      'Loop Until GetParam(tScanner, cStatus, 0) = 0'
                      .format(xpos=param_dict['x'], ypos=param_dict['x'], zpos=param_dict['x']))
-        
+
         self._run_script_text(command)
         param_dict = self.get_pos()
         self._update_gui()
@@ -184,7 +184,7 @@ class PiezoStagePI(Base, MotorInterface):
             command =   ('{axis}Pos = GetParam(tBase, cValue, pi_ScrPos{axis}, 0, False)\n\n'
                         'SetSharedDataVal "shared{axis}Pos", {axis}Pos, "F64", 8'
                         .format(axis=axis.upper()))
-            
+
             self._run_script_text(command)
             param_dict[axis] = self._get_shared_float('shared{axis}Pos'.format(axis=axis.upper()))  # TODO check returned units
 
@@ -253,7 +253,7 @@ class PiezoStagePI(Base, MotorInterface):
         @return dict param_dict2: dictionary with the updated axis velocity
         """
 
-########################## internal methods ##################################
+########################## internal methods ####################################
 
     def _do_move_abs(self, axis, move):
         """internal method for the absolute move in meter
@@ -270,7 +270,7 @@ class PiezoStagePI(Base, MotorInterface):
         if not(constraints[axis]['pos_min'] <= move <= constraints[axis]['pos_max']):
             self.log.warning('Cannot make the movement of the axis "{0}"'
                              'since the border [{1},{2}] would be crossed! Ignore command!'
-                             ''.format(axis, constraints[axis]['pos_min'], constraints[axis]['pos_max']))
+                             .format(axis, constraints[axis]['pos_min'], constraints[axis]['pos_max']))
         else:
             self._write_xyz(axis, 'MA{0}'.format(int(move * 1e7)))  # 1e7 to convert meter to SI units
             #self._write_xyz(axis, 'MP')
@@ -289,7 +289,7 @@ class PiezoStagePI(Base, MotorInterface):
 
     def _get_scanner_range(self):
         """ get the range of movement of the scanner
-        
+
         @returns dict axis_max_constraints: contains maximum positional values
         """
         axis_max_constraints = {}
@@ -299,14 +299,14 @@ class PiezoStagePI(Base, MotorInterface):
                         'Val{axis} = ParInfo.MaxValue\n\n'
                         'SetSharedDataVal "shared{}PosMax", Val{axis}, "F64", 8'
                         .format(axis=axis.upper()))
-            
+
             self._run_script_text(command)
-            axis_constraints[axis] = self._get_shared_float('shared{axis}PosMax'.format(axis=axis.upper()))  # TODO check returned units
+            axis_max_constraints[axis] = self._get_shared_float('shared{axis}PosMax'.format(axis=axis.upper()))  # TODO check returned units
 
         return axis_max_constraints
 
 
-########################## Nova PX Communication ##################################
+########################## Nova PX Communication ###############################
 
 def _run_script_text(self, command):
     """ execute a command in Nova Px
@@ -347,4 +347,4 @@ def _check_connection(self):
     self._run_script_text(command)
     return self._get_shared_float('test_connection') == 1.61803398875
 
-#########################################################################################
+################################################################################
