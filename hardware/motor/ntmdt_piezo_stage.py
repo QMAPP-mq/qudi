@@ -174,8 +174,8 @@ class PiezoStagePI(Base, MotorInterface):
                      .format(xpos=param_dict['x'], ypos=param_dict['x'], zpos=param_dict['x']))
         
         self._run_script_text(command)
-
         param_dict = self.get_pos()
+        self._update_gui()
         return param_dict
 
     def abort(self):
@@ -304,6 +304,7 @@ class PiezoStagePI(Base, MotorInterface):
         for axis in ['x', 'y', 'z']:
             command =   ('SetParam tBase, cValue, pi_Scr{axis}}FBState, 0, {to_state}'
                         .format(axis=axis.upper(), to_state=int(to_state)))  # bool to int
+        self._update_gui()
 
     def _get_scanner_range(self):
         """ get the range of movement of the scanner
@@ -326,14 +327,14 @@ class PiezoStagePI(Base, MotorInterface):
 
 ########################## Nova PX Communication ##################################
 
-def _run_script_text(command):
+def _run_script_text(self, command):
     """ execute a command in Nova Px
 
     @param string command: VBScript code to be executed
     """
     self._novadll.RunScriptText(command.encode())
 
-def _get_shared_float(variable):
+def _get_shared_float(self, variable):
     """ retreive a shared data variable of type float from Nova Px
 
     @param string variable: The variable must have already been created
@@ -348,7 +349,7 @@ def _get_shared_float(variable):
 
     return outbuf.value
 
-def _update_gui():
+def _update_gui(self):
     """ update the Nova Px graphical user unterface
 
     this operation is noted to be "not threadsafe" in the original documentation
