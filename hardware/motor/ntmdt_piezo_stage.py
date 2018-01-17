@@ -164,29 +164,16 @@ class PiezoStagePI(Base, MotorInterface):
         @return dict pos: dictionary with the current axis position
         """
 
-        # Move in x:
-        newpos = self._double1d(param_dict['x'] * 1e6)
-        ax = ctypes.c_char_p('1'.encode())
-        self._pidll.PI_MOV(self._devID, ax, newpos)
-        onT = self._bool1d(0)
-        while not onT[0]:
-            self._pidll.PI_qONT(self._devID, ax, onT)
 
-        # Move in y:
-        newpos = self._double1d(param_dict['y'] * 1e6)
-        ax = ctypes.c_char_p('2'.encode())
-        self._pidll.PI_MOV(self._devID, ax, newpos)
-        onT = self._bool1d(0)
-        while not onT[0]:
-            self._pidll.PI_qONT(self._devID, ax, onT)
-
-        # Move in z:
-        newpos = self._double1d(param_dict['z'] * 1e6)
-        ax = ctypes.c_char_p('3'.encode())
-        self._pidll.PI_MOV(self._devID, ax, newpos)
-        onT = self._bool1d(0)
-        while not onT[0]:
-            self._pidll.PI_qONT(self._devID, ax, onT)
+        command =   ('SetParam tBase, cValue, pi_ScrPosX, 0, {xpos}\n\n'
+                     'SetParam tBase, cValue, pi_ScrPosX, 0, {ypos}\n\n'
+                     'SetParam tBase, cValue, pi_ScrPosX, 0, {zpos}\n\n'
+                     'Do\n\n'
+                     '\tIdle\n\n'
+                     'Loop Until GetParam(tScanner, cStatus, 0) = 0'
+                     .format(xpos=param_dict['x'], ypos=param_dict['x'], zpos=param_dict['x']))
+        
+        self._run_script_text(command)
 
         param_dict = self.get_pos()
         return param_dict
@@ -327,7 +314,7 @@ class PiezoStagePI(Base, MotorInterface):
 
         for axis in ['x', 'y', 'z']:
             command =   ('Set ParInfo = GetParam(tBase, cInfo, pi_ScrPos{axis}, 0)\n\n'
-                        'Val{axis} = ParInfo.MaxValue'
+                        'Val{axis} = ParInfo.MaxValue\n\n'
                         'SetSharedDataVal "shared{}PosMax", Val{axis}, "F64", 8'
                         .format(axis=axis.upper()))
             
