@@ -308,43 +308,43 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
 ########################## Nova PX Communication ###############################
 
-def _run_script_text(self, command):
-    """ execute a command in Nova Px
+    def _run_script_text(self, command):
+        """ execute a command in Nova Px
 
-    @param string command: VBScript code to be executed
-    """
-    self._novadll.RunScriptText(command.encode())
+        @param string command: VBScript code to be executed
+        """
+        self._novadll.RunScriptText(command.encode())
 
-def _get_shared_float(self, variable):
-    """ retreive a shared data variable of type float from Nova Px
+    def _get_shared_float(self, variable):
+        """ retreive a shared data variable of type float from Nova Px
 
-    @param string variable: The variable must have already been created
+        @param string variable: The variable must have already been created
 
-    @returns float value: The value of variable
-    """
-    outbuf = ctypes.c_double()
-    buflen = ctypes.c_int()
+        @returns float value: The value of variable
+        """
+        outbuf = ctypes.c_double()
+        buflen = ctypes.c_int()
 
-    self._novadll.GetSharedData(variable.encode(), None, ctypes.byref(buflen))  # get the required buffer size
-    self._novadll.GetSharedData(variable.encode(), ctypes.byref(outbuf), ctypes.byref(buflen))  # fill the buffer
+        self._novadll.GetSharedData(variable.encode(), None, ctypes.byref(buflen))  # get the required buffer size
+        self._novadll.GetSharedData(variable.encode(), ctypes.byref(outbuf), ctypes.byref(buflen))  # fill the buffer
 
-    return outbuf.value
+        return outbuf.value
 
-def _update_gui(self):
-    """ update the Nova Px graphical user unterface
+    def _update_gui(self):
+        """ update the Nova Px graphical user unterface
 
-    this operation is noted to be "not threadsafe" in the original documentation
-    """
-    command = 'Perform tGlobal, gGuiUpdate'
-    self._run_script_text(command)
+        this operation is noted to be "not threadsafe" in the original documentation
+        """
+        command = 'Perform tGlobal, gGuiUpdate'
+        self._run_script_text(command)
 
-def _check_connection(self):
-    """ set and get a shared variable to check the connection with Nova Px
+    def _check_connection(self):
+        """ set and get a shared variable to check the connection with Nova Px
 
-    @returns bool success: True if values match
-    """
-    command = 'SetSharedDataVal "test_connection", 1.61803398875, "F64", 8'
-    self._run_script_text(command)
-    return self._get_shared_float('test_connection') == 1.61803398875
+        @returns bool success: True if values match
+        """
+        command = 'SetSharedDataVal "test_connection", 1.61803398875, "F64", 8'
+        self._run_script_text(command)
+        return self._get_shared_float('test_connection') == 1.61803398875
 
 ################################################################################
