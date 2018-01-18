@@ -67,6 +67,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         self._novadll = ctypes.windll.LoadLibrary(path_dll)
 
         if self._check_connection():
+            self.log.info('Nova Px handshake successful.')
             self._set_servo_state(True)
             return 0
         else:
@@ -283,7 +284,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         """
         # TODO this is unlikely to be the correct command
         for axis in ['x', 'y', 'z']:
-            command =   ('SetParam tBase, cValue, pi_Scr{axis}}FBState, 0, {to_state}'
+            command =   ('SetParam tBase, cValue, pi_Scr{axis}FBState, 0, {to_state}'
                         .format(axis=axis.upper(), to_state=int(to_state)))  # bool to int
         self._update_gui()
 
@@ -297,7 +298,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         for axis in ['x', 'y', 'z']:
             command =   ('Set ParInfo = GetParam(tBase, cInfo, pi_ScrPos{axis}, 0)\n\n'
                         'Val{axis} = ParInfo.MaxValue\n\n'
-                        'SetSharedDataVal "shared{}PosMax", Val{axis}, "F64", 8'
+                        'SetSharedDataVal "shared{axis}PosMax", Val{axis}, "F64", 8'
                         .format(axis=axis.upper()))
 
             self._run_script_text(command)
