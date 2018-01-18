@@ -33,7 +33,7 @@ from core.module import Base, ConfigOption
 from interface.motor_interface import MotorInterface
 
 
-class PiezoStagePI(Base, MotorInterface):
+class PiezoStageNTMDT(Base, MotorInterface):
 
     """unstable: Matt van Breugel
     This is the hardware module for communicating with NT-MDT piezo scanning stages
