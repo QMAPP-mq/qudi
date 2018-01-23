@@ -83,8 +83,8 @@ class PiezoScrewsNF(Base, MotorInterface):
         """ Deinitialisation performed during deactivation of the module.
         @return: error code
         """
-        self.dev.stop()  # TODO: AttributeError: 'coroutine' object has no attribute 'stop'
-        self.dev.abort()  # TODO: AttributeError: 'coroutine' object has no attribute 'abort'
+        self.dev.stop()
+        self.dev.abort()
         return 0
 
     def get_constraints(self):
@@ -178,7 +178,7 @@ class PiezoScrewsNF(Base, MotorInterface):
         @return dict pos: dictionary with the current axis position
         """
 
-         # TODO: there must be a better way to do this
+        # TODO: there must be a better way to do this
 
         axis_numbers = []
 
@@ -258,15 +258,6 @@ class PiezoScrewsNF(Base, MotorInterface):
                 param_dict['x'] = self.dev.possition(axis)
 
         return param_dict
-
-        # compare requested param list to generated param dict
-        # if param_list:
-        #     param_list = [x.lower() for x in param_list]  # make all param_list elements lower case
-        #     for axis in list(set(param_dict.keys()) - set(param_list)):  # axes not in param_list
-        #         del param_dict[axis]
-        #     return param_dict
-        # else:
-        #     return param_dict
 
     def get_status(self, param_list=None):
         """ Get the status of the position
@@ -399,11 +390,9 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         @param instance dev: the connected device
         """
-        # self.dev.set_velocity(1, 2000)
         self.set_velocity({'x':2000, 'y':2000})
 
         # audably know if the stage is connected
-        # self.dev.set_relative(1, 10)
         self.move_rel({'x':10})
         await dev.finish(1)
         self.move_rel({'x':-10})
