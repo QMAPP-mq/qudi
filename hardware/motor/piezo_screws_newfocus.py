@@ -35,9 +35,9 @@ from core.module import Base, ConfigOption
 from interface.motor_interface import MotorInterface
 
 # thirdparty code
-from newfocus8742.usb import NewFocus8742USB as USB
-from newfocus8742.tcp import NewFocus8742TCP as TCP
-from newfocus8742.sim import NewFocus8742Sim as Sim
+from newfocus8742.newfocus8742.usb import NewFocus8742USB as USB
+from newfocus8742.newfocus8742.tcp import NewFocus8742TCP as TCP
+from newfocus8742.newfocus8742.sim import NewFocus8742Sim as Sim
 
 
 class PiezoScrewsNF(Base, MotorInterface):
