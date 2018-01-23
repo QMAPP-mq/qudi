@@ -88,7 +88,7 @@ class PiezoScrewsNF(Base, MotorInterface):
         self._set_initial_config()
         self._print_config()
 
-        # TODO: check for more than 1 devide connected
+        # TODO: check for more than 1 device connected
 
         return 0
 
@@ -164,10 +164,13 @@ class PiezoScrewsNF(Base, MotorInterface):
         for axis in axis_numbers:
             if axis == 0:
                 param_dict['x'] = self.dev.set_relative(axis, param_dict['x'])
+                await dev.finish(axis)
             elif axis == 1:
                 param_dict['y'] = self.dev.set_relative(axis, param_dict['y'])
+                await dev.finish(axis)
             elif axis == 2:
                 param_dict['z'] = self.dev.set_relative(axis, param_dict['z'])
+                await dev.finish(axis)
 
         return self.get_position()
 
@@ -200,10 +203,13 @@ class PiezoScrewsNF(Base, MotorInterface):
         for axis in axis_numbers:
             if axis == 0:
                 param_dict['x'] = self.dev.set_position(axis, param_dict['x'])
+                await dev.finish(axis)
             elif axis == 1:
                 param_dict['y'] = self.dev.set_position(axis, param_dict['y'])
+                await dev.finish(axis)
             elif axis == 2:
                 param_dict['z'] = self.dev.set_position(axis, param_dict['z'])
+                await dev.finish(axis)
 
         return self.get_position()
 
