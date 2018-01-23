@@ -45,7 +45,7 @@ class PiezoScrewsNF(Base, MotorInterface):
     """unstable: Matt van Breugel, Lachlan Rogers
     This is the hardware module for communicating with New Focus piezo screws.
 
-    This module has been developed for the ???,  # TODO insert model developed on
+    This module has been developed for the New Focus picomotor controller model 8742
     but probably works with any New Focus controller with a comparible command set.
     """
     _modclass = 'PiezoScrewsNF'
