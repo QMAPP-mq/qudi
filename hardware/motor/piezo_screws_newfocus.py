@@ -83,8 +83,8 @@ class PiezoScrewsNF(Base, MotorInterface):
         """ Deinitialisation performed during deactivation of the module.
         @return: error code
         """
-        self.dev.stop()
-        self.dev.abort()
+        self.dev.stop()  # TODO: AttributeError: 'coroutine' object has no attribute 'stop'
+        self.dev.abort()  # TODO: AttributeError: 'coroutine' object has no attribute 'abort'
         return 0
 
     def get_constraints(self):
@@ -231,13 +231,18 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         axis_numbers = []
 
-        for axis_label in param_list:
-            if 'x' in axis_label:
-                axis_numbers.append(0)
-            if 'y' in axis_label:
-                axis_numbers.append(1)
-            if 'z' in axis_label:
-                axis_numbers.append(2)
+        if param_list:
+            for axis_label in param_list:
+                if 'x' in axis_label:
+                    axis_numbers.append(0)
+                if 'y' in axis_label:
+                    axis_numbers.append(1)
+                if 'z' in axis_label:
+                    axis_numbers.append(2)
+        else:
+            axis_numbers.append(0)
+            axis_numbers.append(1)
+            axis_numbers.append(2)
 
         param_dict = {}
 
