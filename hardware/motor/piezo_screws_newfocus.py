@@ -35,9 +35,9 @@ from core.module import Base, ConfigOption
 from interface.motor_interface import MotorInterface
 
 # thirdparty code
-from newfocus8742.newfocus8742.usb import NewFocus8742USB as USB
-from newfocus8742.newfocus8742.tcp import NewFocus8742TCP as TCP
-from newfocus8742.newfocus8742.sim import NewFocus8742Sim as Sim
+from hardware.motor.newfocus8742.newfocus8742.usb import NewFocus8742USB as USB
+from hardware.motor.newfocus8742.newfocus8742.tcp import NewFocus8742TCP as TCP
+from hardware.motor.newfocus8742.newfocus8742.sim import NewFocus8742Sim as Sim
 
 
 class PiezoScrewsNF(Base, MotorInterface):
@@ -64,26 +64,13 @@ class PiezoScrewsNF(Base, MotorInterface):
         """ Initialisation performed during activation of the module.
         @return: error code
         """
-        if not self._communication_method:
-            self.log.warning('No communication method specified in the config, I cannot continue.')
-            return 1
-        
-        if 'usb' in _communication_method.lower():
-            self.dev = await USB.connect()
-        elif 'tcp' in _communication_method.lower():
-            _tcp_addy = ConfigOption('tcp_addy', missing='error')
-            if _tcp_addy:
-                self.dev = await TCP.connect(_tcp_addy)
-            else:
-                self.log.error('No TCP address specified in the config, I cannot contnue.')
-                return 1
-        elif 'sim' in _communication_method.lower():
-            self.dev = await Sim.connect()
-        else:
-            self.log.error('Invalid communication method specified in config.')
+        self.dev = self._startup()
+
+        if self.dev == 1:
             return 1
 
-        self.log.info(await self.dev.error_message())
+        self.log.info(self._error_message())
+
         self._print_config()
         self._set_initial_config()
         self._print_config()
@@ -164,13 +151,16 @@ class PiezoScrewsNF(Base, MotorInterface):
         for axis in axis_numbers:
             if axis == 0:
                 param_dict['x'] = self.dev.set_relative(axis, param_dict['x'])
-                await dev.finish(axis)
+                # await dev.finish(axis)
+                self._finish(axis)
             elif axis == 1:
                 param_dict['y'] = self.dev.set_relative(axis, param_dict['y'])
-                await dev.finish(axis)
+                # await dev.finish(axis)
+                self._finish(axis)
             elif axis == 2:
                 param_dict['z'] = self.dev.set_relative(axis, param_dict['z'])
-                await dev.finish(axis)
+                # await dev.finish(axis)
+                self._finish(axis)
 
         return self.get_position()
 
@@ -203,13 +193,16 @@ class PiezoScrewsNF(Base, MotorInterface):
         for axis in axis_numbers:
             if axis == 0:
                 param_dict['x'] = self.dev.set_position(axis, param_dict['x'])
-                await dev.finish(axis)
+                # await dev.finish(axis)
+                self._finish(axis)
             elif axis == 1:
                 param_dict['y'] = self.dev.set_position(axis, param_dict['y'])
-                await dev.finish(axis)
+                # await dev.finish(axis)
+                self._finish(axis)
             elif axis == 2:
                 param_dict['z'] = self.dev.set_position(axis, param_dict['z'])
-                await dev.finish(axis)
+                # await dev.finish(axis)
+                self._finish(axis)
 
         return self.get_position()
 
@@ -382,21 +375,21 @@ class PiezoScrewsNF(Base, MotorInterface):
 
 ########################## extra internal methods ###############################################################
 
-    def _print_config(self, dev):
+    async def _print_config(self):
         """ internal method to print current stage config
 
         @param instance dev: the connected device
         """
-        print(await dev.error_message())
-        print(await dev.get_velocity(1))
-        print(await dev.get_velocity(1))
-        print(await dev.error_code())
-        print(await dev.identify())
-        print(await dev.get_home(1))
-        print(await dev.get_position(1))
-        print(await dev.get_relative(1))
+        print(await self.dev.error_message())
+        print(await self.dev.get_velocity(1))
+        print(await self.dev.get_velocity(1))
+        print(await self.dev.error_code())
+        print(await self.dev.identify())
+        print(await self.dev.get_home(1))
+        print(await self.dev.get_position(1))
+        print(await self.dev.get_relative(1))
 
-    def _set_initial_config(self):
+    async def _set_initial_config(self):
         """ set the initial device configuration, values from newfocus8742
 
         @param instance dev: the connected device
@@ -411,32 +404,67 @@ class PiezoScrewsNF(Base, MotorInterface):
         self.move_rel({'x':-10})
         await dev.finish(1)
 
+    async def _startup(self):
+        """
+        """
+        if not self._communication_method:
+            self.log.warning('No communication method specified in the config, I cannot continue.')
+            return 1
+        
+        if 'usb' in _communication_method.lower():
+            dev = await USB.connect()
+            return dev
+        elif 'tcp' in _communication_method.lower():
+            _tcp_addy = ConfigOption('tcp_addy', missing='error')
+            if _tcp_addy:
+                dev = await TCP.connect(_tcp_addy)
+                return dev
+            else:
+                self.log.error('No TCP address specified in the config, I cannot contnue.')
+                return 1
+        elif 'sim' in _communication_method.lower():
+            dev = await Sim.connect()
+            return dev
+        else:
+            self.log.error('Invalid communication method specified in config.')
+            return 1
+
+    async def _finish(self, axis):
+        """
+        """
+        await self.dev.finish(axis)
+
+    async def _error_message(self):
+        """
+        """
+        return await self.dev.error_message()
+
 ########################## required start-up functions from newfocus8742 ###############################################################
 
     async def k(self):
-    for i in range(100):
-        await self.dev.error_code()
+        for i in range(100):
+            await self.dev.error_code()
 
     async def dump(self):
-    for i in range(4):
-        for cmd in "AC DH MD PA PR QM TP VA".split():
-            print(1 + i, cmd, await self.dev.ask(cmd + "?", 1 + i))
-    for cmd in ("SA SC SD TB TE VE ZZ "
-                "GATEWAY HOSTNAME IPADDR IPMODE MACADDR NETMASK "
-                ).split():
-        print(cmd, await self.dev.ask(cmd + "?"))
+        for i in range(4):
+            for cmd in "AC DH MD PA PR QM TP VA".split():
+                print(1 + i, cmd, await self.dev.ask(cmd + "?", 1 + i))
+        for cmd in ("SA SC SD TB TE VE ZZ "
+                    "GATEWAY HOSTNAME IPADDR IPMODE MACADDR NETMASK "
+                    ).split():
+            print(cmd, await self.dev.ask(cmd + "?"))
 
     # unused
     async def test(self):
-    print(dev)
-    m = 2
-    self.dev.do("VA", m, 2000)
-    self.dev.do("AC", m, 100000)
-    for i in range(100):
-        self.dev.do("PR", m, 100)
-        while not int(await dev.ask("MD?", m)):
-            await asyncio.sleep(.001)
-        print(".")
-        await asyncio.sleep(.1)
-    print(await self.dev.ask("TP?", m))
-    print(await self.dev.ask("QM?", m))
+        print(dev)
+        m = 2
+        self.dev.do("VA", m, 2000)
+        self.dev.do("AC", m, 100000)
+        for i in range(100):
+            self.dev.do("PR", m, 100)
+            while not int(await dev.ask("MD?", m)):
+                await asyncio.sleep(.001)
+            print(".")
+            await asyncio.sleep(.1)
+        print(await self.dev.ask("TP?", m))
+        print(await self.dev.ask("QM?", m))
