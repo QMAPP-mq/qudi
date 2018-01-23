@@ -249,13 +249,13 @@ class PiezoScrewsNF(Base, MotorInterface):
         for axis in axis_numbers:
             if axis == 0:
                 # param_dict['x'] = self.dev.get_possition(axis)
-                param_dict['x'] = self.dev.possition(axis)
+                param_dict['x'] = self.dev.position(axis)
             elif axis == 1:
                 # param_dict['y'] = self.dev.get_possition(axis)
-                param_dict['x'] = self.dev.possition(axis)
+                param_dict['x'] = self.dev.position(axis)
             elif axis == 2:
                 # param_dict['z'] = self.dev.get_possition(axis)
-                param_dict['x'] = self.dev.possition(axis)
+                param_dict['x'] = self.dev.position(axis)
 
         return param_dict
 
