@@ -159,7 +159,7 @@ class PiezoScrewsNF(Base, MotorInterface):
             if 'y' in axis_label:
                 axis_numbers.append(1)
             if 'z' in axis_label:
-                axis_numbers.append(3)
+                axis_numbers.append(2)
 
         for axis in axis_numbers:
             if axis == 0:
@@ -198,7 +198,7 @@ class PiezoScrewsNF(Base, MotorInterface):
             if 'y' in axis_label:
                 axis_numbers.append(1)
             if 'z' in axis_label:
-                axis_numbers.append(3)
+                axis_numbers.append(2)
 
         for axis in axis_numbers:
             if axis == 0:
@@ -244,7 +244,7 @@ class PiezoScrewsNF(Base, MotorInterface):
             if 'y' in axis_label:
                 axis_numbers.append(1)
             if 'z' in axis_label:
-                axis_numbers.append(3)
+                axis_numbers.append(2)
 
         param_dict = {}
 
@@ -338,7 +338,7 @@ class PiezoScrewsNF(Base, MotorInterface):
             if 'y' in axis_label:
                 axis_numbers.append(1)
             if 'z' in axis_label:
-                axis_numbers.append(3)
+                axis_numbers.append(2)
 
         for axis in axis_numbers:
             if axis == 0:
