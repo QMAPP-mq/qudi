@@ -64,7 +64,8 @@ class PiezoScrewsNF(Base, MotorInterface):
         """ Initialisation performed during activation of the module.
         @return: error code
         """
-        self.dev = self._startup()
+        # self.dev = self._startup()
+        self._startup()
 
         if self.dev == 1:
             return 1
@@ -406,19 +407,19 @@ class PiezoScrewsNF(Base, MotorInterface):
             return 1
         
         if 'usb' in _communication_method.lower():
-            dev = await USB.connect()
-            return dev
+            self.dev = await USB.connect()
+            # return dev
         elif 'tcp' in _communication_method.lower():
             _tcp_addy = ConfigOption('tcp_addy', missing='error')
             if _tcp_addy:
-                dev = await TCP.connect(_tcp_addy)
-                return dev
+                self.dev = await TCP.connect(_tcp_addy)
+                # return dev
             else:
                 self.log.error('No TCP address specified in the config, I cannot contnue.')
                 return 1
         elif 'sim' in _communication_method.lower():
-            dev = await Sim.connect()
-            return dev
+            self.dev = await Sim.connect()
+            # return dev
         else:
             self.log.error('Invalid communication method specified in config.')
             return 1
