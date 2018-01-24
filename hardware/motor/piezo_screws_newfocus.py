@@ -13,6 +13,8 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
+This module is inspired by the work of Robert TODO
+
 You should have received a copy of the GNU General Public License
 along with Qudi. If not, see <http://www.gnu.org/licenses/>.
 
@@ -21,23 +23,13 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 """
 
 import time
-import ctypes
-import os
-
-# TODO: ensure these are part of the qudi environment
-import logging
-import asyncio
-import timeit
+import usb.core
+import usb.util
 
 from collections import OrderedDict
 
 from core.module import Base, ConfigOption
 from interface.motor_interface import MotorInterface
-
-# thirdparty code
-from hardware.motor.newfocus8742.newfocus8742.usb import NewFocus8742USB as USB
-from hardware.motor.newfocus8742.newfocus8742.tcp import NewFocus8742TCP as TCP
-from hardware.motor.newfocus8742.newfocus8742.sim import NewFocus8742Sim as Sim
 
 
 class PiezoScrewsNF(Base, MotorInterface):
@@ -51,31 +43,60 @@ class PiezoScrewsNF(Base, MotorInterface):
     _modclass = 'PiezoScrewsNF'
     _modtype = 'hardware'
 
-    _communication_method = ConfigOption('communication_over', missing='error')
-
-    logging.basicConfig(level=logging.INFO)
-    loop = asyncio.get_event_loop()
-    loop.set_debug(False)
+    eol_write = b"\r"
+    eol_read = b"\r\n"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+        
 
     def on_activate(self):
         """ Initialisation performed during activation of the module.
         @return: error code
         """
-        self.dev = self._startup()
 
-        if self.dev == 1:
+        # TODO: get these from config
+        self.vendor_id = 0x104d
+        self.product_id = 0x4000
+
+        # find our device
+        self.dev = usb.core.find(idVendor=vendor_id, idProduct=product_id)
+
+        # was it found?
+        if self.dev is None:
+            raise ValueError('Device not found')
             return 1
 
-        self.log.info(self._error_message())
+        # set the active configuration. With no arguments, the first
+        # configuration will be the active one
+        self.dev.set_configuration()
 
-        self._print_config()
-        self._set_initial_config()
-        self._print_config()
+        # get an endpoint instance
+        cfg = self.dev.get_active_configuration()
+        intf = cfg[(0,0)]
 
-        # TODO: check for more than 1 device connected
+        self.ep_out = usb.util.find_descriptor(
+            intf,
+            # match the first OUT endpoint
+            custom_match = 
+            lambda e: 
+                usb.util.endpoint_direction(e.bEndpointAddress) == 
+                usb.util.ENDPOINT_OUT)
+
+        assert self.ep_out is not None
+        assert self.ep_out.wMaxPacketSize == 64
+
+        self.ep_in = usb.util.find_descriptor(
+            intf,
+            # match the first OUT endpoint
+            custom_match = 
+            lambda e: 
+                usb.util.endpoint_direction(e.bEndpointAddress) == 
+                usb.util.ENDPOINT_IN)
+
+        assert self.ep_in is not None
+        assert self.ep_in.wMaxPacketSize == 64
 
         return 0
 
@@ -83,8 +104,11 @@ class PiezoScrewsNF(Base, MotorInterface):
         """ Deinitialisation performed during deactivation of the module.
         @return: error code
         """
-        self.dev.stop()
-        self.dev.abort()
+        # TODO get these stop and abort functions
+        #self._stop()
+        #self._abort()
+
+        usb.util.dispose_resources(self.dev)
         return 0
 
     def get_constraints(self):
@@ -150,17 +174,11 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         for axis in axis_numbers:
             if axis == 0:
-                param_dict['x'] = self.dev.set_relative(axis, param_dict['x'])
-                # await dev.finish(axis)
-                self._finish(axis)
+                self._move_rel_axis(axis, param_dict['x'])
             elif axis == 1:
-                param_dict['y'] = self.dev.set_relative(axis, param_dict['y'])
-                # await dev.finish(axis)
-                self._finish(axis)
+                self._move_rel_axis(axis, param_dict['y'])
             elif axis == 2:
-                param_dict['z'] = self.dev.set_relative(axis, param_dict['z'])
-                # await dev.finish(axis)
-                self._finish(axis)
+                self._move_rel_axis(axis, param_dict['z'])
 
         return self.get_position()
 
@@ -192,17 +210,11 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         for axis in axis_numbers:
             if axis == 0:
-                param_dict['x'] = self.dev.set_position(axis, param_dict['x'])
-                # await dev.finish(axis)
-                self._finish(axis)
+                self._move_abs_axis(axis, param_dict['x'])
             elif axis == 1:
-                param_dict['y'] = self.dev.set_position(axis, param_dict['y'])
-                # await dev.finish(axis)
-                self._finish(axis)
+                self._move_abs_axis(axis, param_dict['y'])
             elif axis == 2:
-                param_dict['z'] = self.dev.set_position(axis, param_dict['z'])
-                # await dev.finish(axis)
-                self._finish(axis)
+                self._move_abs_axis(axis, param_dict['z'])
 
         return self.get_position()
 
@@ -211,8 +223,7 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self.dev.stop()
-        self.dev.abort()
+        # TODO
         return 0
 
     def get_pos(self, param_list=None):
@@ -249,13 +260,13 @@ class PiezoScrewsNF(Base, MotorInterface):
         for axis in axis_numbers:
             if axis == 0:
                 # param_dict['x'] = self.dev.get_possition(axis)
-                param_dict['x'] = self.dev.position(axis)
+                param_dict['x'] = self._get_pos_axis(axis)
             elif axis == 1:
                 # param_dict['y'] = self.dev.get_possition(axis)
-                param_dict['x'] = self.dev.position(axis)
+                param_dict['y'] = self._get_pos_axis(axis)
             elif axis == 2:
                 # param_dict['z'] = self.dev.get_possition(axis)
-                param_dict['x'] = self.dev.position(axis)
+                param_dict['z'] = self._get_pos_axis(axis)
 
         return param_dict
 
@@ -273,7 +284,10 @@ class PiezoScrewsNF(Base, MotorInterface):
         Bit 0: Ready Bit 1: On target Bit 2: Reference drive active Bit 3: Joystick ON
         Bit 4: Macro running Bit 5: Motor OFF Bit 6: Brake ON Bit 7: Drive current active
         """
-        self._print_config()
+        # TODO: do something
+
+        status = {}
+        return status
 
     def calibrate(self, param_list=None):
         """ Calibrates the stage.
@@ -331,11 +345,11 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         for axis in axis_numbers:
             if axis == 0:
-                param_dict['x'] = self.dev.set_velocity(axis, param_dict['x'])
+                param_dict['x'] = self._set_velocity(axis, param_dict['x'])
             elif axis == 1:
-                param_dict['y'] = self.dev.set_velocity(axis, param_dict['y'])
+                param_dict['y'] = self._set_velocity(axis, param_dict['y'])
             elif axis == 2:
-                param_dict['z'] = self.dev.set_velocity(axis, param_dict['z'])
+                param_dict['z'] = self._set_velocity(axis, param_dict['z'])
 
 ########################## internal methods ##################################
 
@@ -371,94 +385,52 @@ class PiezoScrewsNF(Base, MotorInterface):
 
 ########################## extra internal methods ###############################################################
 
-    async def _print_config(self):
-        """ internal method to print current stage config
-
-        @param instance dev: the connected device
-        """
-        print(await self.dev.error_message())
-        print(await self.dev.get_velocity(1))
-        print(await self.dev.get_velocity(1))
-        print(await self.dev.error_code())
-        print(await self.dev.identify())
-        print(await self.dev.get_home(1))
-        print(await self.dev.get_position(1))
-        print(await self.dev.get_relative(1))
-
-    async def _set_initial_config(self):
-        """ set the initial device configuration, values from newfocus8742
-
-        @param instance dev: the connected device
-        """
-        self.set_velocity({'x':2000, 'y':2000})
-
-        # audably know if the stage is connected
-        self.move_rel({'x':10})
-        await dev.finish(1)
-        self.move_rel({'x':-10})
-        await dev.finish(1)
-
-    async def _startup(self):
-        """
-        """
-        if not self._communication_method:
-            self.log.warning('No communication method specified in the config, I cannot continue.')
-            return 1
+    def _writeline(self, cmd):
+        self.ep_out.write(cmd.encode() + eol_write)
         
-        if 'usb' in _communication_method.lower():
-            dev = await USB.connect()
-            return dev
-        elif 'tcp' in _communication_method.lower():
-            _tcp_addy = ConfigOption('tcp_addy', missing='error')
-            if _tcp_addy:
-                dev = await TCP.connect(_tcp_addy)
-                return dev
-            else:
-                self.log.error('No TCP address specified in the config, I cannot contnue.')
-                return 1
-        elif 'sim' in _communication_method.lower():
-            dev = await Sim.connect()
-            return dev
-        else:
-            self.log.error('Invalid communication method specified in config.')
-            return 1
+    def _readline(self):
+        r = self.ep_in.read(64).tobytes()
+        assert r.endswith(eol_read)
+        r = r[:-2].decode()
+        return r
 
-    async def _finish(self, axis):
+    def ask(self, cmd, xx=None, *nn):
+        self._writeline(cmd)
+        time.sleep(0.1)
+        return self._readline()
+
+    def do(self, cmd, xx=None, *nn):
+        """Format and send a command to the device
+
+        See Also:
+            :meth:`fmt_cmd`: for the formatting and additional
+                parameters.
         """
-        """
-        await self.dev.finish(axis)
+        cmd = fmt_cmd(cmd, xx, *nn)
+        assert len(cmd) < 64
+        _writeline(cmd)
 
-    async def _error_message(self):
-        """
-        """
-        return await self.dev.error_message()
+    def _on_target(self, axis):
+        return bool(self._ask(axis + 'MD?'))
 
-########################## required start-up functions from newfocus8742 ###############################################################
+    def _move_rel_axis(self, axis, distance):
+        # TODO can we convert distance to steps
+        steps = distance
+        self._do('PR', xx=axis, steps)
 
-    async def k(self):
-        for i in range(100):
-            await self.dev.error_code()
+        while not self._on_target():
+            time.sleep(0.1)
+    
+    def _move_abs_axis(self, axis, distance):
+        # TODO can we convert distance to steps
+        steps = distance
+        self._do('PA', axis, steps)
 
-    async def dump(self):
-        for i in range(4):
-            for cmd in "AC DH MD PA PR QM TP VA".split():
-                print(1 + i, cmd, await self.dev.ask(cmd + "?", 1 + i))
-        for cmd in ("SA SC SD TB TE VE ZZ "
-                    "GATEWAY HOSTNAME IPADDR IPMODE MACADDR NETMASK "
-                    ).split():
-            print(cmd, await self.dev.ask(cmd + "?"))
+        while not self._on_target():
+            time.sleep(0.1)
+        
+    def _get_pos_axis(self, axis):
+        return self._ask('PA?', xx=axis)
 
-    # unused
-    async def test(self):
-        print(dev)
-        m = 2
-        self.dev.do("VA", m, 2000)
-        self.dev.do("AC", m, 100000)
-        for i in range(100):
-            self.dev.do("PR", m, 100)
-            while not int(await dev.ask("MD?", m)):
-                await asyncio.sleep(.001)
-            print(".")
-            await asyncio.sleep(.1)
-        print(await self.dev.ask("TP?", m))
-        print(await self.dev.ask("QM?", m))
+    def _set_velocity_axis(self, axis, velocity):
+        self._do('VA', xx=axis, velocity)
