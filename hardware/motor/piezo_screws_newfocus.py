@@ -13,7 +13,8 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-This module is inspired by the work of Robert TODO
+This module is inspired by the work of Robert Jördens;
+see github.com/quartiq/newfocus8742
 
 You should have received a copy of the GNU General Public License
 along with Qudi. If not, see <http://www.gnu.org/licenses/>.
@@ -54,16 +55,18 @@ class PiezoScrewsNF(Base, MotorInterface):
         @return: error code
         """
 
-        # TODO: get these from config
-        self.vendor_id = 0x104d
-        self.product_id = 0x4000
+        # self.vendor_id = 0x104d
+        # self.product_id = 0x4000
+        self.vendor_id = ConfigOption('vendor_id', 0x104d, missing='warn')  # pre-loaded value
+        self.product_id = ConfigOption('product_id', 0x4000, missing='warn')  # pre-loaded value
 
         # find our device
         self.dev = usb.core.find(idVendor=self.vendor_id, idProduct=self.product_id)
 
         # was it found?
         if self.dev is None:
-            raise ValueError('Device not found')
+            # raise ValueError('Device not found')
+            self.log.error('Device not found')
             return 1
 
         # set the active configuration. With no arguments, the first
@@ -102,7 +105,7 @@ class PiezoScrewsNF(Base, MotorInterface):
         """ Deinitialisation performed during deactivation of the module.
         @return: error code
         """
-        # TODO get these stop and abort functions
+        # TODO get these stop and abort functions (see device documentation)
         #self._stop()
         #self._abort()
 
@@ -158,7 +161,7 @@ class PiezoScrewsNF(Base, MotorInterface):
         @return dict pos: dictionary with the current magnet position
         """
 
-         # TODO: there must be a better way to do this
+        # TODO: there must be a better way to do this
 
         axis_numbers = []
 
@@ -221,7 +224,7 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        # TODO
+        # TODO stop then abort (see device documentation)
         return 0
 
     def get_pos(self, param_list=None):
@@ -257,13 +260,10 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         for axis in axis_numbers:
             if axis == 1:
-                # param_dict['x'] = self.dev.get_possition(axis)
                 param_dict['x'] = self._get_pos_axis(axis)
             elif axis == 2:
-                # param_dict['y'] = self.dev.get_possition(axis)
                 param_dict['y'] = self._get_pos_axis(axis)
             elif axis == 3:
-                # param_dict['z'] = self.dev.get_possition(axis)
                 param_dict['z'] = self._get_pos_axis(axis)
 
         return param_dict
@@ -282,7 +282,7 @@ class PiezoScrewsNF(Base, MotorInterface):
         Bit 0: Ready Bit 1: On target Bit 2: Reference drive active Bit 3: Joystick ON
         Bit 4: Macro running Bit 5: Motor OFF Bit 6: Brake ON Bit 7: Drive current active
         """
-        # TODO: do something
+        # TODO: get device status (see device documentation)
 
         status = {}
         return status
@@ -335,11 +335,11 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         for axis_label in param_dict:
             if 'x' in axis_label:
-                axis_numbers.append(0)
-            if 'y' in axis_label:
                 axis_numbers.append(1)
-            if 'z' in axis_label:
+            if 'y' in axis_label:
                 axis_numbers.append(2)
+            if 'z' in axis_label:
+                axis_numbers.append(3)
 
         for axis in axis_numbers:
             if axis == 0:
@@ -384,9 +384,13 @@ class PiezoScrewsNF(Base, MotorInterface):
 ########################## extra internal methods ###############################################################
 
     def _writeline(self, cmd):
+        """
+        """
         self.ep_out.write(cmd.encode() + self.eol_write)
         
     def _readline(self):
+        """
+        """
         r = self.ep_in.read(64).tobytes()
         assert r.endswith(self.eol_read)
         r = r[:-2].decode()
@@ -407,6 +411,8 @@ class PiezoScrewsNF(Base, MotorInterface):
         return cmd
 
     def _ask(self, cmd, xx=None, *nn):
+        """
+        """
         self._writeline(cmd)
         time.sleep(0.1)
         return self._readline()
@@ -423,9 +429,13 @@ class PiezoScrewsNF(Base, MotorInterface):
         self._writeline(cmd)
 
     def _on_target(self, axis):
+        """
+        """
         return bool(self._ask('{}MD?'.format(axis)))  # TODO use fmt_cmd
 
     def _move_rel_axis(self, axis, distance):
+        """
+        """
         # TODO can we convert distance to steps
         steps = distance
         self._do('PR', axis, steps)
@@ -435,6 +445,8 @@ class PiezoScrewsNF(Base, MotorInterface):
         time.sleep(0.5)
     
     def _move_abs_axis(self, axis, distance):
+        """
+        """
         # TODO can we convert distance to steps
         steps = distance
         self._do('PA', axis, steps)
