@@ -49,8 +49,6 @@ class PiezoScrewsNF(Base, MotorInterface):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        
-
     def on_activate(self):
         """ Initialisation performed during activation of the module.
         @return: error code
@@ -61,7 +59,7 @@ class PiezoScrewsNF(Base, MotorInterface):
         self.product_id = 0x4000
 
         # find our device
-        self.dev = usb.core.find(idVendor=vendor_id, idProduct=product_id)
+        self.dev = usb.core.find(idVendor=self.vendor_id, idProduct=self.product_id)
 
         # was it found?
         if self.dev is None:
@@ -164,23 +162,23 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         axis_numbers = []
 
-        for axis_label in param_list:
+        for axis_label in param_dict:
             if 'x' in axis_label:
-                axis_numbers.append(0)
-            if 'y' in axis_label:
                 axis_numbers.append(1)
-            if 'z' in axis_label:
+            if 'y' in axis_label:
                 axis_numbers.append(2)
+            if 'z' in axis_label:
+                axis_numbers.append(3)
 
         for axis in axis_numbers:
-            if axis == 0:
+            if axis == 1:
                 self._move_rel_axis(axis, param_dict['x'])
-            elif axis == 1:
-                self._move_rel_axis(axis, param_dict['y'])
             elif axis == 2:
+                self._move_rel_axis(axis, param_dict['y'])
+            elif axis == 3:
                 self._move_rel_axis(axis, param_dict['z'])
 
-        return self.get_position()
+        #return self.get_pos()
 
     def move_abs(self, param_dict):
         """Moves stage to absolute position
@@ -200,20 +198,20 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         axis_numbers = []
 
-        for axis_label in param_list:
+        for axis_label in param_dict:
             if 'x' in axis_label:
-                axis_numbers.append(0)
-            if 'y' in axis_label:
                 axis_numbers.append(1)
-            if 'z' in axis_label:
+            if 'y' in axis_label:
                 axis_numbers.append(2)
+            if 'z' in axis_label:
+                axis_numbers.append(3)
 
         for axis in axis_numbers:
-            if axis == 0:
+            if axis == 1:
                 self._move_abs_axis(axis, param_dict['x'])
-            elif axis == 1:
-                self._move_abs_axis(axis, param_dict['y'])
             elif axis == 2:
+                self._move_abs_axis(axis, param_dict['y'])
+            elif axis == 3:
                 self._move_abs_axis(axis, param_dict['z'])
 
         return self.get_position()
@@ -243,28 +241,28 @@ class PiezoScrewsNF(Base, MotorInterface):
         axis_numbers = []
 
         if param_list:
-            for axis_label in param_list:
+            for axis_label in param_dict:
                 if 'x' in axis_label:
-                    axis_numbers.append(0)
-                if 'y' in axis_label:
                     axis_numbers.append(1)
-                if 'z' in axis_label:
+                if 'y' in axis_label:
                     axis_numbers.append(2)
+                if 'z' in axis_label:
+                    axis_numbers.append(3)
         else:
-            axis_numbers.append(0)
             axis_numbers.append(1)
             axis_numbers.append(2)
+            axis_numbers.append(3)
 
         param_dict = {}
 
         for axis in axis_numbers:
-            if axis == 0:
+            if axis == 1:
                 # param_dict['x'] = self.dev.get_possition(axis)
                 param_dict['x'] = self._get_pos_axis(axis)
-            elif axis == 1:
+            elif axis == 2:
                 # param_dict['y'] = self.dev.get_possition(axis)
                 param_dict['y'] = self._get_pos_axis(axis)
-            elif axis == 2:
+            elif axis == 3:
                 # param_dict['z'] = self.dev.get_possition(axis)
                 param_dict['z'] = self._get_pos_axis(axis)
 
@@ -335,7 +333,7 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         axis_numbers = []
 
-        for axis_label in param_list:
+        for axis_label in param_dict:
             if 'x' in axis_label:
                 axis_numbers.append(0)
             if 'y' in axis_label:
@@ -345,11 +343,11 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         for axis in axis_numbers:
             if axis == 0:
-                param_dict['x'] = self._set_velocity(axis, param_dict['x'])
+                param_dict['x'] = self._set_velocity_axis(axis, param_dict['x'])
             elif axis == 1:
-                param_dict['y'] = self._set_velocity(axis, param_dict['y'])
+                param_dict['y'] = self._set_velocity_axis(axis, param_dict['y'])
             elif axis == 2:
-                param_dict['z'] = self._set_velocity(axis, param_dict['z'])
+                param_dict['z'] = self._set_velocity_axis(axis, param_dict['z'])
 
 ########################## internal methods ##################################
 
@@ -386,40 +384,55 @@ class PiezoScrewsNF(Base, MotorInterface):
 ########################## extra internal methods ###############################################################
 
     def _writeline(self, cmd):
-        self.ep_out.write(cmd.encode() + eol_write)
+        self.ep_out.write(cmd.encode() + self.eol_write)
         
     def _readline(self):
         r = self.ep_in.read(64).tobytes()
-        assert r.endswith(eol_read)
+        assert r.endswith(self.eol_read)
         r = r[:-2].decode()
         return r
 
-    def ask(self, cmd, xx=None, *nn):
+    def _fmt_cmd(self, cmd, xx=None, *nn):
+        """Format a command.
+
+        Args:
+            cmd (str): few-letter command
+            xx (int, optional for some commands): Motor channel
+            nn (multiple int, optional): additional parameters
+        """
+        if xx is not None:
+            cmd = "{:d}".format(xx) + cmd
+        if nn:
+            cmd += ", ".join("{:d}".format(n) for n in nn)
+        return cmd
+
+    def _ask(self, cmd, xx=None, *nn):
         self._writeline(cmd)
         time.sleep(0.1)
         return self._readline()
 
-    def do(self, cmd, xx=None, *nn):
+    def _do(self, cmd, xx=None, *nn):
         """Format and send a command to the device
 
         See Also:
             :meth:`fmt_cmd`: for the formatting and additional
                 parameters.
         """
-        cmd = fmt_cmd(cmd, xx, *nn)
+        cmd = self._fmt_cmd(cmd, xx, *nn)
         assert len(cmd) < 64
-        _writeline(cmd)
+        self._writeline(cmd)
 
     def _on_target(self, axis):
-        return bool(self._ask(axis + 'MD?'))
+        return bool(self._ask('{}MD?'.format(axis)))  # TODO use fmt_cmd
 
     def _move_rel_axis(self, axis, distance):
         # TODO can we convert distance to steps
         steps = distance
-        self._do('PR', xx=axis, steps)
+        self._do('PR', axis, steps)
 
-        while not self._on_target():
+        while not self._on_target(axis):
             time.sleep(0.1)
+        time.sleep(0.5)
     
     def _move_abs_axis(self, axis, distance):
         # TODO can we convert distance to steps
@@ -428,9 +441,10 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         while not self._on_target():
             time.sleep(0.1)
+        time.sleep(0.5)
         
     def _get_pos_axis(self, axis):
         return self._ask('PA?', xx=axis)
 
     def _set_velocity_axis(self, axis, velocity):
-        self._do('VA', xx=axis, velocity)
+        self._do('VA', axis, velocity)
