@@ -342,11 +342,11 @@ class PiezoScrewsNF(Base, MotorInterface):
                 axis_numbers.append(3)
 
         for axis in axis_numbers:
-            if axis == 0:
+            if axis == 1:
                 param_dict['x'] = self._set_velocity_axis(axis, param_dict['x'])
-            elif axis == 1:
-                param_dict['y'] = self._set_velocity_axis(axis, param_dict['y'])
             elif axis == 2:
+                param_dict['y'] = self._set_velocity_axis(axis, param_dict['y'])
+            elif axis == 3:
                 param_dict['z'] = self._set_velocity_axis(axis, param_dict['z'])
 
 ########################## internal methods ##################################
