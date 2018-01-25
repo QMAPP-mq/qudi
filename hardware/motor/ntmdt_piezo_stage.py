@@ -148,12 +148,12 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
 
         command =   ('SetParam tBase, cValue, pi_ScrPosX, 0, {xpos}\n\n'
-                     'SetParam tBase, cValue, pi_ScrPosX, 0, {ypos}\n\n'
-                     'SetParam tBase, cValue, pi_ScrPosX, 0, {zpos}\n\n'
+                     'SetParam tBase, cValue, pi_ScrPosY, 0, {ypos}\n\n'
+                     'SetParam tBase, cValue, pi_ScrPosZ, 0, {zpos}\n\n'
                      'Do\n\n'
                      '\tIdle\n\n'
                      'Loop Until GetParam(tScanner, cStatus, 0) = 0'
-                     .format(xpos=param_dict['x'], ypos=param_dict['x'], zpos=param_dict['x']))
+                     .format(xpos=param_dict['x'], ypos=param_dict['y'], zpos=param_dict['z']))
 
         self._run_script_text(command)
         param_dict = self.get_pos()
