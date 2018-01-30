@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-This file contains the Qudi counter logic class.
+This file contains the Qudi powermeter logic class.
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 
 from core.module import Connector, StatusVar
 from logic.generic_logic import GenericLogic
-from interface.slow_counter_interface import CountingMode
+# from interface.slow_counter_interface import CountingMode  # required?
 from core.util.mutex import Mutex
 
 
