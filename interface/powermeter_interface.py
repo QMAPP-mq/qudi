@@ -26,7 +26,7 @@ from core.util.interfaces import InterfaceMetaclass
 
 
 class PowermeterInterface(metaclass=InterfaceMetaclass):
-    """ Define the controls for a slow counter."""
+    """ Define the controls for a powermeter."""
 
     _modtype = 'PowermeterInterface'
     _modclass = 'interface'
@@ -35,7 +35,7 @@ class PowermeterInterface(metaclass=InterfaceMetaclass):
     def get_constraints(self):
         """ Retrieve the hardware constrains from the powermeter device.
 
-        @return dict constraints: object with constraints for the counter
+        @return dict constraints: object with constraints for the powermeter
         """
         pass
 
