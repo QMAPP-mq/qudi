@@ -222,7 +222,7 @@ class PiezoScrewsNF(Base, MotorInterface):
             elif axis == 3:
                 self._move_abs_axis(axis, int(param_dict['z']))
 
-        return self.get_pos()
+        return #self.get_pos()
 
     def abort(self):
         """Stops movement of the stage with no deceleration
@@ -541,7 +541,7 @@ class PiezoScrewsNF(Base, MotorInterface):
         """
         # target_position = self._ask('PA?',axis)
         # relative_position = self._ask('PR?',axis)
-        actual_position = self._ask('TP?',axis)
+        actual_position = int(self._ask('TP?',axis))
         # print ('Get destination position (abs)', axis, target_position)  # debugging
         # print ('Get destination position (rel)', axis, relative_position)  # debugging
         # print ('Get position', axis, actual_position)  # debugging
