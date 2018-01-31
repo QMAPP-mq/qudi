@@ -262,7 +262,7 @@ class PiezoScrewsNF(Base, MotorInterface):
             if axis == 1:
                 value = int(self._ask('MD?', xx= axis))
                 # value = self._on_target(axis)
-                while value == False:
+                while value == 0:
                     time.sleep(0.0005)
                     value = int(self._ask('MD?', xx= axis))
                     # value = self._on_target(axis)
@@ -270,7 +270,7 @@ class PiezoScrewsNF(Base, MotorInterface):
             elif axis == 2:
                 value = int(self._ask('MD?', xx= axis))
                 # value = self._on_target(axis)
-                while value == False:
+                while value == 0:
                     time.sleep(0.0005)
                     value = int(self._ask('MD?', xx= axis))
                     # value = self._on_target(axis)
@@ -278,7 +278,7 @@ class PiezoScrewsNF(Base, MotorInterface):
             elif axis == 3:
                 value = int(self._ask('MD?', xx= axis))
                 # value = self._on_target(axis)
-                while value == False:
+                while value == 0:
                     time.sleep(0.0005)
                     value = int(self._ask('MD?', xx= axis))
                     # value = self._on_target(axis)
@@ -509,12 +509,12 @@ class PiezoScrewsNF(Base, MotorInterface):
         #     time.sleep(0.1)
         # time.sleep(1)
 
-        # value = int(self._ask('MD?', xx= axis))
-        value = self._on_target(axis)
-        while value == False:
+        value = int(self._ask('MD?', xx= axis))
+        # value = self._on_target(axis)
+        while value == 0:
             time.sleep(0.0005)
-            # value = int(self._ask('MD?', xx= axis))
-            value = self._on_target(axis)
+            value = int(self._ask('MD?', xx= axis))
+            # value = self._on_target(axis)
     
     def _move_abs_axis(self, axis, distance):
         """
@@ -596,10 +596,10 @@ class PiezoScrewsNF(Base, MotorInterface):
         """
         """
         # read_log =  open("hardware/motor/newfocusdatalog.txt", "r+")
-        # home_dict = eval(read_log.read())
+        home_dict = eval(open("hardware/motor/newfocusdatalog.txt").read())
         # read_log.close
 
-        home_dict = self.get_pos({'x','y','z'})
+        #home_dict = self.get_pos({'x','y','z'})
         home_dict['x'] = 0 - int(home_dict['x'])
         home_dict['y'] = 0 - int(home_dict['y'])
         home_dict['z'] = 0 - int(home_dict['z'])
@@ -608,7 +608,7 @@ class PiezoScrewsNF(Base, MotorInterface):
     def _print_to_log(self):
         """
         """
-        log_file = open("hardware/motor/newfocusdatalog.txt", "r+")
+        log_file = open("hardware/motor/newfocusdatalog.txt", "w")
         log_file.write(str(self.get_pos({'x','y','z'})))
         log_file.close()
 
