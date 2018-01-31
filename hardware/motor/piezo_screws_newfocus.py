@@ -13,8 +13,7 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-This module is inspired by the work of Robert Jördens;
-see github.com/quartiq/newfocus8742
+This module is inspired by the work of Robert TODO
 
 You should have received a copy of the GNU General Public License
 along with Qudi. If not, see <http://www.gnu.org/licenses/>.
@@ -55,18 +54,16 @@ class PiezoScrewsNF(Base, MotorInterface):
         @return: error code
         """
 
-        # self.vendor_id = 0x104d
-        # self.product_id = 0x4000
-        self.vendor_id = ConfigOption('vendor_id', 0x104d, missing='warn')  # pre-loaded value
-        self.product_id = ConfigOption('product_id', 0x4000, missing='warn')  # pre-loaded value
+        # TODO: get these from config
+        self.vendor_id = 0x104d
+        self.product_id = 0x4000
 
         # find our device
         self.dev = usb.core.find(idVendor=self.vendor_id, idProduct=self.product_id)
 
         # was it found?
         if self.dev is None:
-            # raise ValueError('Device not found')
-            self.log.error('Device not found')
+            raise ValueError('Device not found')
             return 1
 
         # set the active configuration. With no arguments, the first
@@ -101,15 +98,21 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         return 0
 
+
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
         @return: error code
         """
-        # TODO get these stop and abort functions (see device documentation)
-        #self._stop()
-        #self._abort()
+
+        for i in range(1, 5):  # 1, 2, 3, 4
+            self._stop(i)
+
+        self._abort()
+
+        # self.get_pos({'x','y','z'})
 
         usb.util.dispose_resources(self.dev)
+
         return 0
 
     def get_constraints(self):
@@ -161,7 +164,7 @@ class PiezoScrewsNF(Base, MotorInterface):
         @return dict pos: dictionary with the current magnet position
         """
 
-        # TODO: there must be a better way to do this
+         # TODO: there must be a better way to do this
 
         axis_numbers = []
 
@@ -181,7 +184,7 @@ class PiezoScrewsNF(Base, MotorInterface):
             elif axis == 3:
                 self._move_rel_axis(axis, param_dict['z'])
 
-        #return self.get_pos()
+        return self.get_pos()
 
     def move_abs(self, param_dict):
         """Moves stage to absolute position
@@ -217,17 +220,17 @@ class PiezoScrewsNF(Base, MotorInterface):
             elif axis == 3:
                 self._move_abs_axis(axis, param_dict['z'])
 
-        return self.get_position()
+        return self.get_pos()
 
     def abort(self):
-        """Stops movement of the stage
+        """Stops movement of the stage with no deceleration
 
         @return int: error code (0:OK, -1:error)
         """
-        # TODO stop then abort (see device documentation)
+        self._abort()
         return 0
 
-    def get_pos(self, param_list=None):
+    def get_pos(self, param_dict = None):
         """ Gets current position of the stage arms
 
         @param list param_list: optional, if a specific position of an axis
@@ -240,10 +243,11 @@ class PiezoScrewsNF(Base, MotorInterface):
                       position.
         """
         # TODO: there must be a better way to do this
-
+        
         axis_numbers = []
+        pos_dict = {}
 
-        if param_list:
+        if param_dict is not None:
             for axis_label in param_dict:
                 if 'x' in axis_label:
                     axis_numbers.append(1)
@@ -252,23 +256,37 @@ class PiezoScrewsNF(Base, MotorInterface):
                 if 'z' in axis_label:
                     axis_numbers.append(3)
         else:
-            axis_numbers.append(1)
-            axis_numbers.append(2)
-            axis_numbers.append(3)
-
-        param_dict = {}
+            axis_numbers = [1, 2, 3]
 
         for axis in axis_numbers:
             if axis == 1:
-                param_dict['x'] = self._get_pos_axis(axis)
+                value = int(self._ask('MD?', xx= axis))
+                # value = self._on_target(axis)
+                while value == False:
+                    time.sleep(0.0005)
+                    value = int(self._ask('MD?', xx= axis))
+                    # value = self._on_target(axis)
+                pos_dict['x'] = self._get_pos_axis(axis)
             elif axis == 2:
-                param_dict['y'] = self._get_pos_axis(axis)
+                value = int(self._ask('MD?', xx= axis))
+                # value = self._on_target(axis)
+                while value == False:
+                    time.sleep(0.0005)
+                    value = int(self._ask('MD?', xx= axis))
+                    # value = self._on_target(axis)
+                pos_dict['y'] = self._get_pos_axis(axis)
             elif axis == 3:
-                param_dict['z'] = self._get_pos_axis(axis)
+                value = int(self._ask('MD?', xx= axis))
+                # value = self._on_target(axis)
+                while value == False:
+                    time.sleep(0.0005)
+                    value = int(self._ask('MD?', xx= axis))
+                    # value = self._on_target(axis)
+                pos_dict['z'] = self._get_pos_axis(axis)
 
-        return param_dict
+        return pos_dict
 
-    def get_status(self, param_list=None):
+    def get_status(self, param_dict):
         """ Get the status of the position
 
         @param list param_list: optional, if a specific status of an axis
@@ -282,10 +300,30 @@ class PiezoScrewsNF(Base, MotorInterface):
         Bit 0: Ready Bit 1: On target Bit 2: Reference drive active Bit 3: Joystick ON
         Bit 4: Macro running Bit 5: Motor OFF Bit 6: Brake ON Bit 7: Drive current active
         """
-        # TODO: get device status (see device documentation)
 
-        status = {}
-        return status
+        axis_numbers = []
+        status_dict = {}
+
+        if param_dict is not None:
+            for axis_label in param_dict:
+                if 'x' in axis_label:
+                    axis_numbers.append(1)
+                if 'y' in axis_label:
+                    axis_numbers.append(2)
+                if 'z' in axis_label:
+                    axis_numbers.append(3)
+        else:
+            axis_numbers = [1, 2, 3]
+
+        for axis in axis_numbers:
+            if axis == 1:
+                status_dict['x'] = self._done(axis)
+            elif axis == 2:
+                status_dict['y'] = self._done(axis)
+            elif axis == 3:
+                status_dict['z'] = self._done(axis)
+
+        return status_dict
 
     def calibrate(self, param_list=None):
         """ Calibrates the stage.
@@ -305,7 +343,7 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         return pos
 
-    def get_velocity(self, param_list=None):
+    def get_velocity(self, param_dict):
         """ Gets the current velocity for all connected axes in m/s.
 
         @param list param_list: optional, if a specific velocity of an axis
@@ -316,6 +354,29 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         @return dict : with the axis label as key and the velocity as item.
         """
+        axis_numbers = []
+        velocity_dict = {}
+
+        if param_dict is not None:
+            for axis_label in param_dict:
+                if 'x' in axis_label:
+                    axis_numbers.append(1)
+                if 'y' in axis_label:
+                    axis_numbers.append(2)
+                if 'z' in axis_label:
+                    axis_numbers.append(3)
+        else:
+            axis_numbers = [1, 2, 3]
+
+        for axis in axis_numbers:
+            if axis == 1:
+                velocity_dict['x'] = self._ask_velocity(axis)
+            elif axis == 2:
+                velocity_dict['y'] = self._ask_velocity(axis)
+            elif axis == 3:
+                velocity_dict['z'] = self._ask_velocity(axis)
+
+        return velocity_dict
 
     def set_velocity(self, param_dict):
         """ Write new value for velocity in m/s.
@@ -342,12 +403,14 @@ class PiezoScrewsNF(Base, MotorInterface):
                 axis_numbers.append(3)
 
         for axis in axis_numbers:
-            if axis == 1:
+            if axis == 0:
                 param_dict['x'] = self._set_velocity_axis(axis, param_dict['x'])
-            elif axis == 2:
+            elif axis == 1:
                 param_dict['y'] = self._set_velocity_axis(axis, param_dict['y'])
-            elif axis == 3:
+            elif axis == 2:
                 param_dict['z'] = self._set_velocity_axis(axis, param_dict['z'])
+
+        return self.get_velocity()
 
 ########################## internal methods ##################################
 
@@ -397,7 +460,7 @@ class PiezoScrewsNF(Base, MotorInterface):
         return r
 
     def _fmt_cmd(self, cmd, xx=None, *nn):
-        """Format a command.
+        """ Format a command.
 
         Args:
             cmd (str): few-letter command
@@ -413,12 +476,13 @@ class PiezoScrewsNF(Base, MotorInterface):
     def _ask(self, cmd, xx=None, *nn):
         """
         """
+        cmd = self._fmt_cmd(cmd, xx, *nn)
         self._writeline(cmd)
         time.sleep(0.1)
         return self._readline()
 
     def _do(self, cmd, xx=None, *nn):
-        """Format and send a command to the device
+        """ Format and send a command to the device
 
         See Also:
             :meth:`fmt_cmd`: for the formatting and additional
@@ -431,7 +495,8 @@ class PiezoScrewsNF(Base, MotorInterface):
     def _on_target(self, axis):
         """
         """
-        return bool(self._ask('{}MD?'.format(axis)))  # TODO use fmt_cmd
+        # return bool(self._ask('{}MD?'.format(axis)))
+        return bool(self._ask('MD?', axis))
 
     def _move_rel_axis(self, axis, distance):
         """
@@ -440,9 +505,16 @@ class PiezoScrewsNF(Base, MotorInterface):
         steps = distance
         self._do('PR', axis, steps)
 
-        while not self._on_target(axis):
-            time.sleep(0.1)
-        time.sleep(0.5)
+        # while not self._on_target(axis):
+        #     time.sleep(0.1)
+        # time.sleep(1)
+
+        # value = int(self._ask('MD?', xx= axis))
+        value = self._on_target(axis)
+        while value == False:
+            time.sleep(0.0005)
+            # value = int(self._ask('MD?', xx= axis))
+            value = self._on_target(axis)
     
     def _move_abs_axis(self, axis, distance):
         """
@@ -451,12 +523,92 @@ class PiezoScrewsNF(Base, MotorInterface):
         steps = distance
         self._do('PA', axis, steps)
 
-        while not self._on_target():
-            time.sleep(0.1)
-        time.sleep(0.5)
+        # while not self._on_target():
+        #     time.sleep(0.1)
+        # time.sleep(0.5)
+
+        value = int(self._ask('MD?', xx= axis))
+        # value = self._on_target(axis)
+        while value == 0:
+            time.sleep(0.0005)
+            value = int(self._ask('MD?', xx= axis))
+            # value = self._on_target(axis)
         
     def _get_pos_axis(self, axis):
-        return self._ask('PA?', xx=axis)
+        """
+        """
+        # target_position = self._ask('PA?',axis)
+        # relative_position = self._ask('PR?',axis)
+        actual_position = self._ask('TP?',axis)
+        # print ('Get destination position (abs)', axis, target_position)  # debugging
+        # print ('Get destination position (rel)', axis, relative_position)  # debugging
+        # print ('Get position', axis, actual_position)  # debugging
+        return actual_position
+        log_file = open("hardware/motor/newfocusdatalog.txt", "r+")
+        log_file.write(pos_dict)
+        log_file.close()
 
     def _set_velocity_axis(self, axis, velocity):
+        """
+        """
         self._do('VA', axis, velocity)
+   
+    def _abort(self): #created by Jarrod to abort movement instantly no deceleration
+        """
+        """
+        self._do('AB')
+
+    def _stop(self, axis):#created by Jarrod to stop movement with deceleration
+        """
+        """
+        self._do('ST', xx=axis)
+
+    def _done(self, axis): #created by Jarrod to get the status of the motor
+        """
+        """
+        # value = int(self._ask('MD?', xx=axis))
+        value = self._on_target(axis)
+        #cycle = 0
+        #while cycle < 1:
+        if value == False:
+            # m = 'Moving'
+            # print (m)
+            return 2
+        #    cycle = cycle + value
+        else:
+            # d = 'Done'
+            # print (d)
+            return 0
+
+    def _ask_velocity(self, axis): #created by Jarrod to get the velocity the motor will move at
+        """
+        """
+        v = self._ask('VA?', axis)
+        # print (v)
+        return v
+
+    def _set_home(self, axis, position): #created by Jarrod to set the home position to values entered.
+        """
+        """
+        self._do('DH', axis, position)
+    
+    def _check_home(self):
+        """
+        """
+        # read_log =  open("hardware/motor/newfocusdatalog.txt", "r+")
+        # home_dict = eval(read_log.read())
+        # read_log.close
+
+        home_dict = self.get_pos({'x','y','z'})
+        home_dict['x'] = 0 - int(home_dict['x'])
+        home_dict['y'] = 0 - int(home_dict['y'])
+        home_dict['z'] = 0 - int(home_dict['z'])
+        return home_dict
+
+    def _print_to_log(self):
+        """
+        """
+        log_file = open("hardware/motor/newfocusdatalog.txt", "r+")
+        log_file.write(str(self.get_pos({'x','y','z'})))
+        log_file.close()
+
