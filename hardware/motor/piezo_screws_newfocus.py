@@ -154,6 +154,8 @@ class PiezoScrewsNF(Base, MotorInterface):
     def move_rel(self, param_dict):
         """Moves stage in given direction (relative movement)
 
+        TODO: currently in steps, but shoudl be in distance
+
         @param dict param_dict: dictionary, which passes all the relevant
                                 parameters, which should be changed. Usage:
                                  {'axis_label': <the-abs-pos-value>}.
@@ -178,11 +180,11 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         for axis in axis_numbers:
             if axis == 1:
-                self._move_rel_axis(axis, param_dict['x'])
+                self._move_rel_axis(axis, int(param_dict['x']))
             elif axis == 2:
-                self._move_rel_axis(axis, param_dict['y'])
+                self._move_rel_axis(axis, int(param_dict['y']))
             elif axis == 3:
-                self._move_rel_axis(axis, param_dict['z'])
+                self._move_rel_axis(axis, int(param_dict['z']))
 
         return self.get_pos()
 
@@ -214,11 +216,11 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         for axis in axis_numbers:
             if axis == 1:
-                self._move_abs_axis(axis, param_dict['x'])
+                self._move_abs_axis(axis, int(param_dict['x']))
             elif axis == 2:
-                self._move_abs_axis(axis, param_dict['y'])
+                self._move_abs_axis(axis, int(param_dict['y']))
             elif axis == 3:
-                self._move_abs_axis(axis, param_dict['z'])
+                self._move_abs_axis(axis, int(param_dict['z']))
 
         return self.get_pos()
 
