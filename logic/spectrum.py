@@ -173,11 +173,16 @@ class SpectrumLogic(GenericLogic):
         else:
             print("Parameter 'on' needs to be boolean")
 
-    def save_spectrum_data(self):
+    def save_spectrum_data(self, name_tag=''):
         """ Saves the current spectrum data to a file.
         """
         filepath = self._save_logic.get_path_for_module(module_name='spectra')
-        filelabel = 'spectrum'
+
+        # If there is a postfix then add separating underscore
+        if name_tag == '':
+            filelabel = 'spectrum'
+        else:
+            filelabel = 'spectrum_' + name_tag
 
         # write experimental parameters
         parameters = OrderedDict()
