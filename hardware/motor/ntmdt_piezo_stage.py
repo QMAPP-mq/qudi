@@ -147,16 +147,17 @@ class PiezoStageNTMDT(Base, MotorInterface):
         """
 
 
-        command =   ('SetParam tBase, cValue, pi_ScrPosX, 0, {xpos}\n\n'
-                     'SetParam tBase, cValue, pi_ScrPosY, 0, {ypos}\n\n'
-                     'SetParam tBase, cValue, pi_ScrPosZ, 0, {zpos}\n\n'
-                     'Do\n\n'
-                     '\tIdle\n\n'
-                     'Loop Until GetParam(tScanner, cStatus, 0) = 0'
-                     .format(xpos=param_dict['x'], ypos=param_dict['y'], zpos=param_dict['z']))
+        command = ('SetParam tBase, cValue, pi_ScrPosX, 0, {xpos}\n\n'
+                   'SetParam tBase, cValue, pi_ScrPosY, 0, {ypos}\n\n'
+                   'SetParam tBase, cValue, pi_ScrPosZ, 0, {zpos}\n\n'
+                   'Do\n\n'
+                   '\tIdle\n\n'
+                   'Loop Until GetParam(tScanner, cStatus, 0) = 0'
+                   .format(xpos=param_dict['x'], ypos=param_dict['y'], zpos=param_dict['z']))
 
         self._run_script_text(command)
         param_dict = self.get_pos()
+
         self._update_gui()
         return param_dict
 
@@ -182,12 +183,15 @@ class PiezoStageNTMDT(Base, MotorInterface):
         param_dict = {}
 
         for axis in ['x', 'y', 'z']:
-            command =   ('{axis}Pos = GetParam(tBase, cValue, pi_ScrPos{axis}, 0, False)\n\n'
-                        'SetSharedDataVal "shared{axis}Pos", {axis}Pos, "F64", 8'
-                        .format(axis=axis.upper()))
+            command = ('{axis}Pos = GetParam(tBase, cValue, pi_ScrPos{axis}, 0, False)\n\n'
+                       'SetSharedDataVal "shared{axis}Pos", {axis}Pos, "F64", 8'
+                       .format(axis=axis.upper()))
 
             self._run_script_text(command)
             param_dict[axis] = self._get_shared_float('shared{axis}Pos'.format(axis=axis.upper()))  # TODO check returned units
+
+        for axis in ['x', 'y', 'z']:
+            self._reset_shared_data('shared{axis}Pos'.format(axis=axis))
 
         if param_list:
             param_list = [x.lower() for x in param_list]  # make all param_list elements lower case
@@ -284,8 +288,9 @@ class PiezoStageNTMDT(Base, MotorInterface):
         """
         # TODO this is unlikely to be the correct command
         for axis in ['x', 'y', 'z']:
-            command =   ('SetParam tBase, cValue, pi_Scr{axis}FBState, 0, {to_state}'
-                        .format(axis=axis.upper(), to_state=int(to_state)))  # bool to int
+            command = ('SetParam tBase, cValue, pi_Scr{axis}FBState, 0, {to_state}'
+                       .format(axis=axis.upper(), to_state=int(to_state)))  # bool to int
+            self._run_script_text(command)
         self._update_gui()
 
     def _get_scanner_range(self):
@@ -296,13 +301,16 @@ class PiezoStageNTMDT(Base, MotorInterface):
         axis_max_constraints = {}
 
         for axis in ['x', 'y', 'z']:
-            command =   ('Set ParInfo = GetParam(tBase, cInfo, pi_ScrPos{axis}, 0)\n\n'
-                        'Val{axis} = ParInfo.MaxValue\n\n'
-                        'SetSharedDataVal "shared{axis}PosMax", Val{axis}, "F64", 8'
-                        .format(axis=axis.upper()))
+            command = ('Set ParInfo = GetParam(tBase, cInfo, pi_ScrPos{axis}, 0)\n\n'
+                       'Val{axis} = ParInfo.MaxValue\n\n'
+                       'SetSharedDataVal "shared{axis}PosMax", Val{axis}, "F64", 8'
+                       .format(axis=axis.upper()))
 
             self._run_script_text(command)
             axis_max_constraints[axis] = self._get_shared_float('shared{axis}PosMax'.format(axis=axis.upper()))  # TODO check returned units
+
+        for axis in ['x', 'y', 'z']:
+            self._reset_shared_data('shared{axis}PosMax'.format(axis=axis))
 
         return axis_max_constraints
 
@@ -331,6 +339,13 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         return outbuf.value
 
+    def _reset_shared_data(self, variable):
+        """ reset a shared data variable
+
+        @param string variable: The variable must have already been created
+        """
+        self._novadll.ResetSharedData(variable.encode())
+
     def _update_gui(self):
         """ update the Nova Px graphical user unterface
 
@@ -346,6 +361,10 @@ class PiezoStageNTMDT(Base, MotorInterface):
         """
         command = 'SetSharedDataVal "test_connection", 1.61803398875, "F64", 8'
         self._run_script_text(command)
-        return self._get_shared_float('test_connection') == 1.61803398875
+        if self._get_shared_float('test_connection') == 1.61803398875:
+            self._reset_shared_data('test_connection')
+            return True
+        else:
+            return False
 
 ################################################################################
