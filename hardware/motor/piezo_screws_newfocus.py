@@ -100,6 +100,17 @@ class PiezoScrewsNF(Base, MotorInterface):
         assert self.ep_in is not None
         assert self.ep_in.wMaxPacketSize == 64
 
+        # get the config for this device.
+        config = self.getConfiguration()
+
+        for axis_label in config['axis_labels']:
+            if axis_label == 'x':
+                self.x_axis_config = config[axis_label]['channel']
+            if axis_label == 'y':
+                self.y_axis_config = config[axis_label]['channel']
+            if axis_label == 'z':
+                self.z_axis_config = config[axis_label]['channel']
+
         return 0
 
 
