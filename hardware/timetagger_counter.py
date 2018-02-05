@@ -40,6 +40,10 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
     #_channel_apd_1 = ConfigOption('timetagger_channel_apd_1', None, missing='warn')
     #_sum_channels = ConfigOption('timetagger_sum_channels', False)
 
+    _channel_apd_0 = 0
+    _channel_apd_1 = 1
+    _sum_channels = False
+
     def on_activate(self):
         """ Start up TimeTagger interface
         """
