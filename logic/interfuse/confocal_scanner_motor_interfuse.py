@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Interfuse to do confocal scans with digital control of the PI piezo stage and 
-APD counts, limited by timing latency of the USB connection.
+Interfuse to do confocal scans with any stage that satisfies the 
+qudi motor interface, and with APD counts at the counter logic.
+This limited by timing latency of the USB connection.
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -27,7 +28,7 @@ from core.module import Base, Connector, ConfigOption
 from interface.confocal_scanner_interface import ConfocalScannerInterface
 
 
-class PiezoPIScannerInterfuse(Base, ConfocalScannerInterface):
+class ScannerMotorInterfuse(Base, ConfocalScannerInterface):
 
     """This is the Interfuse class to combine the PiezoStagePI digital control over
     usb with the APD counts through the NI Card. It joins these devices together and 
