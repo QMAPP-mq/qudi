@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Interfuse to do confocal scans with digital control of the PI piezo stage and 
-APD counts, limited by timing latency of the USB connection.
+Interfuse to do confocal scans with any stage that satisfies the 
+qudi motor interface, and with APD counts at the counter logic.
+This limited by timing latency of the USB connection.
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -27,7 +28,7 @@ from core.module import Base, Connector, ConfigOption
 from interface.confocal_scanner_interface import ConfocalScannerInterface
 
 
-class PiezoPIScannerInterfuse(Base, ConfocalScannerInterface):
+class ScannerMotorInterfuse(Base, ConfocalScannerInterface):
 
     """This is the Interfuse class to combine the PiezoStagePI digital control over
     usb with the APD counts through the NI Card. It joins these devices together and 
@@ -46,7 +47,7 @@ class PiezoPIScannerInterfuse(Base, ConfocalScannerInterface):
         # Internal parameters
         self._line_length = None
 
-        self._position_range = [[0., 300.], [0., 300.], [0., 300.]]
+        self._position_range = [[0., 25e-3], [0., 25e-3], [0., 25e-3]]
         self._current_position = [0., 0., 0.]
 
         self._num_points = 500
@@ -83,7 +84,7 @@ class PiezoPIScannerInterfuse(Base, ConfocalScannerInterface):
         @return float [4][2]: array of 4 ranges with an array containing lower and upper limit
         """
         pos_range = self._position_range.append([0,0])
-        pos_range = [[0., 300], [0., 300], [0., 300], [0., 0.]]
+        pos_range = [[0., 25e-3], [0., 25e-3], [0., 25e-3], [0., 0.]]
         return pos_range
 
     def set_position_range(self, myrange=None):
