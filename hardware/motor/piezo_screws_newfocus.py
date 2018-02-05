@@ -147,7 +147,7 @@ class PiezoScrewsNF(Base, MotorInterface):
         axis0 = {}
         axis0['label'] = 'x'
         axis0['pos_min'] = 0.0
-        axis0['pos_max'] = 300.0
+        axis0['pos_max'] = 25e-3
 
         axis1 = {}
         axis1['label'] = 'y'
@@ -231,11 +231,11 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         for axis in axis_numbers:
             if axis == self.x_axis_config:
-                self._move_abs_axis(axis, int(param_dict['x']))
+                self._move_abs_axis(axis, param_dict['x'])
             elif axis == self.y_axis_config:
-                self._move_abs_axis(axis, int(param_dict['y']))
+                self._move_abs_axis(axis, param_dict['y'])
             elif axis == self.z_axis_config:
-                self._move_abs_axis(axis, int(param_dict['z']))
+                self._move_abs_axis(axis, param_dict['z'])
 
         return #self.get_pos()
 
