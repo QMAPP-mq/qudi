@@ -46,7 +46,7 @@ class PiezoPIScannerInterfuse(Base, ConfocalScannerInterface):
         # Internal parameters
         self._line_length = None
 
-        self._position_range = [[0., 300.], [0., 300.], [0., 300.]]
+        self._position_range = [[0., 25e-3], [0., 25e-3], [0., 25e-3]]
         self._current_position = [0., 0., 0.]
 
         self._num_points = 500
@@ -83,7 +83,7 @@ class PiezoPIScannerInterfuse(Base, ConfocalScannerInterface):
         @return float [4][2]: array of 4 ranges with an array containing lower and upper limit
         """
         pos_range = self._position_range.append([0,0])
-        pos_range = [[0., 300e-6], [0., 300e-6], [0., 300e-6], [0., 0.]]
+        pos_range = [[0., 25e-3], [0., 25e-3], [0., 25e-3], [0., 0.]]
         return pos_range
 
     def set_position_range(self, myrange=None):
