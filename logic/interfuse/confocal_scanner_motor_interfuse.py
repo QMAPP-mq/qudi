@@ -47,16 +47,7 @@ class ScannerMotorInterfuse(Base, ConfocalScannerInterface):
         # Internal parameters
         self._line_length = None
 
-        self._position_range = [[0., 25e-3], [0., 25e-3], [0., 25e-3]]
-        self._current_position = [0., 0., 0.]
-
         self._num_points = 500
-
-        # The number of counter logic bins to include in count data for a scan pixel
-        self._dwell_cnt_bins = 1
-
-        # The dwell time (seconds) to wait before sampling counter logic counts for the scan pixel
-        self._dwell_delay = 0.0
 
     def on_activate(self):
         """ Initialisation performed during activation of the module.
@@ -65,6 +56,14 @@ class ScannerMotorInterfuse(Base, ConfocalScannerInterface):
         self._counter_logic = self.get_connector('counterlogic')
         self._stage_hw = self.get_connector('stage1')
 
+        self._position_range = self.get_position_range()
+        self._current_position = [0., 0., 0.]
+
+        # The number of counter logic bins to include in count data for a scan pixel
+        self._dwell_cnt_bins = 1
+
+        # The dwell time (seconds) to wait before sampling counter logic counts for the scan pixel
+        self._dwell_delay = 0.0
 
     def on_deactivate(self):
         self.reset_hardware()
@@ -83,8 +82,17 @@ class ScannerMotorInterfuse(Base, ConfocalScannerInterface):
 
         @return float [4][2]: array of 4 ranges with an array containing lower and upper limit
         """
-        pos_range = self._position_range.append([0,0])
-        pos_range = [[0., 25e-3], [0., 25e-3], [0., 25e-3], [0., 0.]]
+        hw_constraints = self._stage_hw.get_constraints()
+
+        pos_range = np.zeros((4, 2))
+
+        if 'x' in hw_constraints.keys():
+            pos_range[0] = self._constraints_to_range(hw_constraints, 'x')
+        if 'y' in hw_constraints.keys():
+            pos_range[1] = self._constraints_to_range(hw_constraints, 'y')
+        if 'z' in hw_constraints.keys():
+            pos_range[2] = self._constraints_to_range(hw_constraints, 'z')
+        
         return pos_range
 
     def set_position_range(self, myrange=None):
@@ -288,3 +296,32 @@ class ScannerMotorInterfuse(Base, ConfocalScannerInterface):
         @return float: dwell delay time while waiting for count data to accumulate
         """
         return self._dwell_delay
+
+    def _constraints_to_range(self, hw_constraints, axis):
+        """ Turn constraints dict from hardware into the  position range
+        required for the scanner interface.
+
+        @param dict hw_constraints: dictionary from hardware file.
+
+        @param string axis: axis name, should be 'x', 'y', or 'z'.
+
+        @return list range: [pos_min, pos_max]
+        """
+
+        if axis not in ['x', 'y', 'z']:
+            # TODO: give error
+            return [0, 0]
+
+        if 'pos_min' in hw_constraints[axis].keys():
+            pos_min = hw_constraints['x']['pos_min']
+        else:
+            # TODO: give error
+            return [0, 0]
+        
+        if 'pos_max' in hw_constraints[axis].keys():
+            pos_max = hw_constraints['x']['pos_max']
+        else:
+            # TODO: give error
+            return [0, 0]
+
+        return [pos_min, pos_max]
