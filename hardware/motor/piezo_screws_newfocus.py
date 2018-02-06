@@ -46,13 +46,13 @@ class PiezoScrewsNF(Base, MotorInterface):
     eol_write = b"\r"
     eol_read = b"\r\n"
 
-    x_axis_channel = 1
-    y_axis_channel = 2
+    # x_axis_channel = 1
+    # y_axis_channel = 2
     z_axis_channel = 3
-    x_axis_min = 0
-    x_axis_max = 26e-3
-    y_axis_min = 0
-    y_axis_max = 26e-3
+    # x_axis_min = 0
+    # x_axis_max = 26e-3
+    # y_axis_min = 0
+    # y_axis_max = 26e-3
     z_axis_min = 0
     z_axis_max = 26e-3
 
@@ -107,21 +107,21 @@ class PiezoScrewsNF(Base, MotorInterface):
         assert self.ep_in.wMaxPacketSize == 64
 
         # get the config for this device. #need to figure out how to call nested config
-        # config = self.getConfiguration()
+        config = self.getConfiguration()
 
-        # for axis_label in config['axis_labels']:
-        #     if axis_label == 'x':
-        #         self.x_axis_channel = config[axis_label]['channel']
-        #         self.x_axis_min = config[axis_label][constraints][pos_min]
-        #         self.x_axis_max = config[axis_label][constraints][pos_max]
-        #     if axis_label == 'y':
-        #         self.y_axis_channel = config[axis_label]['channel']
-        #         self.x_axis_min = config[axis_label][constraints][pos_min]
-        #         self.x_axis_max = config[axis_label][constraints][pos_max]
-        #     if axis_label == 'z':
-        #         self.z_axis_channel = config[axis_label]['channel']
-        #         self.x_axis_min = config[axis_label][constraints][pos_min]
-        #         self.x_axis_max = config[axis_label][constraints][pos_max]
+        for axis_label in config['axis_labels']:
+            if axis_label == 'x':
+                self.x_axis_channel = config[axis_label]['channel']
+                self.x_axis_min = config[axis_label]['constraints']['pos_min']
+                self.x_axis_max = config[axis_label]['constraints']['pos_max']
+            if axis_label == 'y':
+                self.y_axis_channel = config[axis_label]['channel']
+                self.y_axis_min = config[axis_label]['constraints']['pos_min']
+                self.y_axis_max = config[axis_label]['constraints']['pos_max']
+            if axis_label == 'z':
+                self.z_axis_channel = config[axis_label]['channel']
+                self.z_axis_min = config[axis_label]['constraints']['pos_min']
+                self.z_axis_max = config[axis_label]['constraints']['pos_max']
 
         return 0
 
@@ -524,7 +524,6 @@ class PiezoScrewsNF(Base, MotorInterface):
     def _move_rel_axis(self, axis, distance):
         """
         """
-        # TODO can we convert distance to steps
         steps = int(float(distance)/float(0.00000003))
         self._do('PR', axis, steps)
 
@@ -542,7 +541,6 @@ class PiezoScrewsNF(Base, MotorInterface):
     def _move_abs_axis(self, axis, distance):
         """
         """
-        # TODO can we convert distance to steps
         steps = int(float(distance)/float(0.00000003))
         self._do('PA', axis, steps)
 
@@ -567,7 +565,6 @@ class PiezoScrewsNF(Base, MotorInterface):
         # print ('Get destination position (abs)', axis, target_position)  # debugging
         # print ('Get destination position (rel)', axis, relative_position)  # debugging
         # print ('Get position', axis, actual_position)  # debugging
-        self._print_to_log
         return actual_position_in_SI
 
     def _set_velocity_axis(self, axis, velocity):
@@ -575,17 +572,17 @@ class PiezoScrewsNF(Base, MotorInterface):
         """
         self._do('VA', axis, velocity)
    
-    def _abort(self): #created by Jarrod to abort movement instantly no deceleration
+    def _abort(self): 
         """
         """
         self._do('AB')
 
-    def _stop(self, axis):#created by Jarrod to stop movement with deceleration
+    def _stop(self, axis):
         """
         """
         self._do('ST', xx=axis)
 
-    def _done(self, axis): #created by Jarrod to get the status of the motor
+    def _done(self, axis):
         """
         """
         # value = int(self._ask('MD?', xx=axis))
@@ -602,14 +599,14 @@ class PiezoScrewsNF(Base, MotorInterface):
             # print (d)
             return 0
 
-    def _ask_velocity(self, axis): #created by Jarrod to get the velocity the motor will move at
+    def _ask_velocity(self, axis): 
         """
         """
         v = self._ask('VA?', axis)
         # print (v)
         return v
 
-    def _set_home(self, axis, position): #created by Jarrod to set the home position to values entered.
+    def _set_home(self, axis, position): 
         """
         """
         self._do('DH', axis, position)
@@ -621,10 +618,10 @@ class PiezoScrewsNF(Base, MotorInterface):
         home_dict = eval(open("hardware/motor/newfocusdatalog.txt").read())
         # read_log.close
 
-        #home_dict = self.get_pos({'x','y','z'})
-        home_dict['x'] = 0 - int(home_dict['x'])
-        home_dict['y'] = 0 - int(home_dict['y'])
-        home_dict['z'] = 0 - int(home_dict['z'])
+        # home_dict = self.get_pos({'x','y','z'})
+        home_dict['x'] = 0 - float(home_dict['x'])
+        home_dict['y'] = 0 - float(home_dict['y'])
+        home_dict['z'] = 0 - float(home_dict['z'])
         return home_dict
 
     def _print_to_log(self):
@@ -633,4 +630,13 @@ class PiezoScrewsNF(Base, MotorInterface):
         log_file = open("hardware/motor/newfocusdatalog.txt", "w")
         log_file.write(str(self.get_pos({'x','y','z'})))
         log_file.close()
+
+    def _go_to_original_home(self):
+        self._check_home()
+        self.move_abs(self._check_home())
+        # self._set_home(self.get_pos)
+        time.sleep(1)
+        self.get_pos({'x','y','z'})
+        self._print_to_log
+
 
