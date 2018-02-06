@@ -56,7 +56,8 @@ class PiezoStageNTMDT(Base, MotorInterface):
                                     'NovaSDK_x64.dll'
                                     )
         elif platform.architecture()[0] == '32bit':
-            path_dll = os.path.join(self.get_main_dir(),
+            # path_dll = os.path.join(self.get_main_dir(),
+            path_dll = os.path.join(os.path.abspath(''),
                                     'thirdparty',
                                     'nt_mdt',
                                     'NovaSDK.dll'
@@ -65,7 +66,9 @@ class PiezoStageNTMDT(Base, MotorInterface):
             self.log.error('Unknown platform, cannot load the Nova SDK dll.')
 
         self._novadll = ctypes.windll.LoadLibrary(path_dll)
-
+        
+        time.sleep(1)
+        
         if self._check_connection():
             self.log.info('Nova Px handshake successful.')
             self._set_servo_state(True)
