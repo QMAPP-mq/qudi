@@ -31,7 +31,6 @@ from collections import OrderedDict
 from core.module import Base, ConfigOption
 from interface.motor_interface import MotorInterface
 
-
 class PiezoScrewsNF(Base, MotorInterface):
 
     """unstable: Matt van Breugel, Lachlan Rogers
@@ -123,6 +122,8 @@ class PiezoScrewsNF(Base, MotorInterface):
                 self.z_axis_min = config[axis_label]['constraints']['pos_min']
                 self.z_axis_max = config[axis_label]['constraints']['pos_max']
 
+        self._go_to_original_home()
+
         return 0
 
 
@@ -213,7 +214,7 @@ class PiezoScrewsNF(Base, MotorInterface):
             elif axis == self.z_axis_channel:
                 self._move_rel_axis(axis, param_dict['z'])
 
-        return self.get_pos()
+        # return self.get_pos()
 
     def move_abs(self, param_dict):
         """Moves stage to absolute position
@@ -249,7 +250,12 @@ class PiezoScrewsNF(Base, MotorInterface):
             elif axis == self.z_axis_channel:
                 self._move_abs_axis(axis, param_dict['z'])
 
-        return #self.get_pos()
+        log_file = open("hardware/motor/newfocusdatalog.txt", "w")
+        log_file.write(str(param_dict))
+        log_file.close()
+
+        # return move_pos_dict
+
 
     def abort(self):
         """Stops movement of the stage with no deceleration
@@ -624,6 +630,9 @@ class PiezoScrewsNF(Base, MotorInterface):
         home_dict['z'] = 0 - float(home_dict['z'])
         return home_dict
 
+    def _home_dictionary(self):
+        self._check_home()
+
     def _print_to_log(self):
         """
         """
@@ -632,11 +641,20 @@ class PiezoScrewsNF(Base, MotorInterface):
         log_file.close()
 
     def _go_to_original_home(self):
+        """
+        """
         self._check_home()
-        self.move_abs(self._check_home())
-        # self._set_home(self.get_pos)
-        time.sleep(1)
+        self.move_rel(self._check_home())
+        self._set_home(self.x_axis_channel, 0)
+        self._set_home(self.y_axis_channel, 0)
+        self._set_home(self.z_axis_channel, 0)
         self.get_pos({'x','y','z'})
-        self._print_to_log
+        self._print_to_log()
+
+    def _on_scan_done(self):
+        """
+        """
+        if scan_done == True:
+            self._print_to_log()
 
 
