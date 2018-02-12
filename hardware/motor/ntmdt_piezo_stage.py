@@ -186,7 +186,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         """
         param_dict = {}
         
-        for axis in ['x', 'y', 'z']:
+        for axis in ['x', 'y']:  #, 'z']:
 
             if axis == 'x':
                 channel = 0
@@ -195,15 +195,17 @@ class PiezoStageNTMDT(Base, MotorInterface):
             # elif axis == 'z':
             #     channel = 3
 
-            command = ('{axis}Pos = GetParam((tScanner, scPosition, 0, {channel})\n\n'
+            command = ('{axis}Pos = GetParam(tScanner, scPosition, 0, {channel})\n\n'
                        'SetSharedDataVal "shared_{axis}Pos", {axis}Pos, "F64", 8'
                        .format(axis=axis, channel=channel))
 
             self._run_script_text(command)
+            time.sleep(0.1)
             param_dict[axis] = self._get_shared_float('shared_{axis}Pos'.format(axis=axis))  # TODO check returned units
 
-        for axis in ['x', 'y', 'z']:
+        for axis in ['x', 'y']:  #, 'z']:
             self._reset_shared_data('shared_{axis}Pos'.format(axis=axis))
+            time.sleep(0.1)
 
         if param_list:
             param_list = [x.lower() for x in param_list]  # make all param_list elements lower case
@@ -386,5 +388,5 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         @param string message: Message to be displayed.
         """
-        command = 'msgbox "{message}"'.format(message)
-        _novadll.RunScriptText(command.encode())
+        command = 'msgbox "{message}"'.format(message=message)
+        self._novadll.RunScriptText(command.encode())
