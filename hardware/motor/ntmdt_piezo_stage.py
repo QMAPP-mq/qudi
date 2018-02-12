@@ -187,7 +187,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         param_dict = {}
         
         for axis in ['x', 'y', 'z']:
-            
+
             if axis == 'x':
                 channel = 0
             elif axis == 'y':
@@ -273,7 +273,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
 ########################## internal methods ####################################
 
     def _do_move_abs(self, axis, move):
-        """internal method for the absolute move in meter
+        """ Internal method for the absolute move in meter
 
         @param axis string: name of the axis that should be moved
 
@@ -294,7 +294,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         return axis, move
 
     def _set_servo_state(self, to_state):
-        """internal method enabling / disabling the stage feedback
+        """ Internal method enabling / disabling the stage feedback
 
         @param bool to_state: desired state of the feedback servos
         """
@@ -306,7 +306,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         self._update_gui()
 
     def _get_scanner_range(self):
-        """ get the range of movement of the scanner
+        """ Get the range of movement of the scanner
 
         @returns dict axis_max_constraints: contains maximum positional values
         """
@@ -330,14 +330,14 @@ class PiezoStageNTMDT(Base, MotorInterface):
 ########################## Nova PX Communication ###############################
 
     def _run_script_text(self, command):
-        """ execute a command in Nova Px
+        """ Execute a command in Nova Px
 
         @param string command: VBScript code to be executed
         """
         self._novadll.RunScriptText(command.encode())
 
     def _get_shared_float(self, variable):
-        """ retreive a shared data variable of type float from Nova Px
+        """ Retreive a shared data variable of type float from Nova Px
 
         @param string variable: The variable must have already been created
 
@@ -352,14 +352,14 @@ class PiezoStageNTMDT(Base, MotorInterface):
         return outbuf.value
 
     def _reset_shared_data(self, variable):
-        """ reset a shared data variable
+        """ Reset a shared data variable
 
         @param string variable: The variable must have already been created
         """
         self._novadll.ResetSharedData(variable.encode())
 
     def _update_gui(self):
-        """ update the Nova Px graphical user unterface
+        """ Update the Nova Px graphical user unterface
 
         this operation is noted to be "not threadsafe" in the original documentation
         """
@@ -367,7 +367,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         self._run_script_text(command)
 
     def _check_connection(self):
-        """ set and get a shared variable to check the connection with Nova Px
+        """ Set and get a shared variable to check the connection with Nova Px
 
         @returns bool success: True if values match
         """
@@ -380,3 +380,11 @@ class PiezoStageNTMDT(Base, MotorInterface):
             return False
 
 ################################################################################
+
+    def _make_message(self, message):
+        """ Make a message box appear in Noxa Px. Use for debugging.
+
+        @param string message: Message to be displayed.
+        """
+        command = 'msgbox "{message}"'.format(message)
+        _novadll.RunScriptText(command.encode())
