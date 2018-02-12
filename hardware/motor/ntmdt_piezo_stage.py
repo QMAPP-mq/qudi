@@ -195,7 +195,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
             # elif axis == 'z':
             #     channel = 3
 
-            command = ('{axis}Pos = GetParam(tScanner, scPosition, 0, {channel})\n\n'
+            command = ('{axis}Pos = GetParam(tScanner, scPosition, 1, {channel})\n\n'  # setting argument #2 = 1 (previously 0)
                        'SetSharedDataVal "shared_{axis}Pos", {axis}Pos, "F64", 8'
                        .format(axis=axis, channel=channel))
 
