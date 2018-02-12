@@ -167,7 +167,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
                            'Do\n'
                            'idle\n'
                            'Loop Until GetParam(tScanner, cStatus, {scanner}) = False'
-                           .format(channel=0, position=position, scanner=1))
+                           .format(channel=channel, position=position, scanner=1))
 
                 self._run_script_text(command)
                 time.sleep(0.1)
