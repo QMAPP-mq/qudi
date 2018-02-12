@@ -185,17 +185,25 @@ class PiezoStageNTMDT(Base, MotorInterface):
                       position.
         """
         param_dict = {}
-
+        
         for axis in ['x', 'y', 'z']:
-            command = ('{axis}Pos = GetParam(tBase, cValue, pi_ScrPos{axis}, 0, False)\n\n'
-                       'SetSharedDataVal "shared{axis}Pos", {axis}Pos, "F64", 8'
-                       .format(axis=axis.upper()))
+            
+            if axis == 'x':
+                channel = 0
+            elif axis == 'y':
+                channel = 1
+            # elif axis == 'z':
+            #     channel = 3
+
+            command = ('{axis}Pos = GetParam((tScanner, scPosition, 0, {channel})\n\n'
+                       'SetSharedDataVal "shared_{axis}Pos", {axis}Pos, "F64", 8'
+                       .format(axis=axis, channel=channel))
 
             self._run_script_text(command)
-            param_dict[axis] = self._get_shared_float('shared{axis}Pos'.format(axis=axis.upper()))  # TODO check returned units
+            param_dict[axis] = self._get_shared_float('shared_{axis}Pos'.format(axis=axis))  # TODO check returned units
 
         for axis in ['x', 'y', 'z']:
-            self._reset_shared_data('shared{axis}Pos'.format(axis=axis))
+            self._reset_shared_data('shared_{axis}Pos'.format(axis=axis))
 
         if param_list:
             param_list = [x.lower() for x in param_list]  # make all param_list elements lower case
