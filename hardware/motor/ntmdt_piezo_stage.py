@@ -149,8 +149,9 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         @return dict pos: dictionary with the current axis position
         """
+        scanner = 1
 
-        for axis in ['x', 'y']:  #, 'z']:
+        for axis in ['x', 'y', 'z']:
 
             if axis in param_dict.keys():
                 if axis == 'x':
@@ -159,15 +160,15 @@ class PiezoStageNTMDT(Base, MotorInterface):
                 elif axis == 'y':
                     channel = 1
                     position = param_dict['y']
-                # elif axis == 'z':
-                #     channel = 2
-                #     position = param_dict['z']
+                elif axis == 'z':
+                    channel = 2
+                    position = param_dict['z']
 
                 command = ('SetParam tScanner, scPosition, {scanner}, {channel}, {position}\n'
                            'Do\n'
                            'idle\n'
                            'Loop Until GetParam(tScanner, cStatus, {scanner}) = False'
-                           .format(channel=channel, position=position, scanner=1))
+                           .format(channel=channel, position=position, scanner=scanner))
 
                 self._run_script_text(command)
                 time.sleep(0.1)
@@ -199,25 +200,27 @@ class PiezoStageNTMDT(Base, MotorInterface):
                       position.
         """
         param_dict = {}
+
+        scanner = 1
         
-        for axis in ['x', 'y']:  #, 'z']:
+        for axis in ['x', 'y', 'z']:
 
             if axis == 'x':
                 channel = 0
             elif axis == 'y':
                 channel = 1
-            # elif axis == 'z':
-            #     channel = 3
+            elif axis == 'z':
+                channel = 2
 
             command = ('{axis}Pos = GetParam(tScanner, scPosition, {scanner}, {channel})\n\n'  # setting argument #2 = 1 (previously 0)
                        'SetSharedDataVal "shared_{axis}Pos", {axis}Pos, "F64", 8'
-                       .format(axis=axis, channel=channel, scanner=1))
+                       .format(axis=axis, channel=channel, scanner=scanner))
 
             self._run_script_text(command)
             time.sleep(0.1)
             param_dict[axis] = self._get_shared_float('shared_{axis}Pos'.format(axis=axis))  # TODO check returned units
 
-        for axis in ['x', 'y']:  #, 'z']:
+        for axis in ['x', 'y', 'z']:
             self._reset_shared_data('shared_{axis}Pos'.format(axis=axis))
             time.sleep(0.1)
 
