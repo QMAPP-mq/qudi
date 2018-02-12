@@ -71,11 +71,11 @@ class PiezoStageNTMDT(Base, MotorInterface):
         time.sleep(1)
         
         if self._check_connection():
-            self.log.info('Nova Px handshake successful.')
+            self.log.info('Nova Px handshake successful')
             self._set_servo_state(True)
             return 0
         else:
-            self.log.error('I cannot connect to Nova Px.')
+            self.log.error('I cannot connect to Nova Px')
             return 1
 
     def on_deactivate(self):
@@ -150,19 +150,33 @@ class PiezoStageNTMDT(Base, MotorInterface):
         @return dict pos: dictionary with the current axis position
         """
 
+        for axis in ['x', 'y']:  #, 'z']:
 
-        command = ('SetParam tBase, cValue, pi_ScrPosX, 0, {xpos}\n\n'
-                   'SetParam tBase, cValue, pi_ScrPosY, 0, {ypos}\n\n'
-                   'SetParam tBase, cValue, pi_ScrPosZ, 0, {zpos}\n\n'
-                   'Do\n\n'
-                   '\tIdle\n\n'
-                   'Loop Until GetParam(tScanner, cStatus, 0) = 0'
-                   .format(xpos=param_dict['x'], ypos=param_dict['y'], zpos=param_dict['z']))
+            if axis in param_dict.keys():
+                if axis == 'x':
+                    channel = 0
+                    position = param_dict['x']
+                elif axis == 'y':
+                    channel = 1
+                    position = param_dict['y']
+                # elif axis == 'z':
+                #     channel = 2
+                #     position = param_dict['z']
 
-        self._run_script_text(command)
+                command = ('SetParam tScanner, scPosition, {scanner}, {channel}, {position}\n'
+                           'Do\n'
+                           'idle\n'
+                           'Loop Until GetParam(tScanner, cStatus, {scanner}) = False'
+                           .format(channel=0, position=position, scanner=1))
+
+                self._run_script_text(command)
+                time.sleep(0.1)
+            else:
+                pass
+
         param_dict = self.get_pos()
 
-        self._update_gui()
+        # self._update_gui()
         return param_dict
 
     def abort(self):
@@ -195,9 +209,9 @@ class PiezoStageNTMDT(Base, MotorInterface):
             # elif axis == 'z':
             #     channel = 3
 
-            command = ('{axis}Pos = GetParam(tScanner, scPosition, 1, {channel})\n\n'  # setting argument #2 = 1 (previously 0)
+            command = ('{axis}Pos = GetParam(tScanner, scPosition, {scanner}, {channel})\n\n'  # setting argument #2 = 1 (previously 0)
                        'SetSharedDataVal "shared_{axis}Pos", {axis}Pos, "F64", 8'
-                       .format(axis=axis, channel=channel))
+                       .format(axis=axis, channel=channel, scanner=1))
 
             self._run_script_text(command)
             time.sleep(0.1)
@@ -305,7 +319,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
             command = ('SetParam tBase, cValue, pi_Scr{axis}FBState, 0, {to_state}'
                        .format(axis=axis.upper(), to_state=int(to_state)))  # bool to int
             self._run_script_text(command)
-        self._update_gui()
+        # self._update_gui()
 
     def _get_scanner_range(self):
         """ Get the range of movement of the scanner
