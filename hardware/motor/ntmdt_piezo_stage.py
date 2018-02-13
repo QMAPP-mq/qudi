@@ -317,12 +317,31 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         @param bool to_state: desired state of the feedback servos
         """
-        # TODO this is unlikely to be the correct command
-        for axis in ['x', 'y', 'z']:
-            command = ('SetParam tBase, cValue, pi_Scr{axis}FBState, 0, {to_state}'
-                       .format(axis=axis.upper(), to_state=int(to_state)))  # bool to int
-            self._run_script_text(command)
+        self._set_servo_state_xy(to_state)
+        time.sleep(0.2)
+        self._set_servo_state_z(to_state)
+        time.sleep(0.2)
         self._update_gui()
+
+    def _set_servo_state_xy(self, to_state):
+        """ Internal method to enable/disable XY closed loop feedback
+
+        @param bool to_state: the desired state of the feedback loop
+        """
+        scanner = 1
+        command =   ('SetParam tScanner, cParam, {scanner}, XYCLState, {to_state}'
+                    .format(scanner=scanner, to_state=int(to_state)))  # bool to int
+        self._run_script_text(command)
+
+    def _set_servo_state_z(self, to_state):
+        """ Internal method to enable/disable Z closed loop feedback
+
+        @param bool to_state: the desired state of the feedback loop
+        """
+        scanner = 1
+        command =   ('SetParam tScanner, cParam, {scanner}, ZCLState, {to_state}'
+                    .format(scanner=scanner, to_state=int(to_state)))  # bool to int
+        self._run_script_text(command)
 
     def _get_scanner_range(self):
         """ Get the range of movement of the scanner
