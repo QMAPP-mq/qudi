@@ -5,6 +5,8 @@ This file contains the hardware control for a NT-MDT piezo stage.
 
 N.B. NT-MDT Nova Px control software must be running.
 
+N.B. Nova Px software must be revision 18579 (3.4.0) or newer.
+
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
