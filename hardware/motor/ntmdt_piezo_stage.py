@@ -160,24 +160,19 @@ class PiezoStageNTMDT(Base, MotorInterface):
             if axis in param_dict.keys():
                 if axis == 'x':
                     channel = 0
-                    position = param_dict['x'] /1e-6
+                    to_position = param_dict['x']
+                    self._do_move_abs(axis, channel, to_position)
                 elif axis == 'y':
                     channel = 1
-                    position = param_dict['y'] /1e-6
+                    to_position = param_dict['y']
+                    self._do_move_abs(axis, channel, to_position)
                 elif axis == 'z':
                     channel = 2
-                    position = param_dict['z'] /1e-6
+                    to_position = param_dict['z']
+                    self._do_move_abs(axis, channel, to_position)
 
-                command = ('SetParam tScanner, scPosition, {scanner}, {channel}, {position}\n'
-                           'Do\n'
-                           'idle\n'
-                           'Loop Until GetParam(tScanner, cStatus, {scanner}) = False'
-                           .format(channel=channel, position=position, scanner=self._scanner))
-
-                self._run_script_text(command)
-                time.sleep(0.1)
             else:
-                pass
+                self.log.warning('Desired axis {axis} undefined'.format(axis=axis))
 
         param_dict = self.get_pos()
 
@@ -221,6 +216,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
             self._run_script_text(command)
             time.sleep(0.1)
             param_dict[axis] = self._get_shared_float('shared_{axis}Pos'.format(axis=axis))  *1e-6
+            # NT-MDT scanner communication in microns
 
         for axis in ['x', 'y', 'z']:
             self._reset_shared_data('shared_{axis}Pos'.format(axis=axis))
@@ -293,26 +289,39 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
 ########################## internal methods ####################################
 
-    def _do_move_abs(self, axis, move):
-        """ Internal method for the absolute move in meter
+    def _do_move_abs(self, axis, channel, to_pos):
+        """ Internal method for absolute axis move in meters
 
-        @param axis string: name of the axis that should be moved
-
-        @param float move: desired position in meter
-
-        @return str axis: axis which is moved
-                move float: absolute position to move to
+        @param string axis: name of the axis to be moved
+        @param int channel: channel of the axis to be moved 
+        @param float to_pos: desired position in meters
         """
-        constraints = self.get_constraints()
-        #self.log.info(axis + 'MA{0}'.format(int(move*1e8)))
-        if not(constraints[axis]['pos_min'] <= move <= constraints[axis]['pos_max']):
-            self.log.warning('Cannot make the movement of the axis "{0}"'
-                             'since the border [{1},{2}] would be crossed! Ignore command!'
-                             .format(axis, constraints[axis]['pos_min'], constraints[axis]['pos_max']))
+
+        if not(self.constraints[axis]['pos_min'] <= to_pos <= self.constraints[axis]['pos_max']):
+            self.log.warning('Cannot make the movement of the {axis} axis'
+                             'since the border [{min},{max}] would be crossed! Ignore command!'
+                             .format(axis=axis, min=self.constraints[axis]['pos_min'], max=self.constraints[axis]['pos_max']))
         else:
-            self._write_xyz(axis, 'MA{0}'.format(int(move * 1e7)))  # 1e7 to convert meter to SI units
-            #self._write_xyz(axis, 'MP')
-        return axis, move
+            self._write_axis_move(axis, channel, to_pos)
+
+    def _write_axis_move(self, axis, channel, to_pos):
+        """ Internal method to move a specified axis
+
+        @param string axis: name of the axis to be moved
+        @param int channel: channel of the axis to be moved 
+        @param float to_pos: desired position in meters
+        """
+
+        to_pos = to_pos /1e-6 # NT-MDT scanner communication in microns
+
+        command = ('SetParam tScanner, scPosition, {scanner}, {channel}, {position}\n'
+                    'Do\n'
+                    'idle\n'
+                    'Loop Until GetParam(tScanner, cStatus, {scanner}) = False'
+                    .format(channel=channel, position=to_pos, scanner=self._scanner))
+
+        self._run_script_text(command)
+        time.sleep(0.1)
 
 ########################## feedback methods ####################################
 
