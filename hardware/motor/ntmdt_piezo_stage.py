@@ -44,6 +44,8 @@ class PiezoStageNTMDT(Base, MotorInterface):
     _modclass = 'PiezoStageNTMDT'
     _modtype = 'hardware'
 
+    _scanner = ConfigOption('scanner', missing='error')
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -151,7 +153,6 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         @return dict pos: dictionary with the current axis position
         """
-        scanner = 1
 
         for axis in ['x', 'y', 'z']:
 
@@ -170,7 +171,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
                            'Do\n'
                            'idle\n'
                            'Loop Until GetParam(tScanner, cStatus, {scanner}) = False'
-                           .format(channel=channel, position=position, scanner=scanner))
+                           .format(channel=channel, position=position, scanner=self._scanner))
 
                 self._run_script_text(command)
                 time.sleep(0.1)
@@ -202,8 +203,6 @@ class PiezoStageNTMDT(Base, MotorInterface):
                       position.
         """
         param_dict = {}
-
-        scanner = 1
         
         for axis in ['x', 'y', 'z']:
 
@@ -216,7 +215,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
             command = ('{axis}Pos = GetParam(tScanner, scPosition, {scanner}, {channel})\n\n'  # setting argument #2 = 1 (previously 0)
                        'SetSharedDataVal "shared_{axis}Pos", {axis}Pos, "F64", 8'
-                       .format(axis=axis, channel=channel, scanner=scanner))
+                       .format(axis=axis, channel=channel, scanner=self._scanner))
 
             self._run_script_text(command)
             time.sleep(0.1)
@@ -332,9 +331,8 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         @param bool to_state: the desired state of the feedback loop
         """
-        scanner = 1
         command =   ('SetParam tScanner, cParam, {scanner}, XYCLState, {to_state}'
-                    .format(scanner=scanner, to_state=int(to_state)))  # bool to int
+                    .format(scanner=self._scanner, to_state=int(to_state)))  # bool to int
         self._run_script_text(command)
 
     def _set_servo_state_z(self, to_state):
@@ -342,9 +340,8 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         @param bool to_state: the desired state of the feedback loop
         """
-        scanner = 1
         command =   ('SetParam tScanner, cParam, {scanner}, ZCLState, {to_state}'
-                    .format(scanner=scanner, to_state=int(to_state)))  # bool to int
+                    .format(scanner=self._scanner, to_state=int(to_state)))  # bool to int
         self._run_script_text(command)
 
 ################################################################################
