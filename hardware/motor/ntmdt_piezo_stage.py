@@ -76,6 +76,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         
         if self._check_connection():
             self.log.info('Nova Px handshake successful')
+            self._constraints = self.get_constraints()
             self._set_servo_state(True)
             return 0
         else:
@@ -101,22 +102,22 @@ class PiezoStageNTMDT(Base, MotorInterface):
         """
         constraints = OrderedDict()
 
-        axis_max_constraints = self._get_scanner_range()
+        config = self.getConfiguration()
 
         axis0 = {}
         axis0['label'] = 'x'
-        axis0['pos_min'] = 0.0
-        axis0['pos_max'] = axis_max_constraints['x']
+        axis0['pos_min'] = config['constraints']['x_range']['min']
+        axis0['pos_max'] = config['constraints']['x_range']['max']
 
         axis1 = {}
         axis1['label'] = 'y'
-        axis1['pos_min'] = 0.0
-        axis1['pos_max'] = axis_max_constraints['y']
+        axis1['pos_min'] = config['constraints']['y_range']['min']
+        axis1['pos_max'] = config['constraints']['y_range']['max']
 
         axis2 = {}
         axis2['label'] = 'z'
-        axis2['pos_min'] = 0.0
-        axis2['pos_max'] = axis_max_constraints['z']
+        axis2['pos_min'] = config['constraints']['z_range']['min']
+        axis2['pos_max'] = config['constraints']['z_range']['max']
 
         # assign the parameter container for x to a name which will identify it
         constraints[axis0['label']] = axis0
@@ -343,30 +344,6 @@ class PiezoStageNTMDT(Base, MotorInterface):
         command =   ('SetParam tScanner, cParam, {scanner}, ZCLState, {to_state}'
                     .format(scanner=self._scanner, to_state=int(to_state)))  # bool to int
         self._run_script_text(command)
-
-################################################################################
-
-    def _get_scanner_range(self):
-        """ Get the range of movement of the scanner
-
-        @returns dict axis_max_constraints: contains maximum positional values
-        """
-        axis_max_constraints = {}
-
-        for axis in ['x', 'y', 'z']:
-            command = ('Set ParInfo = GetParam(tBase, cInfo, pi_ScrPos{axis}, 0)\n\n'
-                       'Val{axis} = ParInfo.MaxValue\n\n'
-                       'SetSharedDataVal "shared{axis}PosMax", Val{axis}, "F64", 8'
-                       .format(axis=axis.upper()))
-
-            self._run_script_text(command)
-            axis_max_constraints[axis] = self._get_shared_float('shared{axis}PosMax'.format(axis=axis.upper()))  # TODO check returned units
-
-        for axis in ['x', 'y', 'z']:
-            self._reset_shared_data('shared{axis}PosMax'.format(axis=axis))
-
-        return axis_max_constraints
-
 
 ########################## Nova PX Communication ###############################
 
