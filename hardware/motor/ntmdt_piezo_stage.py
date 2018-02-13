@@ -382,7 +382,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         this operation is noted to be "not threadsafe" in the original documentation
         """
-        command = 'Perform tGlobal, gGuiUpdate'
+        command = 'Perform tGlobal, gGUIUpdate'
         self._run_script_text(command)
 
     def _check_connection(self):
