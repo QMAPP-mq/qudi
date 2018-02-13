@@ -177,7 +177,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         param_dict = self.get_pos()
 
-        # self._update_gui()
+        self._update_gui()
         return param_dict
 
     def abort(self):
@@ -322,7 +322,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
             command = ('SetParam tBase, cValue, pi_Scr{axis}FBState, 0, {to_state}'
                        .format(axis=axis.upper(), to_state=int(to_state)))  # bool to int
             self._run_script_text(command)
-        # self._update_gui()
+        self._update_gui()
 
     def _get_scanner_range(self):
         """ Get the range of movement of the scanner
