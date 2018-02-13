@@ -159,13 +159,13 @@ class PiezoStageNTMDT(Base, MotorInterface):
             if axis in param_dict.keys():
                 if axis == 'x':
                     channel = 0
-                    position = param_dict['x']
+                    position = param_dict['x'] /1e-6
                 elif axis == 'y':
                     channel = 1
-                    position = param_dict['y']
+                    position = param_dict['y'] /1e-6
                 elif axis == 'z':
                     channel = 2
-                    position = param_dict['z']
+                    position = param_dict['z'] /1e-6
 
                 command = ('SetParam tScanner, scPosition, {scanner}, {channel}, {position}\n'
                            'Do\n'
@@ -213,13 +213,13 @@ class PiezoStageNTMDT(Base, MotorInterface):
             elif axis == 'z':
                 channel = 2
 
-            command = ('{axis}Pos = GetParam(tScanner, scPosition, {scanner}, {channel})\n\n'  # setting argument #2 = 1 (previously 0)
+            command = ('{axis}Pos = GetParam(tScanner, scPosition, {scanner}, {channel})\n\n'
                        'SetSharedDataVal "shared_{axis}Pos", {axis}Pos, "F64", 8'
                        .format(axis=axis, channel=channel, scanner=self._scanner))
 
             self._run_script_text(command)
             time.sleep(0.1)
-            param_dict[axis] = self._get_shared_float('shared_{axis}Pos'.format(axis=axis))  # TODO check returned units
+            param_dict[axis] = self._get_shared_float('shared_{axis}Pos'.format(axis=axis))  *1e-6
 
         for axis in ['x', 'y', 'z']:
             self._reset_shared_data('shared_{axis}Pos'.format(axis=axis))
