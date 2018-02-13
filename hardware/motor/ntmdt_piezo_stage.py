@@ -312,6 +312,8 @@ class PiezoStageNTMDT(Base, MotorInterface):
             #self._write_xyz(axis, 'MP')
         return axis, move
 
+########################## feedback methods ####################################
+
     def _set_servo_state(self, to_state):
         """ Internal method enabling / disabling the stage feedback
 
@@ -342,6 +344,8 @@ class PiezoStageNTMDT(Base, MotorInterface):
         command =   ('SetParam tScanner, cParam, {scanner}, ZCLState, {to_state}'
                     .format(scanner=scanner, to_state=int(to_state)))  # bool to int
         self._run_script_text(command)
+
+################################################################################
 
     def _get_scanner_range(self):
         """ Get the range of movement of the scanner
