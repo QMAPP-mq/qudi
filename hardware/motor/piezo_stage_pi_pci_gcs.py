@@ -77,6 +77,7 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
                 return 1
             else:
                 self._set_servo_state(True)
+                self.constraints = self.get_constraints()
                 return 0
 
     def on_deactivate(self):
@@ -99,20 +100,22 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
         """
         constraints = OrderedDict()
 
+        config = self.getConfiguration()
+
         axis0 = {}
         axis0['label'] = 'x'
-        axis0['pos_min'] = 0.0
-        axis0['pos_max'] = 300.0
+        axis0['pos_min'] = config['constraints']['x_range']['min']
+        axis0['pos_max'] = config['constraints']['x_range']['max']
 
         axis1 = {}
         axis1['label'] = 'y'
-        axis1['pos_min'] = 0.0
-        axis1['pos_max'] = 300.0
+        axis1['pos_min'] = config['constraints']['y_range']['min']
+        axis1['pos_max'] = config['constraints']['y_range']['max']
 
         axis2 = {}
         axis2['label'] = 'z'
-        axis2['pos_min'] = 0.0
-        axis2['pos_max'] = 300.0
+        axis2['pos_min'] = config['constraints']['z_range']['min']
+        axis2['pos_max'] = config['constraints']['z_range']['max']
 
         # assign the parameter container for x to a name which will identify it
         constraints[axis0['label']] = axis0
