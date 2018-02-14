@@ -249,9 +249,9 @@ class PiezoStagePI(Base, MotorInterface):
         err = self._pidll.PI_qPOS(ctypes.c_int(0), axesBuffer, posBuffer)
 
         param_dict = {}
-        param_dict['x'] = posBuffer[0] / 1e6
-        param_dict['y'] = posBuffer[1] / 1e6
-        param_dict['z'] = posBuffer[2] / 1e6
+        param_dict['x'] = posBuffer[0] / 1e6  # unit conversion from communication
+        param_dict['y'] = posBuffer[1] / 1e6  # unit conversion from communication
+        param_dict['z'] = posBuffer[2] / 1e6  # unit conversion from communication
 
         return param_dict
 
