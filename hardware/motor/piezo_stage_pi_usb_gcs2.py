@@ -172,29 +172,45 @@ class PiezoStagePI(Base, MotorInterface):
         @return dict pos: dictionary with the current axis position
         """
 
-        # Move in x:
-        newpos = self._double1d(param_dict['x'] * 1e6)
-        ax = ctypes.c_char_p('1'.encode())
-        self._pidll.PI_MOV(self._devID, ax, newpos)
-        onT = self._bool1d(0)
-        while not onT[0]:
-            self._pidll.PI_qONT(self._devID, ax, onT)
+        for axis in ['x', 'y', 'z']:
 
-        # Move in y:
-        newpos = self._double1d(param_dict['y'] * 1e6)
-        ax = ctypes.c_char_p('2'.encode())
-        self._pidll.PI_MOV(self._devID, ax, newpos)
-        onT = self._bool1d(0)
-        while not onT[0]:
-            self._pidll.PI_qONT(self._devID, ax, onT)
+            if axis in param_dict.keys():
+                if axis == 'x':
+                    channel = 1
+                    to_position = param_dict['x']
+                    self._do_move_abs(axis, channel, to_position)
+                elif axis == 'y':
+                    channel = 2
+                    to_position = param_dict['y']
+                    self._do_move_abs(axis, channel, to_position)
+                elif axis == 'z':
+                    channel = 3
+                    to_position = param_dict['z']
+                    self._do_move_abs(axis, channel, to_position)
 
-        # Move in z:
-        newpos = self._double1d(param_dict['z'] * 1e6)
-        ax = ctypes.c_char_p('3'.encode())
-        self._pidll.PI_MOV(self._devID, ax, newpos)
-        onT = self._bool1d(0)
-        while not onT[0]:
-            self._pidll.PI_qONT(self._devID, ax, onT)
+        # # Move in x:
+        # newpos = self._double1d(param_dict['x'] * 1e6)
+        # ax = ctypes.c_char_p('1'.encode())
+        # self._pidll.PI_MOV(self._devID, ax, newpos)
+        # onT = self._bool1d(0)
+        # while not onT[0]:
+        #     self._pidll.PI_qONT(self._devID, ax, onT)
+
+        # # Move in y:
+        # newpos = self._double1d(param_dict['y'] * 1e6)
+        # ax = ctypes.c_char_p('2'.encode())
+        # self._pidll.PI_MOV(self._devID, ax, newpos)
+        # onT = self._bool1d(0)
+        # while not onT[0]:
+        #     self._pidll.PI_qONT(self._devID, ax, onT)
+
+        # # Move in z:
+        # newpos = self._double1d(param_dict['z'] * 1e6)
+        # ax = ctypes.c_char_p('3'.encode())
+        # self._pidll.PI_MOV(self._devID, ax, newpos)
+        # onT = self._bool1d(0)
+        # while not onT[0]:
+        #     self._pidll.PI_qONT(self._devID, ax, onT)
 
         param_dict = self.get_pos()
         return param_dict
@@ -291,26 +307,34 @@ class PiezoStagePI(Base, MotorInterface):
 
 ########################## internal methods ##################################
 
-    def _do_move_abs(self, axis, move):
-        """internal method for the absolute move in meter
+    def _do_move_abs(self, axis, channel, to_pos):
+        """ Internal method for absolute axis move in meters
 
         @param axis string: name of the axis that should be moved
-
-        @param float move: desired position in meter
-
-        @return str axis: axis which is moved
-                move float: absolute position to move to
+        @param int channel: channel of the axis to be moved 
+        @param float to_pos: desired position in meters
         """
-        constraints = self.get_constraints()
-        #self.log.info(axis + 'MA{0}'.format(int(move*1e8)))
-        if not(constraints[axis]['pos_min'] <= move <= constraints[axis]['pos_max']):
-            self.log.warning('Cannot make the movement of the axis "{0}"'
-                             'since the border [{1},{2}] would be crossed! Ignore command!'
-                             ''.format(axis, constraints[axis]['pos_min'], constraints[axis]['pos_max']))
+        if not(self.constraints[axis]['pos_min'] <= to_pos <= self.constraints[axis]['pos_max']):
+            self.log.warning('Cannot make the movement of the axis "{axis}"'
+                             'since the border [{min},{max}] would be crossed! Ignore command!'
+                             ''.format(axis=axis, min=self.constraints[axis]['pos_min'], max=self.constraints[axis]['pos_max']))
         else:
-            self._write_xyz(axis, 'MA{0}'.format(int(move * 1e7)))  # 1e7 to convert meter to SI units
-            #self._write_xyz(axis, 'MP')
-        return axis, move
+            self._write_axis_move(axis, channel, to_pos)
+
+
+    def _write_axis_move(self, axis, channel, to_pos):
+        """ Internal method to move a specified axis
+        
+        @param axis string: name of the axis that should be moved
+        @param int channel: channel of the axis to be moved 
+        @param float to_pos: desired position in meters
+        """
+        newpos = self._double1d(to_pos * 1e6)  # unit conversion for communication
+        ax = ctypes.c_char_p(channel.encode())
+        self._pidll.PI_MOV(self._devID, ax, newpos)
+        onT = self._bool1d(0)
+        while not onT[0]:
+            self._pidll.PI_qONT(self._devID, ax, onT)
 
     def _set_servo_state(self, to_state):
         """internal method enabling / disabling the servos
