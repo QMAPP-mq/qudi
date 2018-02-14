@@ -40,6 +40,23 @@ class PiezoStageNTMDT(Base, MotorInterface):
     """unstable: Matt van Breugel
     This is the hardware module for communicating with NT-MDT piezo scanning stages
     over USB (via the NovaSDK dll). It uses the VB script from the documentation.
+
+    Example configuration:
+    ```
+        # ntmdt_stage:
+        # module.Class: 'motor.ntmdt_piezo_stage.PiezoStageNTMDT'
+        # scanner: 1
+        # constraints:
+        #     x_range:
+        #         min: 0e-6
+        #         max: 100e-6
+        #     y_range:
+        #         min: 0e-6
+        #         max: 100e-6
+        #     z_range:
+        #         min: 0e-6
+        #         max: 6e-6
+    ```
     """
     _modclass = 'PiezoStageNTMDT'
     _modtype = 'hardware'
