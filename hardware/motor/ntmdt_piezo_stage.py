@@ -335,9 +335,10 @@ class PiezoStageNTMDT(Base, MotorInterface):
         @param bool to_state: desired state of the feedback servos
         """
         self._set_servo_state_xy(to_state)
-        time.sleep(0.2)
+        time.sleep(0.5)
+        self._update_gui()
         self._set_servo_state_z(to_state)
-        time.sleep(0.2)
+        time.sleep(0.5)
         self._update_gui()
 
     def _set_servo_state_xy(self, to_state):
