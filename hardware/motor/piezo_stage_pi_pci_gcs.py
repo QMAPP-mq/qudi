@@ -77,7 +77,7 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
                 return 1
             else:
                 self._set_servo_state(True)
-                self.constraints = self.get_constraints()
+                self._constraints = self.get_constraints()
                 return 0
 
     def on_deactivate(self):
@@ -298,10 +298,10 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
         @param axis string: name of the axis that should be moved
         @param float to_pos: desired position in meters
         """
-        if not(self.constraints[axis]['pos_min'] <= to_pos <= self.constraints[axis]['pos_max']):
+        if not(self._constraints[axis]['pos_min'] <= to_pos <= self._constraints[axis]['pos_max']):
             self.log.warning('Cannot make the movement of the axis "{axis}"'
                              'since the border [{min},{max}] would be crossed! Ignore command!'
-                             ''.format(axis=axis, min=self.constraints[axis]['pos_min'], max=self.constraints[axis]['pos_max']))
+                             ''.format(axis=axis, min=self._constraints[axis]['pos_min'], max=self._constraints[axis]['pos_max']))
         else:
             self._write_axis_move(axis, to_pos)
 
