@@ -172,6 +172,13 @@ class PiezoStagePI(Base, MotorInterface):
         @return dict pos: dictionary with the current axis position
         """
 
+        invalid_axis = set(param_dict)-set(['x', 'y', 'z'])
+
+        if invalid_axis:
+            for axis in invalid_axis:      
+                self.log.warning('Desired axis {axis} is undefined'
+                                .format(axis=axis))
+
         for axis in ['x', 'y', 'z']:
 
             if axis in param_dict.keys():
@@ -324,7 +331,7 @@ class PiezoStagePI(Base, MotorInterface):
 
     def _write_axis_move(self, axis, channel, to_pos):
         """ Internal method to move a specified axis
-        
+
         @param axis string: name of the axis that should be moved
         @param int channel: channel of the axis to be moved 
         @param float to_pos: desired position in meters
