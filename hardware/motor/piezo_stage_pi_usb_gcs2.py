@@ -167,6 +167,13 @@ class PiezoStagePI(Base, MotorInterface):
         @return dict pos: dictionary with the current axis position
         """
 
+        invalid_axis = set(param_dict)-set(['x', 'y', 'z'])
+
+        if invalid_axis:
+            for axis in invalid_axis:      
+                self.log.warning('Desired axis {axis} is undefined'
+                                .format(axis=axis))
+
         # Move in x:
         newpos = self._double1d(param_dict['x'] * 1e6)
         ax = ctypes.c_char_p('1'.encode())
