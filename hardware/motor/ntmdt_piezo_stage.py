@@ -155,6 +155,13 @@ class PiezoStageNTMDT(Base, MotorInterface):
         @return dict pos: dictionary with the current axis position
         """
 
+        invalid_axis = set(param_dict)-set(['x', 'y', 'z'])
+
+        if invalid_axis:
+            for axis in invalid_axis:      
+                self.log.warning('Desired axis {axis} is undefined'
+                                .format(axis=axis))
+
         for axis in ['x', 'y', 'z']:
 
             if axis in param_dict.keys():
@@ -170,9 +177,6 @@ class PiezoStageNTMDT(Base, MotorInterface):
                     channel = 2
                     to_position = param_dict['z']
                     self._do_move_abs(axis, channel, to_position)
-
-            else:
-                self.log.warning('Desired axis {axis} undefined'.format(axis=axis))
 
         param_dict = self.get_pos()
 
