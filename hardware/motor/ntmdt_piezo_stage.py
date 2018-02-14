@@ -316,7 +316,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         @param float to_pos: desired position in meters
         """
 
-        to_pos = to_pos /1e-6 # NT-MDT scanner communication in microns
+        to_pos = to_pos /1e-6  # NT-MDT scanner communication in microns
 
         command = ('SetParam tScanner, scPosition, {scanner}, {channel}, {position}\n'
                     'Do\n'
