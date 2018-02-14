@@ -318,10 +318,10 @@ class PiezoStageNTMDT(Base, MotorInterface):
         @param float to_pos: desired position in meters
         """
 
-        if not(self.constraints[axis]['pos_min'] <= to_pos <= self.constraints[axis]['pos_max']):
+        if not(self._constraints[axis]['pos_min'] <= to_pos <= self._constraints[axis]['pos_max']):
             self.log.warning('Cannot make the movement of the {axis} axis'
                              'since the border [{min},{max}] would be crossed! Ignore command!'
-                             .format(axis=axis, min=self.constraints[axis]['pos_min'], max=self.constraints[axis]['pos_max']))
+                             .format(axis=axis, min=self._constraints[axis]['pos_min'], max=self._constraints[axis]['pos_max']))
         else:
             self._write_axis_move(axis, channel, to_pos)
 
@@ -352,9 +352,10 @@ class PiezoStageNTMDT(Base, MotorInterface):
         @param bool to_state: desired state of the feedback servos
         """
         self._set_servo_state_xy(to_state)
-        time.sleep(0.2)
+        time.sleep(0.5)
+        self._update_gui()
         self._set_servo_state_z(to_state)
-        time.sleep(0.2)
+        time.sleep(0.5)
         self._update_gui()
 
     def _set_servo_state_xy(self, to_state):
