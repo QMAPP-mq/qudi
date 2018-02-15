@@ -34,11 +34,12 @@ from interface.confocal_scanner_interface import ConfocalScannerInterface
 
 
 class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInterface, ODMRCounterInterface):
-    """ stable: Kay Jahnke, Alexander Stark
 
-    A National Instruments device that can count and control microvave generators.
+    """ A National Instruments device that can count and control microvave generators.
 
-    !!!!!! NI USB 63XX, NI PCIe 63XX and NI PXIe 63XX DEVICES ONLY !!!!!!
+    stable: Kay Jahnke, Alexander Stark
+
+    note: !!!!!! NI USB 63XX, NI PCIe 63XX and NI PXIe 63XX DEVICES ONLY !!!!!!
 
     Basic procedure how the NI card is configurated:
       * At first you have to define a channel, where the APD clicks will be
@@ -55,19 +56,61 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
     Therefore the whole issue is to establish a time based gated-counting
     channel.
 
+    ### Example config file entry ###
+
+    ```
+    # mynicard:
+    #      module.Class: 'national_instruments_x_series.NationalInstrumentsXSeries'
+    #      clock_channel: '/Dev1/Ctr0'
+    #      scanner_clock_channel: '/Dev1/Ctr2'
+    #      photon_sources:
+    #          - '/Dev1/PFI8'
+    #          - '/Dev1/PFI9'
+    #      counter_channels:
+    #          - '/Dev1/Ctr1'
+    #      counter_ai_channels:  # optional
+    #          - '/Dev1/AI1'
+    #      scanner_counter_channels:
+    #          - '/Dev1/Ctr3'
+    #      scanner_ai_channels:  # optional
+    #          - '/Dev1/AI0'
+    #      scanner_ao_channels:
+    #          - '/Dev1/AO0'
+    #          - '/Dev1/AO1'
+    #          - '/Dev1/AO2'
+    #          - '/Dev1/AO3'
+    #      scanner_position_ranges:
+    #          - [0e-6, 200e-6]
+    #          - [0e-6, 200e-6]
+    #          - [-100e-6, 100e-6]
+    #          - [-10, 10]
+    #      scanner_voltage_ranges:
+    #          - [-10, 10]
+    #          - [-10, 10]
+    #          - [-10, 10]
+    #          - [-10, 10]
+    #      default_samples_number: 10
+    #      default_clock_frequency: 100
+    #      default_scanner_clock_frequency: 100
+    #      gate_in_channel: '/Dev1/PFI9'
+    #      counting_edge_rising: True
+    #      odmr_trigger_channel: '/Dev1/PFI15'
+    ```
     Text Based NI-DAQmx Data Acquisition Examples:
     http://www.ni.com/example/6999/en/#ANSIC
 
-    Explanation of the termology, which is used in the NI Card and useful to
-    know in connection with our implementation:
+    ### NI Card terminology ###
 
-    Hardware-Timed Counter Tasks:
+    Here is a brief explanation of the terminology which is used in the
+    the NI Card and useful to know in connection with our implementation.
+
+    #### HardwareTimedCounterTasks ####
         Use hardware-timed counter input operations to drive a control loop. A
         really good explanation can be found in:
 
         http://zone.ni.com/reference/en-XX/help/370466V-01/mxcncpts/controlappcase4/
 
-    Terminals:
+    #### Terminals ####
         A terminal is a named location where a signal is either generated
         (output or produced) or acquired (input or consumed). A terminal that
         can output only one signal is often named after that signal. A terminal
@@ -76,48 +119,49 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
         used for many signals have generic names such as RTSI, PXITrig, or PFI.
 
         http://zone.ni.com/reference/en-XX/help/370466W-01/mxcncpts/terminal/
+
         http://zone.ni.com/reference/en-XX/help/370466V-01/mxcncpts/termnames/
 
-    Ctr0Out, Ctr1Out, Ctr2Out, Ctr3Out:
+    #### Ctr0Out, Ctr1Out, Ctr2Out, Ctr3Out ####
         Terminals at the I/O connector where the output of counter 0,
         counter 1, counter 2, or counter 3 can be emitted. You also can use
         Ctr0Out as a terminal for driving an external signal onto the RTSI bus.
 
-    Ctr0Gate, Ctr1Gate, Ctr2Gate, Ctr3Gate:
+    #### Ctr0Gate, Ctr1Gate, Ctr2Gate, Ctr3Gate ####
         Terminals within a device whose purpose depends on the application.
         Refer to Counter Parts in NI-DAQmx for more information on how the gate
         terminal is used in various applications.
 
-    Ctr0Source, Ctr1Source, Ctr2Source, Ctr3Source:
+    #### Ctr0Source, Ctr1Source, Ctr2Source, Ctr3Source ####
         Terminals within a device whose purpose depends on the application.
         Refer to Counter Parts in NI-DAQmx for more information on how the
         source terminal is used in various applications.
 
-    Ctr0InternalOutput, Ctr1InternalOutput, Ctr2InternalOutput,
-    Ctr3InternalOutput:
+    #### Ctr0InternalOutput, Ctr1InternalOutput, Ctr2InternalOutput, Ctr3InternalOutput ####
         Terminals within a device where you can choose the pulsed or toggled
         output of the counters. Refer to Counter Parts in NI-DAQmx (or MAX)
         for more information on internal output terminals.
 
-    Task State Model:
+    #### Task State Model ####
         NI-DAQmx uses a task state model to improve ease of use and speed up
         driver performance. Have a look at
 
         http://zone.ni.com/reference/en-XX/help/370466V-01/mxcncpts/taskstatemodel/
 
-        Small explanation: The task state model consists of five states
+        The task state model consists of five states
             1. Unverified,
             2. Verified,
             3. Reserved,
             4. Committed,
             5. Running.
+
         You call the Start Task function/VI, Stop Task function/VI, and
         Control Task function/VI to transition the task from one state to
         another. The task state model is very flexible. You can choose to
         interact with as little or as much of the task state model as your
         application requires.
 
-    Device limitations:
+    ### Device limitations ###
         Keep in mind that ONLY the X-series of the NI cards is capable of doing
         a Counter Output Pulse Frequency Train with finite numbers of samples
         by using ONE internal device channel clock (that is the function
@@ -232,17 +276,21 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
     def set_up_clock(self, clock_frequency=None, clock_channel=None, scanner=False, idle=False):
         """ Configures the hardware clock of the NiDAQ card to give the timing.
 
-        @param float clock_frequency: if defined, this sets the frequency of
-                                      the clock in Hz
-        @param string clock_channel: if defined, this is the physical channel
-                                     of the clock within the NI card.
-        @param bool scanner: if set to True method will set up a clock function
-                             for the scanner, otherwise a clock function for a
-                             counter will be set.
-        @param bool idle: set whether idle situation of the counter (where
-                          counter is doing nothing) is defined as
-                                True  = 'Voltage High/Rising Edge'
-                                False = 'Voltage Low/Falling Edge'
+        @param float clock_frequency:
+            if defined, this sets the frequency of the clock in Hz
+
+        @param string clock_channel:
+            if defined, this is the physical channel of the clock within the NI card.
+
+        @param bool scanner:
+            if set to True method will set up a clock function for the scanner,
+            otherwise a clock function for a counter will be set.
+
+        @param bool idle:
+            set whether idle situation of the counter (where counter is doing nothing)
+            is defined as
+              - True  = 'Voltage High/Rising Edge'
+              - False = 'Voltage Low/Falling Edge'
 
         @return int: error code (0:OK, -1:error)
         """
@@ -358,14 +406,18 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
                        counter_buffer=None):
         """ Configures the actual counter with a given clock.
 
-        @param list(str) counter_channels: optional, physical channel of the counter
-        @param list(str) sources: optional, physical channel where the photons
-                                  are to count from
-        @param str clock_channel: optional, specifies the clock channel for the
-                                  counter
-        @param int counter_buffer: optional, a buffer of specified integer
-                                   length, where in each bin the count numbers
-                                   are saved.
+        @param list(str) counter_channels:
+            optional, physical channel of the counter
+
+        @param list(str) sources:
+            optional, physical channel where the photons are to count from
+
+        @param str clock_channel:
+            optional, specifies the clock channel for the counter
+
+        @param int counter_buffer:
+            optional, a buffer of specified integer length,
+            where in each bin the count numbers are saved.
 
         @return int: error code (0:OK, -1:error)
         """
@@ -431,12 +483,13 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
                 # Set the Counter Input to a Semi Period input Terminal.
                 # Connect the pulses from the counter clock to the counter channel
                 daq.DAQmxSetCISemiPeriodTerm(
-                        # The task to which to add the counter channel.
-                        task,
-                        # use this counter channel
-                        ch,
-                        # assign a named Terminal
-                        my_clock_channel + 'InternalOutput')
+                    # The task to which to add the counter channel.
+                    task,
+                    # use this counter channel
+                    ch,
+                    # assign a named Terminal
+                    my_clock_channel + 'InternalOutput'
+                )
 
                 # Set a Counter Input Control Timebase Source.
                 # Specify the terminal of the timebase which is used for the counter:
@@ -448,7 +501,8 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
                     # counter channel
                     ch,
                     # counter channel to output the counting results
-                    my_photon_sources[i])
+                    my_photon_sources[i]
+                )
 
                 # Configure Implicit Timing.
                 # Set timing to continuous, i.e. set only the number of samples to
@@ -459,7 +513,8 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
                     # Sample Mode: Acquire or generate samples until you stop the task.
                     daq.DAQmx_Val_ContSamps,
                     # buffer length which stores  temporarily the number of generated samples
-                    1000)
+                    1000
+                )
 
                 # Set the Read point Relative To an operation.
                 # Specifies the point in the buffer at which to begin a read operation.
@@ -682,10 +737,11 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
     def close_clock(self, scanner=False):
         """ Closes the clock and cleans up afterwards.
 
-        @param bool scanner: specifies if the counter- or scanner- function
-                             should be used to close the device.
-                                True = scanner
-                                False = counter
+        @param bool scanner: 
+            specifies if the counter- or scanner- function
+            should be used to close the device.
+              - True = scanner
+              - False = counter
 
         @return int: error code (0:OK, -1:error)
         """
@@ -752,7 +808,7 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
         return retval
 
     def get_scanner_axes(self):
-        """ Scanner axes depends on how many channels tha analog output task has.
+        """ Scanner axes depends on how many channels the analog output task has.
         """
         if self._scanner_ao_task is None:
             self.log.error('Cannot get channel number, analog output task does not exist.')
@@ -771,7 +827,7 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
         return ch
 
     def get_position_range(self):
-        """ Returns the physical range of the scanner.
+        """ Get the physical range of the scanner.
 
         @return float [4][2]: array of 4 ranges with an array containing lower
                               and upper limit. The unit of the scan range is
@@ -780,7 +836,7 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
         return self._scanner_position_ranges
 
     def set_position_range(self, myrange=None):
-        """ Sets the physical range of the scanner.
+        """ Set the physical range of the scanner.
 
         @param float [4][2] myrange: array of 4 ranges with an array containing
                                      lower and upper limit. The unit of the
@@ -816,7 +872,7 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
         return 0
 
     def set_voltage_range(self, myrange=None):
-        """ Sets the voltage range of the NI Card.
+        """ Set the voltage range of the NI Card.
 
         @param float [n][2] myrange: array containing lower and upper limit
 
@@ -845,7 +901,7 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
         return 0
 
     def _start_analog_output(self):
-        """ Starts or restarts the analog output.
+        """ Start or restart the analog output.
 
         @return int: error code (0:OK, -1:error)
         """
@@ -891,7 +947,7 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
         return 0
 
     def _stop_analog_output(self):
-        """ Stops the analog output.
+        """ Stop the analog output.
 
         @return int: error code (0:OK, -1:error)
         """
@@ -912,7 +968,7 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
         return retval
 
     def set_up_scanner_clock(self, clock_frequency=None, clock_channel=None):
-        """ Configures the hardware clock of the NiDAQ card to give the timing.
+        """ Configure the hardware clock of the NiDAQ card to give the timing.
 
         @param float clock_frequency: if defined, this sets the frequency of
                                       the clock
@@ -934,7 +990,7 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
                        sources=None,
                        clock_channel=None,
                        scanner_ao_channels=None):
-        """ Configures the actual scanner with a given clock.
+        """ Configure the actual scanner with a given clock.
 
         The scanner works pretty much like the counter. Here you connect a
         created clock with a counting task. That can be seen as a gated
@@ -1114,7 +1170,7 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
         return 0
 
     def _write_scanner_ao(self, voltages, length=1, start=False):
-        """Writes a set of voltages to the analog outputs.
+        """Write a set of voltages to the analog outputs.
 
         @param float[][n] voltages: array of n-part tuples defining the voltage
                                     points
@@ -1149,7 +1205,7 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
         return self._AONwritten.value
 
     def _scanner_position_to_volt(self, positions=None):
-        """ Converts a set of position pixels to acutal voltages.
+        """ Convert a set of position pixels to acutal voltages.
 
         @param float[][n] positions: array of n-part tuples defining the pixels
 
@@ -1190,7 +1246,7 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
         return self._current_position.tolist()
 
     def _set_up_line(self, length=100):
-        """ Sets up the analog output for scanning a line.
+        """ Set up the analog output for scanning a line.
 
         Connect the timing of the Analog scanning task with the timing of the
         counting task.
@@ -1297,10 +1353,12 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
         return 0
 
     def scan_line(self, line_path=None, pixel_clock=False):
-        """ Scans a line and return the counts on that line.
+        """ Scan a line and return the counts on that line.
 
-        @param float[c][m] line_path: array of c-tuples defining the voltage points
+        @param float[c][m] line_path: 
+            array of c-tuples defining the voltage points
             (m = samples per line)
+
         @param bool pixel_clock: whether we need to output a pixel clock for this line
 
         @return float[m][n]: m (samples per line) n-channel photon counts per second
@@ -1462,7 +1520,7 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
         return all_data.transpose()
 
     def close_scanner(self):
-        """ Closes the scanner and cleans up afterwards.
+        """ Close the scanner and clean up afterwards.
 
         @return int: error code (0:OK, -1:error)
         """
@@ -1485,7 +1543,7 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
         return -1 if a < 0 or b < 0 or c < 0 else 0
 
     def close_scanner_clock(self):
-        """ Closes the clock and cleans up afterwards.
+        """ Close the clock and clean up afterwards.
 
         @return int: error code (0:OK, -1:error)
         """
@@ -1495,12 +1553,14 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
 
     # ==================== ODMRCounterInterface Commands =======================
     def set_up_odmr_clock(self, clock_frequency=None, clock_channel=None):
-        """ Configures the hardware clock of the NiDAQ card to give the timing.
+        """ Configure the hardware clock of the NiDAQ card to give the timing.
 
-        @param float clock_frequency: if defined, this sets the frequency of
-                                      the clock
-        @param string clock_channel: if defined, this is the physical channel
-                                     of the clock
+        @param float clock_frequency:
+            if defined, this sets the frequency of the clock
+
+        @param string clock_channel:
+            if defined, this is the physical channel
+            of the clock
 
         @return int: error code (0:OK, -1:error)
         """
@@ -1512,16 +1572,20 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
 
     def set_up_odmr(self, counter_channel=None, photon_source=None,
                     clock_channel=None, odmr_trigger_channel=None):
-        """ Configures the actual counter with a given clock.
+        """ Configure the actual counter with a given clock.
 
-        @param string counter_channel: if defined, this is the physical channel
-                                       of the counter
-        @param string photon_source: if defined, this is the physical channel
-                                     where the photons are to count from
-        @param string clock_channel: if defined, this specifies the clock for
-                                     the counter
-        @param string odmr_trigger_channel: if defined, this specifies the
-                                            trigger output for the microwave
+        @param string counter_channel: 
+            if defined, this is the physical channel of the counter
+
+        @param string photon_source: 
+            if defined, this is the physical channel where the photons are 
+            to count from
+
+        @param string clock_channel: 
+            if defined, this specifies the clock for the counter
+
+        @param string odmr_trigger_channel: 
+            if defined, this specifies the trigger output for the microwave
 
         @return int: error code (0:OK, -1:error)
         """
@@ -1626,7 +1690,7 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
         return 0
 
     def set_odmr_length(self, length=100):
-        """ Sets up the trigger sequence for the ODMR and the triggered microwave.
+        """ Set up the trigger sequence for the ODMR and the triggered microwave.
 
         @param int length: length of microwave sweep in pixel
 
@@ -1695,7 +1759,7 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
         return 0
 
     def count_odmr(self, length=100):
-        """ Sweeps the microwave and returns the counts on that sweep.
+        """ Sweep the microwave and return the counts on that sweep.
 
         @param int length: length of microwave sweep in pixel
 
@@ -1808,7 +1872,7 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
             return np.full((len(self.get_odmr_channels()), 1), [-1.])
 
     def close_odmr(self):
-        """ Closes the odmr and cleans up afterwards.
+        """ Close the odmr and clean up afterwards.
 
         @return int: error code (0:OK, -1:error)
         """
@@ -1844,7 +1908,7 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
         return ch
 
     def close_odmr_clock(self):
-        """ Closes the odmr and cleans up afterwards.
+        """ Close the odmr and clean up afterwards.
 
         @return int: error code (0:OK, -1:error)
         """
@@ -1853,14 +1917,14 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
     # ================== End ODMRCounterInterface Commands ====================
 
     def get_status(self):
-        """ Receives the current status of the Fast Counter and outputs it as
-            return value.
+        """ Get the current status of the Fast Counter.
 
-        0 = unconfigured
-        1 = idle
-        2 = running
-        3 = paused
-        -1 = error state
+        @return status code
+          - 0 = unconfigured
+          - 1 = idle
+          - 2 = running
+          - 3 = paused
+          - -1 = error state
         """
         if self._gated_counter_daq_task is None:
             return 0
@@ -1887,24 +1951,25 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
     # ======================== Gated photon counting ==========================
 
     def set_up_gated_counter(self, buffer_length, read_available_samples=False):
-        """ Initializes and starts task for external gated photon counting.
+        """ Initialize and start task for external gated photon counting.
 
-        @param int buffer_length: Defines how long the buffer to be filled with
-                                  samples should be. If buffer is full, program
-                                  crashes, so use upper bound. Some reference
-                                  calculated with sample_rate (in Samples/second)
-                                  divided by Buffer_size:
-                                  sample_rate/Buffer_size =
-                                      no rate     /  10kS,
-                                      (0-100S/s)  /  10kS
-                                      (101-10kS/s)/   1kS,
-                                      (10k-1MS/s) / 100kS,
-                                      (>1MS/s)    / 1Ms
-        @param bool read_available_samples: if False, NiDaq waits for the
-                                            sample you asked for to be in the
-                                            buffer before, if True it returns
-                                            what is in buffer until 'samples'
-                                            is full
+        @param int buffer_length:
+            Defines how long the buffer to be filled with
+            samples should be. If buffer is full, program
+            crashes, so use upper bound. Some reference
+            calculated with sample_rate (in Samples/second)
+            divided by Buffer_size:\n
+            sample_rate/Buffer_size =
+              - no rate     /  10kS,
+              - (0-100S/s)  /  10kS
+              - (101-10kS/s)/   1kS,
+              - (10k-1MS/s) / 100kS,
+              - (>1MS/s)    / 1Ms
+
+        @param bool read_available_samples:
+            if False, NiDaq waits for the sample you asked for to be in the
+            buffer before, if True it returns what is in buffer until 'samples'
+            is full.
         """
         if self._gated_counter_daq_task is not None:
             self.log.error(
@@ -1997,22 +2062,24 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
             return -1
         return 0
 
-
     def get_gated_counts(self, samples=None, timeout=None, read_available_samples=False):
-        """ Returns latest count samples acquired by gated photon counting.
+        """ Return latest count samples acquired by gated photon counting.
 
-        @param int samples: if defined, number of samples to read in one go.
-                            How many samples are read per readout cycle. The
-                            readout frequency was defined in the counter setup.
-                            That sets also the length of the readout array.
+        @param int samples:
+            if defined, number of samples to read in one go.
+            How many samples are read per readout cycle. The
+            readout frequency was defined in the counter setup.
+            That sets also the length of the readout array.
+
         @param int timeout: Maximal timeout for the read process. Since nidaq
-                            waits for all samples to be acquired, make sure
-                            this is long enough.
-        @param bool read_available_samples : if False, NiDaq waits for the
-                                             sample you asked for to be in the
-                                             buffer before, True it returns
-                                             what is in buffer until 'samples'
-                                             is full.
+            waits for all samples to be acquired, make sure
+            this is long enough.
+
+        @param bool read_available_samples:
+            if False, NiDaq waits for the sample you asked for to be in the
+            buffer before, True it returns what is in buffer until 'samples' is full.
+
+        @return array of counts.
         """
         if samples is None:
             samples = int(self._samples_number)
@@ -2107,16 +2174,23 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
 
     def digital_channel_switch(self, channel_name, mode=True):
         """
-        Switches on or off the voltage output (5V) of one of the digital channels, that
-        can as an example be used to switch on or off the AOM driver or apply a single
-        trigger for ODMR.
-        @param str channel_name: Name of the channel which should be controlled
-                                    for example ('/Dev1/PFI9')
-        @param bool mode: specifies if the voltage output of the chosen channel should be turned on or off
+        Switch on or off the voltage output (5V) of one of the digital channels.
+        
+        This can be used for a wide variety of tasks, for example:
+          - switch on or off the AOM driver,
+          - apply a single trigger for ODMR,
+          - flip a motorised mirror.
+
+        @param str channel_name: 
+            Name of the channel which should be controlled
+            for example ('/Dev1/PFI9')
+
+        @param bool mode:
+            specifies if the voltage output of the chosen channel should be turned on or off
 
         @return int: error code (0:OK, -1:error)
         """
-        if channel_name == None:
+        if channel_name is None:
             self.log.error('No channel for digital output specified')
             return -1
         else:
@@ -2132,11 +2206,10 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
             daq.DAQmxCreateDOChan(self.digital_out_task, channel_name, "", daq.DAQmx_Val_ChanForAllLines)
             daq.DAQmxStartTask(self.digital_out_task)
             daq.DAQmxWriteDigitalU32(self.digital_out_task, self.digital_samples_channel, True,
-                                        self._RWTimeout, daq.DAQmx_Val_GroupByChannel,
-                                        np.array(self.digital_data), self.digital_read, None);
+                                     self._RWTimeout, daq.DAQmx_Val_GroupByChannel,
+                                     np.array(self.digital_data), self.digital_read, None
+                                     )
 
             daq.DAQmxStopTask(self.digital_out_task)
             daq.DAQmxClearTask(self.digital_out_task)
             return 0
-
-
