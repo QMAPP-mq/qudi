@@ -39,6 +39,22 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
 
     This module has been developed for the E-761 Digital Piezo Controller,
     but probably works with any PI controller that talks GCS over PCI.
+
+    Example configuration:
+    ```
+        # piezo_pi:
+        #     module.Class: 'motor.piezo_stage_pi_usb_gcs2.PiezoStagePI'
+        #     constraints:
+        #         x_range:
+        #             min: 0e-6
+        #             max: 300e-6
+        #         y_range:
+        #             min: 0e-6
+        #             max: 300e-6
+        #         z_range:
+        #             min: 0e-6
+        #             max: 300e-6
+    ```
     """
     _modclass = 'PiezoStagePI_GCS1'
     _modtype = 'hardware'
