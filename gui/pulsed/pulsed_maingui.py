@@ -1417,7 +1417,7 @@ class PulsedMeasurementGui(GUIBase):
         self._pa.ana_param_record_length_SpinBox.setRange(0, 1.0e99)
         self._pa.time_param_ana_periode_DoubleSpinBox.setRange(0, 1.0e99)
         self._pa.ext_control_mw_freq_DoubleSpinBox.setRange(0, 1.0e99)
-        self._pa.ext_control_mw_power_DoubleSpinBox.setRange(0, 1.0e99)
+        self._pa.ext_control_mw_power_DoubleSpinBox.setRange(-200, 1.0e99)
         self._pe.extract_param_threshold_SpinBox.setRange(1, 2**31-1)
 
         # ---------------------------------------------------------------------
@@ -1767,7 +1767,14 @@ class PulsedMeasurementGui(GUIBase):
         save_tag = self._mw.save_tag_LineEdit.text()
         with_error = self._pa.ana_param_errorbars_CheckBox.isChecked()
         controlled_val_unit = self._as.ana_param_x_axis_unit_LineEdit.text()
-        self._pulsed_master_logic.save_measurement_data(controlled_val_unit, save_tag, with_error)
+        if self._pa.second_plot_ComboBox.currentText() == 'None':
+            save_ft = True
+        else:
+            save_ft = False
+        self._pulsed_master_logic.save_measurement_data(controlled_val_unit=controlled_val_unit,
+                                                        tag=save_tag,
+                                                        with_error=with_error,
+                                                        save_ft=save_ft)
         self._mw.action_save.setEnabled(True)
         return
 
