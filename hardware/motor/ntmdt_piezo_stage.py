@@ -43,7 +43,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
     Example configuration:
     ```
-        # ntmdt_stage:
+    # ntmdt_stage:
         # module.Class: 'motor.ntmdt_piezo_stage.PiezoStageNTMDT'
         # scanner: 1
         # constraints:
