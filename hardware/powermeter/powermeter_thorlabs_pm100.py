@@ -40,6 +40,21 @@ class ThorlabsPM(Base, PowermeterInterface):
     """ unstable: Matt van Breugel
     This is the hardware module for communicating with a Thorlabs power meter
     (PM100x) over USB. It uses the Thorlabs PM100 python module.
+
+    Example configuration"
+    ```
+        pm100a:
+            module.Class: 'powermeter.powermeter_thorlabs_pm100.ThorlabsPM'
+            serial_number: 'P1000832'
+            # averaging_window: 1 # default value for PM100x
+            # sampling_time: 3e-3 # default value for PM100x
+
+        pm100d:
+            module.Class: 'powermeter.powermeter_thorlabs_pm100.ThorlabsPM'
+            serial_number: 'P0006671'
+            # averaging_window: 1 # default value for PM100x
+            # sampling_time: 3e-3 # default value for PM100x
+    ```
     """
     _modclass = 'ThorlabsPM'
     _modtype = 'hardware'
