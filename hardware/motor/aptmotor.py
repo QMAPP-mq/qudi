@@ -668,7 +668,7 @@ class APTMotor():
             print('mbAbs ', absPosition, c_float(absPosition))
         if not self.Connected:
             raise Exception('Please connect first! Use initializeHardwareDevice')
-        if (absPosition < self.getPos()):
+        if (absPosition < self.get_pos()):
             if self.verbose:
                 print('backlash move_rel', absPosition - self._backlash)
             self.move_rel(absPosition - self._backlash)
