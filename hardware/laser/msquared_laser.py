@@ -9,7 +9,7 @@ Network Settings -> Remote Interface
 NOTE: This hardware module is currently not utilising a wavelength
 meter, which may have been installed with your M Squared laser.
 
-NOTE: Testing on M Squared SolsTiS running:
+NOTE: Tested on M Squared SolsTiS running:
 Interface version: Solstis_3_NS_V54
 DSP version: Solstis 3 Rel 5.22 06-09-16 10:23
 This information can be found under Configure > Interface Update
@@ -51,6 +51,12 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
     """ Matt van Breugel, Lachlan J. Rogers
     M Squared ultra narrow linewidth, Ti:Sapphire laser
+
+    Example configuration:
+    ```
+        # mylaser:
+        #     module.Class: 'laser.msquared_laser.MSquaredLaser'
+    ```
     """
     _modclass = 'msquaredlaser'
     _modtype = 'hardware'
