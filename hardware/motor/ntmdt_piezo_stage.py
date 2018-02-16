@@ -37,25 +37,46 @@ from interface.motor_interface import MotorInterface
 
 class PiezoStageNTMDT(Base, MotorInterface):
 
-    """unstable: Matt van Breugel
-    This is the hardware module for communicating with NT-MDT piezo scanning stages
-    over USB (via the NovaSDK dll). It uses the VB script from the documentation.
+    """ Hardware module for communicating with NT-MDT piezo scanning stages
+    over USB (via the NovaSDK dll). 
+    
+    It uses the VB script from the documentation.
+    
+    unstable: Matt van Breugel
 
     Example configuration:
     ```
-        # ntmdt_stage:
-            # module.Class: 'motor.ntmdt_piezo_stage.PiezoStageNTMDT'
-            # scanner: 1
-            # constraints:
-            #     x_range:
-            #         min: 0e-6
-            #         max: 100e-6
-            #     y_range:
-            #         min: 0e-6
-            #         max: 100e-6
-            #     z_range:
-            #         min: 0e-6
-            #         max: 6e-6
+    # ntmdt_stage:
+    #     module.Class: 'motor.ntmdt_piezo_stage.PiezoStageNTMDT'
+    #     axis_labels:
+    #         - x
+    #         - y
+    #         - z
+    #         - tube
+    #     x:
+    #         device_id: 1
+    #         channel: 0
+    #         constraints:
+    #             pos_min: 0e-6
+    #             pos_max: 100e-6
+    #     y:
+    #         device_id: 1
+    #         channel: 1
+    #         constraints:
+    #             pos_min: 0e-6
+    #             pos_max: 100e-6
+    #     z:
+    #         device_id: 1
+    #         channel: 2
+    #         constraints:
+    #             pos_min: 0e-6
+    #             pos_max: 6e-6
+    #     tube:
+    #         device_id: 0
+    #         channel: 0
+    #         constraints:
+    #             pos_min: 0e-6
+    #             pos_max: 6e-6
     ```
     """
     _modclass = 'PiezoStageNTMDT'
