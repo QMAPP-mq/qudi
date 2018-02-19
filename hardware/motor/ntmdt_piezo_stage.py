@@ -268,14 +268,6 @@ class PiezoStageNTMDT(Base, MotorInterface):
         @return dict: with keys being the axis labels and item the current
                       position.
         """
-
-        invalid_axis = set(param_list)-set(self._configuration)
-
-        if invalid_axis:
-            for axis in invalid_axis:      
-                self.log.warning('Desired axis {axis} is undefined'
-                                .format(axis=axis))
-
         param_dict = {}
         
         for axis in ['x', 'y', 'z']:
