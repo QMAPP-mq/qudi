@@ -82,7 +82,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
     _modclass = 'PiezoStageNTMDT'
     _modtype = 'hardware'
 
-    _scanner = ConfigOption('scanner', missing='error')
+    # _scanner = ConfigOption('scanner', missing='error')
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -114,7 +114,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         
         if self._check_connection():
             self.log.info('Nova Px handshake successful')
-            self._constraints = self.get_constraints()
+            self._configuration = self.get_constraints()
             self._set_servo_state(True)
             return 0
         else:
@@ -142,25 +142,44 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         config = self.getConfiguration()
 
+        if config['x']['device_id'] != config['y']['device_id']:
+            self.log.warning('Your x and y axes are configured as different devices, is this correct?')
+
         axis0 = {}
         axis0['label'] = 'x'
-        axis0['pos_min'] = config['constraints']['x_range']['min']
-        axis0['pos_max'] = config['constraints']['x_range']['max']
+        axis0['scanner'] = config['x']['device_id']
+        axis0['channel'] = config['x']['channel']
+        axis0['pos_min'] = config['x']['constraints']['pos_min']
+        axis0['pos_max'] = config['x']['constraints']['pos_max']
 
         axis1 = {}
         axis1['label'] = 'y'
-        axis1['pos_min'] = config['constraints']['y_range']['min']
-        axis1['pos_max'] = config['constraints']['y_range']['max']
+        axis1['scanner'] = config['y']['device_id']
+        axis1['channel'] = config['y']['channel']
+        axis1['pos_min'] = config['y']['constraints']['pos_min']
+        axis1['pos_max'] = config['y']['constraints']['pos_max']
 
         axis2 = {}
         axis2['label'] = 'z'
-        axis2['pos_min'] = config['constraints']['z_range']['min']
-        axis2['pos_max'] = config['constraints']['z_range']['max']
+        axis2['scanner'] = config['z']['device_id']
+        axis2['channel'] = config['z']['channel']
+        axis2['pos_min'] = config['z']['constraints']['pos_min']
+        axis2['pos_max'] = config['z']['constraints']['pos_max']
+
+        if config['tube']:
+            axis3 = {}
+            axis3['label'] = 'tube'
+            axis3['scanner'] = config['tube']['device_id']
+            axis3['channel'] = config['tube']['channel']
+            axis3['pos_min'] = config['tube']['constraints']['pos_min']
+            axis3['pos_max'] = config['tube']['constraints']['pos_max']
 
         # assign the parameter container for x to a name which will identify it
         constraints[axis0['label']] = axis0
         constraints[axis1['label']] = axis1
         constraints[axis2['label']] = axis2
+        if config['tube']:
+            constraints[axis3['label']] = axis3
 
         return constraints
 
@@ -193,7 +212,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         @return dict pos: dictionary with the current axis position
         """
 
-        invalid_axis = set(param_dict)-set(['x', 'y', 'z'])
+        invalid_axis = set(param_dict)-set(self._configuration)
 
         if invalid_axis:
             for axis in invalid_axis:      
@@ -204,17 +223,26 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
             if axis in param_dict.keys():
                 if axis == 'x':
-                    channel = 0
+                    scanner = self._configuration['x']['scanner']
+                    channel = self._configuration['x']['channel']
                     to_position = param_dict['x']
-                    self._do_move_abs(axis, channel, to_position)
+                    self._do_move_abs(axis, scanner, channel, to_position)
                 elif axis == 'y':
-                    channel = 1
+                    scanner = self._configuration['y']['scanner']
+                    channel = self._configuration['y']['channel']
                     to_position = param_dict['y']
-                    self._do_move_abs(axis, channel, to_position)
+                    self._do_move_abs(axis, scanner, channel, to_position)
                 elif axis == 'z':
-                    channel = 2
+                    scanner = self._configuration['z']['scanner']
+                    channel = self._configuration['z']['channel']
                     to_position = param_dict['z']
-                    self._do_move_abs(axis, channel, to_position)
+                    self._do_move_abs(axis, scanner, channel, to_position)
+
+        if param_dict['tube']:
+            scanner = self._configuration['tube']['scanner']
+            channel = self._configuration['tube']['channel']
+            to_position = param_dict['tube']
+            self._do_move_abs(axis, scanner, channel, to_position)
 
         param_dict = self.get_pos()
 
@@ -331,7 +359,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
 ########################## internal methods ####################################
 
-    def _do_move_abs(self, axis, channel, to_pos):
+    def _do_move_abs(self, axis, scanner, channel, to_pos):
         """ Internal method for absolute axis move in meters
 
         @param string axis: name of the axis to be moved
@@ -339,14 +367,14 @@ class PiezoStageNTMDT(Base, MotorInterface):
         @param float to_pos: desired position in meters
         """
 
-        if not(self._constraints[axis]['pos_min'] <= to_pos <= self._constraints[axis]['pos_max']):
+        if not(self._configuration[axis]['constraints']['pos_min'] <= to_pos <= self._configuration[axis]['constraints']['pos_max']):
             self.log.warning('Cannot make the movement of the {axis} axis'
                              'since the border [{min},{max}] would be crossed! Ignore command!'
-                             .format(axis=axis, min=self._constraints[axis]['pos_min'], max=self._constraints[axis]['pos_max']))
+                             .format(axis=axis, min=self._configuration[axis]['constraints']['pos_min'], max=self._configuration[axis]['constraints']['pos_max']))
         else:
-            self._write_axis_move(axis, channel, to_pos)
+            self._write_axis_move(axis, scanner, channel, to_pos)
 
-    def _write_axis_move(self, axis, channel, to_pos):
+    def _write_axis_move(self, axis, scanner, channel, to_pos):
         """ Internal method to move a specified axis
 
         @param string axis: name of the axis to be moved
@@ -360,7 +388,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
                     'Do\n'
                     'idle\n'
                     'Loop Until GetParam(tScanner, cStatus, {scanner}) = False'
-                    .format(channel=channel, position=to_pos, scanner=self._scanner))
+                    .format(channel=channel, position=to_pos, scanner=scanner))
 
         self._run_script_text(command)
         time.sleep(0.1)
