@@ -388,10 +388,10 @@ class PiezoStageNTMDT(Base, MotorInterface):
         @param float to_pos: desired position in meters
         """
 
-        if not(self._configuration[axis]['constraints']['pos_min'] <= to_pos <= self._configuration[axis]['constraints']['pos_max']):
+        if not(self._configuration[axis]['pos_min'] <= to_pos <= self._configuration[axis]['pos_max']):
             self.log.warning('Cannot make the movement of the {axis} axis'
                              'since the border [{min},{max}] would be crossed! Ignore command!'
-                             .format(axis=axis, min=self._configuration[axis]['constraints']['pos_min'], max=self._configuration[axis]['constraints']['pos_max']))
+                             .format(axis=axis, min=self._configuration[axis]['pos_min'], max=self._configuration[axis]['pos_max']))
         else:
             self._write_axis_move(axis, scanner, channel, to_pos)
 
