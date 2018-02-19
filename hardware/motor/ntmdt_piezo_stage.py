@@ -452,7 +452,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
                     .format(scanner=scanner, to_state=int(to_state)))  # bool to int
         self._run_script_text(command)
 
-    def _set_servo_state_z(self, to_state):
+    def _set_servo_state_z(self, scanner, to_state):
         """ Internal method to enable/disable Z closed loop feedback
 
         @param bool to_state: the desired state of the feedback loop
