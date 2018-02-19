@@ -198,7 +198,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         return param_dict
 
-    def move_abs(self, param_dict):
+    def move_abs(self, param_dict=None):
         """Moves stage to absolute position
 
         @param dict param_dict: dictionary, which passes all the relevant
@@ -238,7 +238,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
                     to_position = param_dict['z']
                     self._do_move_abs(axis, scanner, channel, to_position)
 
-        if param_dict['tube']:
+        if 'tube' in param_dict:
             scanner = self._configuration['tube']['scanner']
             channel = self._configuration['tube']['channel']
             to_position = param_dict['tube']
