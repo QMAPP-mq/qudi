@@ -227,23 +227,29 @@ class PiezoStageNTMDT(Base, MotorInterface):
                     channel = self._configuration['x']['channel']
                     to_position = param_dict['x']
                     self._do_move_abs(axis, scanner, channel, to_position)
+                    time.sleep(0.1)
                 elif axis == 'y':
                     scanner = self._configuration['y']['scanner']
                     channel = self._configuration['y']['channel']
                     to_position = param_dict['y']
                     self._do_move_abs(axis, scanner, channel, to_position)
+                    time.sleep(0.1)
                 elif axis == 'z':
                     scanner = self._configuration['z']['scanner']
                     channel = self._configuration['z']['channel']
                     to_position = param_dict['z']
                     self._do_move_abs(axis, scanner, channel, to_position)
+                    time.sleep(0.1)
 
         if 'tube' in param_dict:
             scanner = self._configuration['tube']['scanner']
             channel = self._configuration['tube']['channel']
             to_position = param_dict['tube']
             self._do_move_abs(axis, scanner, channel, to_position)
+            time.sleep(0.1)
 
+        self.get_pos()
+        time.sleep(0.1)
         param_dict = self.get_pos()
 
         self._update_gui()
