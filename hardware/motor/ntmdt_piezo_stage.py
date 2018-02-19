@@ -268,20 +268,45 @@ class PiezoStageNTMDT(Base, MotorInterface):
         @return dict: with keys being the axis labels and item the current
                       position.
         """
+
+        invalid_axis = set(param_list)-set(self._configuration)
+
+        if invalid_axis:
+            for axis in invalid_axis:      
+                self.log.warning('Desired axis {axis} is undefined'
+                                .format(axis=axis))
+
         param_dict = {}
         
         for axis in ['x', 'y', 'z']:
 
             if axis == 'x':
-                channel = 0
+                scanner = self._configuration['x']['scanner']
+                channel = self._configuration['x']['channel']
             elif axis == 'y':
-                channel = 1
+                scanner = self._configuration['y']['scanner']
+                channel = self._configuration['y']['channel']
             elif axis == 'z':
-                channel = 2
+                scanner = self._configuration['z']['scanner']
+                channel = self._configuration['z']['channel']
 
             command = ('{axis}Pos = GetParam(tScanner, scPosition, {scanner}, {channel})\n\n'
                        'SetSharedDataVal "shared_{axis}Pos", {axis}Pos, "F64", 8'
-                       .format(axis=axis, channel=channel, scanner=self._scanner))
+                       .format(axis=axis, channel=channel, scanner=scanner))
+
+            self._run_script_text(command)
+            time.sleep(0.1)
+            param_dict[axis] = self._get_shared_float('shared_{axis}Pos'.format(axis=axis))  *1e-6
+            # NT-MDT scanner communication in microns
+
+        if param_list['tube']:  # if tube specified
+            axis = 'tube'
+            scanner = self._configuration['tube']['scanner']
+            channel = self._configuration['tube']['channel']
+
+            command = ('{axis}Pos = GetParam(tScanner, scPosition, {scanner}, {channel})\n\n'
+                       'SetSharedDataVal "shared_{axis}Pos", {axis}Pos, "F64", 8'
+                       .format(axis=axis, channel=channel, scanner=scanner))
 
             self._run_script_text(command)
             time.sleep(0.1)
@@ -289,6 +314,11 @@ class PiezoStageNTMDT(Base, MotorInterface):
             # NT-MDT scanner communication in microns
 
         for axis in ['x', 'y', 'z']:
+            self._reset_shared_data('shared_{axis}Pos'.format(axis=axis))
+            time.sleep(0.1)
+
+        if param_list['tube']:  # if tube specified
+            axis = 'tube'
             self._reset_shared_data('shared_{axis}Pos'.format(axis=axis))
             time.sleep(0.1)
 
@@ -400,20 +430,26 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         @param bool to_state: desired state of the feedback servos
         """
-        self._set_servo_state_xy(to_state)
-        time.sleep(0.5)
-        self._update_gui()
-        self._set_servo_state_z(to_state)
+        self._set_servo_state_xy(self._configuration['x']['scanner'], to_state)
         time.sleep(0.5)
         self._update_gui()
 
-    def _set_servo_state_xy(self, to_state):
+        self._set_servo_state_z(self._configuration['z']['scanner'], to_state)
+        time.sleep(0.5)
+        self._update_gui()
+
+        if self._configuration['tube']:
+            self._set_servo_state_z(self._configuration['tube']['scanner'], to_state)
+            time.sleep(0.5)
+            self._update_gui()
+
+    def _set_servo_state_xy(self, scanner, to_state):
         """ Internal method to enable/disable XY closed loop feedback
 
         @param bool to_state: the desired state of the feedback loop
         """
         command =   ('SetParam tScanner, cParam, {scanner}, XYCLState, {to_state}'
-                    .format(scanner=self._scanner, to_state=int(to_state)))  # bool to int
+                    .format(scanner=scanner, to_state=int(to_state)))  # bool to int
         self._run_script_text(command)
 
     def _set_servo_state_z(self, to_state):
@@ -422,7 +458,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         @param bool to_state: the desired state of the feedback loop
         """
         command =   ('SetParam tScanner, cParam, {scanner}, ZCLState, {to_state}'
-                    .format(scanner=self._scanner, to_state=int(to_state)))  # bool to int
+                    .format(scanner=scanner, to_state=int(to_state)))  # bool to int
         self._run_script_text(command)
 
 ########################## Nova PX Communication ###############################
