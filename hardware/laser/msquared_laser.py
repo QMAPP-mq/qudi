@@ -54,8 +54,8 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
     Example configuration:
     ```
-        # mylaser:
-        #     module.Class: 'laser.msquared_laser.MSquaredLaser'
+    # mylaser:
+    #     module.Class: 'laser.msquared_laser.MSquaredLaser'
     ```
     """
     _modclass = 'msquaredlaser'
