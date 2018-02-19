@@ -42,18 +42,18 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
 
     Example configuration:
     ```
-        # piezo_pi:
-        #     module.Class: 'motor.piezo_stage_pi_usb_gcs2.PiezoStagePI'
-        #     constraints:
-        #         x_range:
-        #             min: 0e-6
-        #             max: 300e-6
-        #         y_range:
-        #             min: 0e-6
-        #             max: 300e-6
-        #         z_range:
-        #             min: 0e-6
-        #             max: 300e-6
+    # piezo_pi:
+    #     module.Class: 'motor.piezo_stage_pi_usb_gcs2.PiezoStagePI'
+    #     constraints:
+    #         x_range:
+    #             min: 0e-6
+    #             max: 300e-6
+    #         y_range:
+    #             min: 0e-6
+    #             max: 300e-6
+    #         z_range:
+    #             min: 0e-6
+    #             max: 300e-6
     ```
     """
     _modclass = 'PiezoStagePI_GCS1'
