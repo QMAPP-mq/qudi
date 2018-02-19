@@ -142,9 +142,6 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         config = self.getConfiguration()
 
-        if config['x']['device_id'] != config['y']['device_id']:
-            self.log.warning('Your x and y axes are configured as different devices, is this correct?')
-
         axis0 = {}
         axis0['label'] = 'x'
         axis0['scanner'] = config['x']['device_id']
@@ -180,6 +177,9 @@ class PiezoStageNTMDT(Base, MotorInterface):
         constraints[axis2['label']] = axis2
         if config['tube']:
             constraints[axis3['label']] = axis3
+
+        if axis0['scanner'] != axis1['scanner']:
+            self.log.warning('Your x and y axes are configured as different devices, is this correct?')
 
         return constraints
 
