@@ -290,8 +290,13 @@ class PiezoStageNTMDT(Base, MotorInterface):
             time.sleep(0.1)
             param_dict[axis] = self._get_shared_float('shared_{axis}Pos'.format(axis=axis))  *1e-6
             # NT-MDT scanner communication in microns
+            time.sleep(0.1)
 
-        if param_list['tube']:  # if tube specified
+        for axis in ['x', 'y', 'z']:  # reset shared data values
+            self._reset_shared_data('shared_{axis}Pos'.format(axis=axis))
+            time.sleep(0.1)
+
+        if (param_list is not None) and ('tube' in param_list):  # if tube specified
             axis = 'tube'
             scanner = self._configuration['tube']['scanner']
             channel = self._configuration['tube']['channel']
@@ -304,13 +309,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
             time.sleep(0.1)
             param_dict[axis] = self._get_shared_float('shared_{axis}Pos'.format(axis=axis))  *1e-6
             # NT-MDT scanner communication in microns
-
-        for axis in ['x', 'y', 'z']:
-            self._reset_shared_data('shared_{axis}Pos'.format(axis=axis))
             time.sleep(0.1)
-
-        if param_list['tube']:  # if tube specified
-            axis = 'tube'
             self._reset_shared_data('shared_{axis}Pos'.format(axis=axis))
             time.sleep(0.1)
 
