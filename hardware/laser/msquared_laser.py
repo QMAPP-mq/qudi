@@ -41,7 +41,7 @@ import socket
 # import numpy as np
 import json
 
-from core.module import Base
+from core.module import Base, ConfigOption
 from interface.simple_laser_interface import SimpleLaserInterface
 from interface.simple_laser_interface import LaserState
 from interface.simple_laser_interface import ShutterState
@@ -54,26 +54,25 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
     Example configuration:
     ```
-    # mylaser:
-    #     module.Class: 'laser.msquared_laser.MSquaredLaser'
+    mylaser:
+        module.Class: 'laser.msquared_laser.MSquaredLaser'
+        laser_ip: '192.168.1.222'
+        laser_port: 39933
+        default_x_alignment_param: 77.85
+        default_y_alignment_param: 62.80
     ```
     """
     _modclass = 'msquaredlaser'
     _modtype = 'hardware'
 
-    laser_ip = '192.168.1.222'  # TODO: pass this from config file
-    laser_port = 39933  # TODO: pass this from config file
-
-    _ipaddr = laser_ip
-    _port = laser_port
+    _ipaddr = ConfigOption('laser_ip', missing='error')
+    _port = ConfigOption('laser_port', missing='error')
 
     _beam_align_x = None
     _beam_align_y = None
 
-    # good starting positions for QMAPP Diamond Nanoscience Lab M Squared
-    # TODO: pass this from the config file
-    _my_beam_align_x_default = 77.85
-    _my_beam_align_y_default = 62.80
+    _my_beam_align_x_default = ConfigOption('default_x_alignment_param', 50, missing='warn')
+    _my_beam_align_y_default = ConfigOption('default_y_alignment_param', 50, missing='warn')
 
     _beam_align_mode = None
 
