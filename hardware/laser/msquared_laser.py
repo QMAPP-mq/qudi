@@ -376,14 +376,16 @@ class MSquaredLaser(Base, SimpleLaserInterface):
                        }
             self._send_command(message)
             response = self._read_response()
-            # TODO catch this and remind the user to double check IP address in SolsTiS config
-            #print('protocol error: ', response['protocol_error'])
             if response['status'] == 'ok':
                 return 0
             else:
+                self.log.error('I cannot connect to the M Squared laser - check config ip and port')
+                # these can be found in the SolsTiS config web interface
                 return -1
         except:
             return -2
+        # TODO: if the laser is connected, check for a protocol error:
+        # print('protocol error: ', response['protocol_error'])
 
     def _send_command(self, message):
         """ Send a command to the laser
@@ -501,10 +503,9 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         return self._get_beam_align()
 
     def _set_beam_align_x(self, beam_x):
-        """ Set the beam x alignment
+        """ Set the beam x alignment parameter
+        """
 
-            @return: None
-        """  # TODO: combine _set_beam_align_x and _set_beam_align_y into a single function
         message = {'transmission_id': [9],
                     'op': 'beam_adjust_x',
                     'parameters': {'x_value': [beam_x]
@@ -523,10 +524,9 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             self._beam_align_x = beam_x  # only update if operation completed
 
     def _set_beam_align_y(self, beam_y):
-        """ Set the beam y alignment
+        """ Set the beam y alignment parameter
+        """
 
-            @return: None
-        """  # TODO: combine _set_beam_align_x and _set_beam_align_y into a single function
         message = {'transmission_id': [10],
                     'op': 'beam_adjust_y',
                     'parameters': {'y_value': [beam_y]
