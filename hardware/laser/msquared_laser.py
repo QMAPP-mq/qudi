@@ -82,11 +82,11 @@ class MSquaredLaser(Base, SimpleLaserInterface):
     def __init__(self, **kwargs):
         """ """
         super().__init__(**kwargs)
-        self.lstate = LaserState.OFF
-        self.shutter = ShutterState.CLOSED
-        self.mode = ControlMode.POWER
-        self.current_setpoint = 0
-        self.power_setpoint = 0
+        self.lstate = LaserState.UNKNOWN
+        self.shutter = ShutterState.UNKNOWN
+        self.mode = ControlMode.MIXED  # simple laser interface contains no appripriate control mode
+        self.current_setpoint = -1
+        self.power_setpoint = -1
 
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -124,9 +124,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return (float, float): power range
         """ 
-        
-        # TODO: Not supported by this laser. Write suitable warnings.
-        # TODO: warning.
+        self.log.warning('This operation is not supported by the M Squared laser')
         return (-1, -1)
 
     def get_power(self):
@@ -135,7 +133,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             @return float: Laser power in watts
         """ 
         
-        # TODO: Not supported by this laser. Write suitable warnings.
+        self.log.warning('This operation is not supported by the M Squared laser')
         return -1
 
     def get_power_setpoint(self):
@@ -144,7 +142,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             @return float: power setpoint in watts
         """ 
         
-        # TODO: Not supported by this laser. Write suitable warnings.
+        self.log.warning('This operation is not supported by the M Squared laser')
         return self.power_setpoint
 
     def set_power(self, power):
@@ -154,9 +152,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return float: actual new power setpoint
         """ 
-        # TODO: Not supported by this laser. Write suitable warnings.
-        self.power_setpoint = power
-        self.current_setpoint = math.sqrt(4 * self.power_setpoint) * 100
+        self.log.warning('This operation is not supported by the M Squared laser')
         return self.power_setpoint
 
     def get_current_unit(self):
@@ -164,31 +160,31 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return str: unit
         """ 
-        # TODO: Not supported by this laser. Write suitable warnings.
-        return '%'
+        self.log.warning('This operation is not supported by the M Squared laser')
+        return ''
 
     def get_current_range(self):
         """ Get laser current range.
 
             @return (float, float): laser current range
         """ 
-        # TODO: Not supported by this laser. Write suitable warnings.
-        return (0, 100)
+        self.log.warning('This operation is not supported by the M Squared laser')
+        return (-1, -1)
 
     def get_current(self):
         """ Get current laser current
 
             @return float: laser current in current curent units
         """ 
-        # TODO: Not supported by this laser. Write suitable warnings.
-        return self.current_setpoint * random.gauss(1, 0.05)
+        self.log.warning('This operation is not supported by the M Squared laser')
+        return self.current_setpoint
 
     def get_current_setpoint(self):
         """ Get laser curent setpoint
 
             @return float: laser current setpoint
         """ 
-        # TODO: Not supported by this laser. Write suitable warnings.
+        self.log.warning('This operation is not supported by the M Squared laser')
         return self.current_setpoint
 
     def set_current(self, current):
@@ -198,9 +194,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return float: actual laser current setpoint
         """ 
-        # TODO: Not supported by this laser. Write suitable warnings.
-        self.current_setpoint = current
-        self.power_setpoint = math.pow(self.current_setpoint / 100, 2) / 4
+        self.log.warning('This operation is not supported by the M Squared laser')
         return self.current_setpoint
 
     def allowed_control_modes(self):
@@ -208,15 +202,15 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return list(): list of supported ControlMode
         """ 
-        # TODO: Not supported by this laser. Write suitable warnings.
-        return [ControlMode.POWER, ControlMode.CURRENT]
+        self.log.warning('This operation is not supported by the M Squared laser')
+        return []
 
     def get_control_mode(self):
         """ Get the currently active control mode
 
             @return ControlMode: active control mode
         """ 
-        # TODO: Not supported by this laser. Write suitable warnings.
+        self.log.warning('This operation is not supported by the M Squared laser')
         return self.mode
 
     def set_control_mode(self, control_mode):
@@ -226,8 +220,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return ControlMode: actual active ControlMode
         """ 
-        # TODO: Not supported by this laser. Write suitable warnings.
-        self.mode = control_mode
+        self.log.warning('This operation is not supported by the M Squared laser')
         return self.mode
 
     def on(self):
@@ -235,9 +228,8 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return LaserState: actual laser state
         """ 
-        # TODO: Not supported by this laser. Write suitable warnings.
-        time.sleep(1)
-        self.lstate = LaserState.ON
+        self.log.warning('This operation is not supported by the M Squared laser')
+        self.lstate = LaserState.UNKNOWN
         return self.lstate
 
     def off(self):
@@ -245,9 +237,8 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return LaserState: actual laser state
         """ 
-        # TODO: Not supported by this laser. Write suitable warnings.
-        time.sleep(1)
-        self.lstate = LaserState.OFF
+        self.log.warning('This operation is not supported by the M Squared laser')
+        self.lstate = LaserState.UNKNOWN
         return self.lstate
 
     def get_laser_state(self):
@@ -255,7 +246,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return LaserState: actual laser state
         """ 
-        # TODO: Not supported by this laser. Write suitable warnings.
+        self.log.warning('This operation is not supported by the M Squared laser')
         return self.lstate
 
     def set_laser_state(self, state):
@@ -265,9 +256,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return LaserState: actual laser state
         """ 
-        # TODO: Not supported by this laser. Write suitable warnings.
-        time.sleep(1)
-        self.lstate = state
+        self.log.warning('This operation is not supported by the M Squared laser')
         return self.lstate
 
     def get_shutter_state(self):
@@ -275,7 +264,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return ShutterState: actual laser shutter state
         """ 
-        # TODO: Not supported by this laser. Write suitable warnings.
+        self.log.warning('This operation is not supported by the M Squared laser')
         return self.shutter
 
     def set_shutter_state(self, state):
@@ -285,9 +274,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return ShutterState: actual laser shutter state
         """ 
-        # TODO: Not supported by this laser. Write suitable warnings.
-        time.sleep(1)
-        self.shutter = state
+        self.log.warning('This operation is not supported by the M Squared laser')
         return self.shutter
 
     def get_temperatures(self):
@@ -295,7 +282,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return dict: dict of temperature namce and value in degrees Celsius
         """ 
-        # TODO: Not supported by this laser. Write suitable warnings.
+        self.log.warning('This operation is not supported by the M Squared laser')
         pass
 
     def set_temperatures(self, temps):
@@ -303,7 +290,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return {}: empty dict, dummy not a tunable laser
         """ 
-        # TODO: Not supported by this laser. Write suitable warnings.
+        self.log.warning('This operation is not supported by the M Squared laser')
         pass
 
     def get_temperature_setpoints(self):
@@ -311,7 +298,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return dict: temperature setpoints for temperature tunable lasers
         """ 
-        # TODO: Not supported by this laser. Write suitable warnings.
+        self.log.warning('This operation is not supported by the M Squared laser')
         pass
 
     def get_extra_info(self):
@@ -373,7 +360,6 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             return True
         else:
             return False
-
 
     def _connect(self, ipaddr, port):
         """ Establish a connection to the laser
