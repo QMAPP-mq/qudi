@@ -522,15 +522,39 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
 ########################## Thermal Controls ####################################
 
-# TODO: add thermal controls
+    def _toggle_heating(self, to_state):
+        """ Enable or disable the stage heater
 
-# SetParam tThermoController, thSetPoint, {temperature}
-# SetParam tThermoController, thHeatingEnabled, {0|1} ' 0 - off, 1 - on
+        @param bool to_state: The desired state of the heater
+        """
+        command =   ('SetParam tThermoController, thHeatingEnabled, {state}'
+                    .format(to_state=int(to_state)))  # 0 - off, 1 - on
+        self._run_script_text(command)
 
-# GetParam tThermoController, thT1CurValue ' current temperature channel 1
-# GetParam tThermoController, thT2CurValue ' current temperature channel 2
-# GetParam tThermoController, thT3CurValue ' current temperature channel 3
-# GetParam tThermoController, thPower ' current heater power in %
+    def _set_temperature_setpoint(self, setpoint):
+        """ Set the temperature setpoint of the heater
+
+        @param float setpoint: The desired temperature setpoint
+        """
+        command =   ('SetParam tThermoController, thSetPoint, {temp}'
+                    .format(temp=setpoint))
+        self._run_script_text(command)
+
+    def _get_heater_power(self):  # TODO: incomplete
+        """ Get the current heater power in %
+
+        @returns float power: The current heater power in %
+        """
+        # GetParam tThermoController, thPower ' current heater power in %
+
+    def _get_temperature(self, channel):  # TODO: incomplete
+        """ Get the current temperature value
+
+        @param int channel: The sensor channel
+        """
+        # GetParam tThermoController, thT1CurValue ' current temperature channel 1
+        # GetParam tThermoController, thT2CurValue ' current temperature channel 2
+        # GetParam tThermoController, thT3CurValue ' current temperature channel 3
 
 ########################## Interrupt Movement ##################################
 
