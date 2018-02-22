@@ -510,7 +510,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         else:
             return False
 
-################################################################################
+########################## Message Box #########################################
 
     def _make_message(self, message):
         """ Make a message box appear in Noxa Px. Use for debugging.
@@ -519,3 +519,24 @@ class PiezoStageNTMDT(Base, MotorInterface):
         """
         command = 'msgbox "{message}"'.format(message=message)
         self._novadll.RunScriptText(command.encode())
+
+########################## Thermal Controls ####################################
+
+# TODO: add thermal controls
+
+# SetParam tThermoController, thSetPoint, {temperature}
+# SetParam tThermoController, thHeatingEnabled, {0|1} ' 0 - off, 1 - on
+
+# GetParam tThermoController, thT1CurValue ' current temperature channel 1
+# GetParam tThermoController, thT2CurValue ' current temperature channel 2
+# GetParam tThermoController, thT3CurValue ' current temperature channel 3
+# GetParam tThermoController, thPower ' current heater power in %
+
+########################## Interrupt Movement ##################################
+
+# TODO: add emergency interrupt
+
+# RunScriptTextThread('Perform tScanner, scStop, {scanner}}'.format(scanner))
+
+# TODO: upgrade NOVA.exe
+# !!! requires v 3145 .exe
