@@ -547,14 +547,49 @@ class PiezoStageNTMDT(Base, MotorInterface):
         """
         # GetParam tThermoController, thPower ' current heater power in %
 
-    def _get_temperature(self, channel):  # TODO: incomplete
+    def _get_temperature(self, channel_list=None):  # TODO: incomplete
         """ Get the current temperature value
 
-        @param int channel: The sensor channel
+        @param list channel_list: optional, if a specific temperature of a channel
+                                is desired, then the labels of the needed
+                                channel should be passed in the channel_list.
+                                If nothing is passed, then the temperatures of
+                                all channels are returned.
+
+        @return dict: with keys being the channel labels and item the current
+                      temperature.
         """
         # GetParam tThermoController, thT1CurValue ' current temperature channel 1
         # GetParam tThermoController, thT2CurValue ' current temperature channel 2
         # GetParam tThermoController, thT3CurValue ' current temperature channel 3
+
+        for channel in channel_list:
+            channel = str(channel)  # convert ints to strings
+
+        channel_dict = {}
+        
+        for channel in ['1', '2', '3']:
+
+            command = ('T{channel} = GetParam(tThermoController, thT{channel}CurValue)\n\n'
+                       'SetSharedDataVal "shared_T{channel}", T{channel}, "F64", 8'
+                       .format(channel=channel))
+
+            self._run_script_text(command)
+            time.sleep(0.1)
+            channel_dict[channel] = self._get_shared_float('T{channel}'.format(channel=channel))
+            # NT-MDT scanner communication in celcius
+            time.sleep(0.1)
+
+        for channel in ['1', '2', '3']:  # reset shared data values
+            self._reset_shared_data('shared_T{channel}'.format(channel=channel))
+            time.sleep(0.1)
+
+        if channel_list:
+            for channel in list(set(channel_dict.keys()) - set(channel_list)):  # channels not in channel_list
+                del channel_dict[channel]
+            return channel_dict
+        else:
+            return channel_dict
 
 ########################## Interrupt Movement ##################################
 
