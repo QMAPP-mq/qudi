@@ -260,7 +260,35 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        return 0
+        scanners = []
+
+        for axis in set(self._configuration):
+            if self._configuration[axis]['scanner'] not in scanners:
+                scanners.append(self._configuration[axis]['scanner'])
+
+        for scanner in scanners:
+            self._emergency_interrupt(scanner)
+
+        # GetParam(tScanner, cStatus, {scanner})
+
+        status = 0
+
+        for scanner in scanners:
+            # CInt(Abs(Value))
+            command = ('Sc{scanner}Mv = GetParam(tScanner, cStatus, {scanner})\n\n'
+                       'Sc{scanner}Mv = CInt(Abs(Sc{scanner}Mv))\n\n'  # bool to int
+                       'SetSharedDataVal "Sc{scanner}Mv", {axis}Pos, "F64", 8'
+                       .format(scanner=scanner))
+                       
+            self._run_script_text(command)
+            time.sleep(0.1)
+            status += self._get_shared_float('Sc{scanner}Mv'.format(scanner=scanner))
+            self._reset_shared_data('Sc{scanner}Mv'.format(axis=axis))
+            time.sleep(0.1)
+        
+        self._update_gui()
+
+        return status
 
     def get_pos(self, param_list=None):
         """ Gets current position of the stage arms
@@ -610,7 +638,22 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
 # TODO: add emergency interrupt
 
-# RunScriptTextThread('Perform tScanner, scStop, {scanner}}'.format(scanner))
+    def _emergency_interrupt(self, scanner):
+        """ Abort motion of a scanners
+
+        @param int scanner: The scanner to be stopped
+        """
+        # RunScriptTextThread('Perform tScanner, scStop, {scanner}}'.format(scanner))
+
+        self.log.warning('Aborting the motion of NT-MDT scanner {scanner}'.format(scanner=scanner))
+
+        command = ('ThPower = GetParam(tThermoController, thPower)\n\n'
+                    'SetSharedDataVal "shared_ThPower", ThPower, "F64", 8'
+                    .format(scanner=scanner))
+
+        self._run_script_text_thread(command)
+        time.sleep(0.1)
+
 
 # TODO: upgrade NOVA.exe
 # !!! requires v 3145 .exe
