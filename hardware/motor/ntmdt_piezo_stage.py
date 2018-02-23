@@ -547,6 +547,21 @@ class PiezoStageNTMDT(Base, MotorInterface):
         """
         # GetParam tThermoController, thPower ' current heater power in %
 
+        command = ('ThPower = GetParam(tThermoController, thPower)\n\n'
+                    'SetSharedDataVal "shared_ThPower", ThPower, "F64", 8'
+                    )
+
+        self._run_script_text(command)
+        time.sleep(0.1)
+        power = self._get_shared_float('shared_ThPower')
+        # NT-MDT scanner communication in %
+        time.sleep(0.1)
+
+        self._reset_shared_data('shared_ThPower')
+        time.sleep(0.1)
+
+        return power
+
     def _get_temperature(self, channel_list=None):  # TODO: incomplete
         """ Get the current temperature value
 
@@ -576,7 +591,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
             self._run_script_text(command)
             time.sleep(0.1)
-            channel_dict[channel] = self._get_shared_float('T{channel}'.format(channel=channel))
+            channel_dict[channel] = self._get_shared_float('shared_T{channel}'.format(channel=channel))
             # NT-MDT scanner communication in celcius
             time.sleep(0.1)
 
