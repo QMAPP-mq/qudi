@@ -277,13 +277,13 @@ class PiezoStageNTMDT(Base, MotorInterface):
             # CInt(Abs(Value))
             command = ('Sc{scanner}Mv = GetParam(tScanner, cStatus, {scanner})\n\n'
                        'Sc{scanner}Mv = CInt(Abs(Sc{scanner}Mv))\n\n'  # bool to int
-                       'SetSharedDataVal "Sc{scanner}Mv", {axis}Pos, "F64", 8'
+                       'SetSharedDataVal "shared_Sc{scanner}Mv", Sc{scanner}Mv, "F64", 8'
                        .format(scanner=scanner))
                        
             self._run_script_text(command)
             time.sleep(0.1)
-            status += self._get_shared_float('Sc{scanner}Mv'.format(scanner=scanner))
-            self._reset_shared_data('Sc{scanner}Mv'.format(axis=axis))
+            status += self._get_shared_float('shared_Sc{scanner}Mv'.format(scanner=scanner))
+            self._reset_shared_data('shared_Sc{scanner}Mv'.format(axis=axis))
             time.sleep(0.1)
         
         self._update_gui()
