@@ -276,7 +276,13 @@ class PiezoStagePI(Base, MotorInterface):
         param_dict['y'] = posBuffer[1] / 1e6  # unit conversion from communication
         param_dict['z'] = posBuffer[2] / 1e6  # unit conversion from communication
 
-        return param_dict
+        if param_list:
+            param_list = [x.lower() for x in param_list]  # make all param_list elements lower case
+            for axis in list(set(param_dict.keys()) - set(param_list)):  # axes not in param_list
+                del param_dict[axis]
+            return param_dict
+        else:
+            return param_dict
 
     def get_status(self, param_list=None):
         """ Get the status of the position
