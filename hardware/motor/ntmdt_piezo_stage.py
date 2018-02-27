@@ -269,8 +269,6 @@ class PiezoStageNTMDT(Base, MotorInterface):
         for scanner in scanners:
             self._emergency_interrupt(scanner)
 
-        # GetParam(tScanner, cStatus, {scanner})
-
         status = 0
 
         for scanner in scanners:
@@ -495,6 +493,16 @@ class PiezoStageNTMDT(Base, MotorInterface):
         """
         self._novadll.RunScriptText(command.encode())
 
+    def _run_script_text_thread(self, command):
+        """ Execute a command in a Nova Px in a separate thread
+
+        This function can be used to interrupt a running process. Calling 
+        this function requires the Nova.exe file v3145 or newer.
+
+        @param string command: VBScript code to be executed
+        """
+        self._novadll.RunScriptTextThread(command.encode())
+
     def _get_shared_float(self, variable):
         """ Retreive a shared data variable of type float from Nova Px
 
@@ -641,14 +649,14 @@ class PiezoStageNTMDT(Base, MotorInterface):
     def _emergency_interrupt(self, scanner):
         """ Abort motion of a scanners
 
+        To abort the movement of a scanner in motion, the command must be 
+        called in a separate thread. See self._run_script_text_thread.
+
         @param int scanner: The scanner to be stopped
         """
-        # RunScriptTextThread('Perform tScanner, scStop, {scanner}}'.format(scanner))
-
         self.log.warning('Aborting the motion of NT-MDT scanner {scanner}'.format(scanner=scanner))
 
-        command = ('ThPower = GetParam(tThermoController, thPower)\n\n'
-                    'SetSharedDataVal "shared_ThPower", ThPower, "F64", 8'
+        command = ('Perform tScanner, scStop, {scanner}'
                     .format(scanner=scanner))
 
         self._run_script_text_thread(command)
@@ -656,4 +664,3 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
 
 # TODO: upgrade NOVA.exe
-# !!! requires v 3145 .exe
