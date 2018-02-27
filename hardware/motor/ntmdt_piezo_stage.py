@@ -82,8 +82,6 @@ class PiezoStageNTMDT(Base, MotorInterface):
     _modclass = 'PiezoStageNTMDT'
     _modtype = 'hardware'
 
-    # _scanner = ConfigOption('scanner', missing='error')
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -257,6 +255,8 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
     def abort(self):
         """Stops movement of the stage
+
+        Nova Px software must be revision 18659 or newer for this feature.
 
         @return int: error code (0:OK, -1:error)
         """
@@ -501,8 +501,8 @@ class PiezoStageNTMDT(Base, MotorInterface):
     def _run_script_text_thread(self, command):
         """ Execute a command in a Nova Px in a separate thread
 
-        This function can be used to interrupt a running process. Calling 
-        this function requires the Nova.exe file v3145 or newer.
+        This function can be used to interrupt a running process. Nova Px 
+        software must be revision 18659 or newer for this function.
 
         @param string command: VBScript code to be executed
         """
@@ -581,12 +581,11 @@ class PiezoStageNTMDT(Base, MotorInterface):
                     .format(temp=setpoint))
         self._run_script_text(command)
 
-    def _get_heater_power(self):  # TODO: incomplete
+    def _get_heater_power(self):
         """ Get the current heater power in %
 
         @returns float power: The current heater power in %
         """
-        # GetParam tThermoController, thPower ' current heater power in %
 
         command = ('ThPower = GetParam(tThermoController, thPower)\n\n'
                     'SetSharedDataVal "shared_ThPower", ThPower, "F64", 8'
@@ -603,7 +602,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         return power
 
-    def _get_temperature(self, channel_list=None):  # TODO: incomplete
+    def _get_temperature(self, channel_list=None):
         """ Get the current temperature value
 
         @param list channel_list: optional, if a specific temperature of a channel
@@ -615,9 +614,6 @@ class PiezoStageNTMDT(Base, MotorInterface):
         @return dict: with keys being the channel labels and item the current
                       temperature.
         """
-        # GetParam tThermoController, thT1CurValue ' current temperature channel 1
-        # GetParam tThermoController, thT2CurValue ' current temperature channel 2
-        # GetParam tThermoController, thT3CurValue ' current temperature channel 3
 
         for channel in channel_list:
             channel = str(channel)  # convert ints to strings
@@ -649,8 +645,6 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
 ########################## Interrupt Movement ##################################
 
-# TODO: add emergency interrupt
-
     def _emergency_interrupt(self, scanner):
         """ Abort motion of a scanners
 
@@ -666,6 +660,3 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         self._run_script_text_thread(command)
         time.sleep(0.1)
-
-
-# TODO: upgrade NOVA.exe
