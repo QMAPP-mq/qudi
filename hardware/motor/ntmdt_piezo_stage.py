@@ -462,6 +462,11 @@ class PiezoStageNTMDT(Base, MotorInterface):
         self._update_gui()
 
         if self._configuration['tube']:
+            
+            self._set_servo_state_xy(self._configuration['tube']['scanner'], to_state)
+            time.sleep(0.5)
+            self._update_gui()
+
             self._set_servo_state_z(self._configuration['tube']['scanner'], to_state)
             time.sleep(0.5)
             self._update_gui()
