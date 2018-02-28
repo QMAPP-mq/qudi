@@ -173,8 +173,13 @@ class SpectrumLogic(GenericLogic):
         else:
             print("Parameter 'on' needs to be boolean")
 
-    def save_spectrum_data(self, name_tag=''):
+    def save_spectrum_data(self, name_tag='', custom_header = None):
         """ Saves the current spectrum data to a file.
+
+        @param string name_tag: custom addition to the filename
+
+        @param ordered dict custom_header:
+            Additional custom parameters to include in the save file header.
         """
         filepath = self._save_logic.get_path_for_module(module_name='spectra')
 
@@ -187,6 +192,11 @@ class SpectrumLogic(GenericLogic):
         # write experimental parameters
         parameters = OrderedDict()
         parameters['Spectrometer acquisition repetitions'] = self.repetition_count
+
+        # add any custom header params
+        if custom_header is not None:
+            for key in custom_header:
+                parameters[key] = custom_header[key]
 
         # prepare the data in an OrderedDict:
         data = OrderedDict()
