@@ -69,6 +69,7 @@ class SpectrumLogic(GenericLogic):
         """
         self.spectrum_data = np.array([])
         self.spectrum_fit = np.array([])
+        self.fit_domain = np.array([])
         self.diff_spec_data_mod_on = np.array([])
         self.diff_spec_data_mod_off = np.array([])
         self.repetition_count = 0    # count loops for differential spectrum
@@ -286,6 +287,12 @@ class SpectrumLogic(GenericLogic):
         if (x_data is None) or (y_data is None):
             x_data = self.spectrum_data[0]
             y_data = self.spectrum_data[1]
+            if self.fit_domain.any():
+                start_idx = self._find_nearest_idx(x_data, self.fit_domain[0])
+                stop_idx = self._find_nearest_idx(x_data, self.fit_domain[1])
+
+                x_data = x_data[start_idx:stop_idx]
+                y_data = y_data[start_idx:stop_idx]
 
         if fit_function is not None and isinstance(fit_function, str):
             if fit_function in self.get_fit_functions():
@@ -311,3 +318,15 @@ class SpectrumLogic(GenericLogic):
         self.spectrum_fit_updated_Signal.emit(self.spectrum_fit,
                                     result_str_dict, self.fc.current_fit)
         return
+
+    def _find_nearest_idx(self, array, value):
+        """ Find array index of element nearest to given value
+
+        @param list array: array to be searched.
+        @param float value: desired value.
+
+        @return index of nearest element.
+        """
+
+        idx = (np.abs(array-value)).argmin()
+        return idx
