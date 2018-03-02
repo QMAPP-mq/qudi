@@ -21,10 +21,13 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 
 import os
 import pyqtgraph as pg
+import numpy as np
 
 from core.module import Connector
+from core.util import units
 from gui.colordefs import QudiPalettePale as palette
 from gui.guibase import GUIBase
+from gui.fitsettings import FitSettingsDialog, FitSettingsComboBox
 from qtpy import QtWidgets
 from qtpy import uic
 
@@ -99,7 +102,9 @@ class SpectrometerGui(GUIBase):
 
         self._mw.save_spectrum_Action.triggered.connect(self.save_spectrum_data)
 
-        self._spectrum_logic.sig_specdata_updated.connect(self.updateData)
+        self._spectrum_logic.specdata_updated_Signal.connect(self.update_data)
+        self._spectrum_logic.spectrum_fit_updated_Signal.connect(self.update_fit)
+        self._spectrum_logic.fit_domain_updated_Signal.connect(self.update_fit_domain)
 
         self._mw.show()
 
@@ -107,11 +112,30 @@ class SpectrometerGui(GUIBase):
         self._curve1 = self._pw.plot()
         self._curve1.setPen(palette.c2, width=2)
 
+        self._curve2 = self._pw.plot()
+        self._curve2.setPen(palette.c1, width=2)
+
         self._save_PNG = True
+
+        # Internal user input changed signals
+        self._mw.fit_domain_min_doubleSpinBox.valueChanged.connect(self.set_fit_domain)
+        self._mw.fit_domain_max_doubleSpinBox.valueChanged.connect(self.set_fit_domain)
+
+        # Internal trigger signals
+        self._mw.do_fit_PushButton.clicked.connect(self.do_fit)
+
+        # fit settings
+        self._fsd = FitSettingsDialog(self._spectrum_logic.fc)
+        self._fsd.sigFitsUpdated.connect(self._mw.fit_methods_ComboBox.setFitFunctions)
+        self._fsd.applySettings()
+        self._mw.action_FitSettings.triggered.connect(self._fsd.show)
 
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
         """
+        # disconnect signals
+        self._fsd.sigFitsUpdated.disconnect()
+
         self._mw.close()
 
     def show(self):
@@ -121,19 +145,34 @@ class SpectrometerGui(GUIBase):
         self._mw.activateWindow()
         self._mw.raise_()
 
-    def updateData(self):
+    def update_data(self, data):
         """ The function that grabs the data and sends it to the plot.
         """
-        data = self._spectrum_logic.spectrum_data
-
+        # erase previous fit line
+        self._curve2.setData(x=[], y=[])
+        
+        # draw new data
         self._curve1.setData(x=data[0, :], y=data[1, :])
 
+    def update_fit(self, fit_data, result_str_dict, current_fit):
+        """ Update the drawn fit curve and displayed fit results.
+        """
+        if current_fit != 'No Fit':
+            # display results as formatted text
+            self._mw.spectrum_fit_results_DisplayWidget.clear()
+            try:
+                formated_results = units.create_formatted_output(result_str_dict)
+            except:
+                formated_results = 'this fit does not return formatted results'
+            self._mw.spectrum_fit_results_DisplayWidget.setPlainText(formated_results)
+
+            # redraw the fit curve in the GUI plot.
+            self._curve2.setData(x=fit_data[0, :], y=fit_data[1, :])
+
     def record_single_spectrum(self):
-        """ Handling resume of the scanning without resetting the data.
+        """ 
         """
         self._spectrum_logic.get_single_spectrum()
-
-        self.updateData()
 
     def start_differential_measurement(self):
 
@@ -165,3 +204,19 @@ class SpectrometerGui(GUIBase):
 
     def save_spectrum_data(self):
         self._spectrum_logic.save_spectrum_data()
+
+    def do_fit(self):
+        fit_function = self._mw.fit_methods_ComboBox.getCurrentFit()[0]
+        self._spectrum_logic.do_fit(fit_function)
+
+    def set_fit_domain(self):
+        lambda_min = self._mw.fit_domain_min_doubleSpinBox.value()
+        lambda_max = self._mw.fit_domain_max_doubleSpinBox.value()
+
+        new_fit_domain = np.array([lambda_min, lambda_max])
+
+        self._spectrum_logic.set_fit_domain(new_fit_domain)
+
+    def update_fit_domain(self, domain):
+        self._mw.fit_domain_min_doubleSpinBox.setValue(domain[0])
+        self._mw.fit_domain_max_doubleSpinBox.setValue(domain[1])
