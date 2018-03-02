@@ -53,6 +53,7 @@ class SpectrumLogic(GenericLogic):
     # External signals eg for GUI module
     specdata_updated_Signal = QtCore.Signal(np.ndarray)
     spectrum_fit_updated_Signal = QtCore.Signal(np.ndarray, dict, str)
+    fit_domain_updated_Signal = QtCore.Signal(np.ndarray)
 
     def __init__(self, **kwargs):
         """ Create SpectrometerLogic object with connectors.
@@ -306,9 +307,6 @@ class SpectrumLogic(GenericLogic):
 
         spectrum_fit_x, spectrum_fit_y, result = self.fc.do_fit(x_data, y_data)
 
-        print(type(spectrum_fit_x))
-        print(type(self.spectrum_fit))
-
         self.spectrum_fit = np.array([spectrum_fit_x, spectrum_fit_y])
 
         if result is None:
@@ -316,7 +314,9 @@ class SpectrumLogic(GenericLogic):
         else:
             result_str_dict = result.result_str_dict
         self.spectrum_fit_updated_Signal.emit(self.spectrum_fit,
-                                    result_str_dict, self.fc.current_fit)
+                                              result_str_dict, 
+                                              self.fc.current_fit
+                                              )
         return
 
     def _find_nearest_idx(self, array, value):
@@ -330,3 +330,8 @@ class SpectrumLogic(GenericLogic):
 
         idx = (np.abs(array-value)).argmin()
         return idx
+
+    def set_fit_domain(self, domain):
+        self.fit_domain = domain
+        
+        self.fit_domain_updated_Signal.emit(self.fit_domain)
