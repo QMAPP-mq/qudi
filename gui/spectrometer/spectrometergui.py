@@ -99,7 +99,7 @@ class SpectrometerGui(GUIBase):
 
         self._mw.save_spectrum_Action.triggered.connect(self.save_spectrum_data)
 
-        self._spectrum_logic.sig_specdata_updated.connect(self.updateData)
+        self._spectrum_logic.specdata_updated_Signal.connect(self.updateData)
 
         self._mw.show()
 
@@ -121,19 +121,15 @@ class SpectrometerGui(GUIBase):
         self._mw.activateWindow()
         self._mw.raise_()
 
-    def updateData(self):
+    def updateData(self, data):
         """ The function that grabs the data and sends it to the plot.
         """
-        data = self._spectrum_logic.spectrum_data
-
         self._curve1.setData(x=data[0, :], y=data[1, :])
 
     def record_single_spectrum(self):
-        """ Handling resume of the scanning without resetting the data.
+        """ 
         """
         self._spectrum_logic.get_single_spectrum()
-
-        self.updateData()
 
     def start_differential_measurement(self):
 
