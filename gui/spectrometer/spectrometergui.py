@@ -23,6 +23,7 @@ import os
 import pyqtgraph as pg
 
 from core.module import Connector
+from core.util import units
 from gui.colordefs import QudiPalettePale as palette
 from gui.guibase import GUIBase
 from qtpy import QtWidgets
@@ -128,12 +129,28 @@ class SpectrometerGui(GUIBase):
     def update_data(self, data):
         """ The function that grabs the data and sends it to the plot.
         """
+        # erase previous fit line
+        self._curve2.setData(x=[], y=[])
+        
+        # draw new data
         self._curve1.setData(x=data[0, :], y=data[1, :])
 
     def update_fit(self, fit_data, result_str_dict, current_fit):
-        """ The function that grabs the data and sends it to the plot.
+        """ Update the drawn fit curve and displayed fit results.
         """
-        self._curve2.setData(x=fit_data[0, :], y=fit_data[1, :])
+        print(current_fit)
+
+        if current_fit != 'No Fit':
+            # display results as formatted text
+            #self._mw.spec_fit_results_DisplayWidget.clear()
+            #try:
+            #    formated_results = units.create_formatted_output(result_str_dict)
+            #except:
+            #    formated_results = 'this fit does not return formatted results'
+            #self._mw.spec_fit_results_DisplayWidget.setPlainText(formated_results)
+
+            # redraw the fit curve in the GUI plot.
+            self._curve2.setData(x=fit_data[0, :], y=fit_data[1, :])
 
     def record_single_spectrum(self):
         """ 
