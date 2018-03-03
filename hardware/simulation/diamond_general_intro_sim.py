@@ -290,11 +290,11 @@ class DiamondGeneralIntroSim(Base,
             count_data += self.twoD_gaussian_function((x_data, y_data), *(self._points[i])
                 ) * self.gaussian_function(np.array(z_data), *(self._points_z[i]))
 
-        time.sleep(self._line_length * 1. / self._scanner_clock_frequency)
-        time.sleep(self._line_length * 1. / self._scanner_clock_frequency)
 
-        # update the scanner position instance variable
-        self._current_position = list(line_path[:, -1])
+        # Step scanner position along line_path
+        for pos in line_path.T:
+            self._current_position = list(pos)
+            time.sleep(1. / self._scanner_clock_frequency)
 
         return np.array([
                 count_data,
