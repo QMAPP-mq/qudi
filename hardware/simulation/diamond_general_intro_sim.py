@@ -64,7 +64,12 @@ class DiamondGeneralIntroSim(Base,
 
         self._position_range = [[0, 100e-6], [0, 100e-6], [0, 100e-6], [0, 1e-6]]
         self._current_position = [0, 0, 0, 0][0:len(self.get_scanner_axes())]
-        self._num_points = 100
+        self._num_emitters = 100
+
+        self._dark_count = 160
+        self._raman_count = 1000
+        self._laser_scatter_count = 3000
+        self._surface_dirt_count = 15000
 
     def on_activate(self):
         """ Initialisation performed during activation of the module.
@@ -73,10 +78,6 @@ class DiamondGeneralIntroSim(Base,
         self._fit_logic = self.get_connector('fitlogic')
 
         self._build_sample()
-
-        # TODO: temp
-        self.mean_signal = 100
-
 
     def on_deactivate(self):
         """ Deactivate properly the confocal scanner dummy.
@@ -279,21 +280,14 @@ class DiamondGeneralIntroSim(Base,
         if np.shape(line_path)[1] != self._line_length:
             self._set_up_line(np.shape(line_path)[1])
 
-        count_data = np.random.uniform(0, 2e4, self._line_length)
-        z_data = line_path[2, :]
-
-        #TODO: Change the gaussian function here to the one from fitlogic and delete the local modules to calculate
-        #the gaussian functions
-        x_data = np.array(line_path[0, :])
-        y_data = np.array(line_path[1, :])
-        for i in range(self._num_points):
-            count_data += self.twoD_gaussian_function((x_data, y_data), *(self._points[i])
-                ) * self.gaussian_function(np.array(z_data), *(self._points_z[i]))
-
+        count_data = np.zeros(self._line_length)
 
         # Step scanner position along line_path
-        for pos in line_path.T:
+        for i, pos in enumerate(line_path.T):
             self._current_position = list(pos)
+            count_data[i] = self._get_photon_counts(self._current_position)
+
+            #Wait for the defined "acquisition time"
             time.sleep(1. / self._scanner_clock_frequency)
 
         return np.array([
@@ -369,6 +363,28 @@ class DiamondGeneralIntroSim(Base,
                 + c * ((y - y_zero)**2)))
         return g.ravel()
 
+    def gaussian_function_1pt(self, x_data=None, amplitude=None, x_zero=None,
+                          sigma=None, offset=None):
+        """ This method provides a one dimensional gaussian function.
+
+        @param float x_data: x values
+        @param float or int amplitude: Amplitude of gaussian
+        @param float or int x_zero: x value of maximum
+        @param float or int sigma: standard deviation
+        @param float or int offset: offset
+
+        @return callable function: returns a 1D Gaussian function
+
+        """
+        # check if parameters make sense
+        parameters=[x_data, amplitude,x_zero,sigma,offset]
+        for var in parameters:
+            if not isinstance(var,(float,int)):
+                print('error',var)
+                self.log.error('Given range of parameter is no float or int.')
+        gaussian = amplitude*np.exp(-(x_data-x_zero)**2/(2*sigma**2))+offset
+        return gaussian
+
     def gaussian_function(self, x_data=None, amplitude=None, x_zero=None,
                           sigma=None, offset=None):
         """ This method provides a one dimensional gaussian function.
@@ -400,32 +416,32 @@ class DiamondGeneralIntroSim(Base,
         """
 
         # put randomly distributed NVs in the scanner, first the x,y scan
-        self._points = np.empty([self._num_points, 7])
+        self._points = np.empty([self._num_emitters, 7])
         # amplitude
         self._points[:, 0] = np.random.normal(
-            4e5,
-            1e5,
-            self._num_points)
-        # x_zero
+            4e4,
+            1e4,
+            self._num_emitters)
+        # x_pos
         self._points[:, 1] = np.random.uniform(
             self._position_range[0][0],
             self._position_range[0][1],
-            self._num_points)
-        # y_zero
+            self._num_emitters)
+        # y_pos
         self._points[:, 2] = np.random.uniform(
             self._position_range[1][0],
             self._position_range[1][1],
-            self._num_points)
+            self._num_emitters)
         # sigma_x
         self._points[:, 3] = np.random.normal(
             0.7e-6,
             0.1e-6,
-            self._num_points)
+            self._num_emitters)
         # sigma_y
         self._points[:, 4] = np.random.normal(
             0.7e-6,
             0.1e-6,
-            self._num_points)
+            self._num_emitters)
         # theta
         self._points[:, 5] = 10
         # offset
@@ -434,27 +450,67 @@ class DiamondGeneralIntroSim(Base,
         # now also the z-position
 #       gaussian_function(self,x_data=None,amplitude=None, x_zero=None, sigma=None, offset=None):
 
-        self._points_z = np.empty([self._num_points, 4])
+        self._points_z = np.empty([self._num_emitters, 4])
         # amplitude
         self._points_z[:, 0] = np.random.normal(
             1,
             0.05,
-            self._num_points)
+            self._num_emitters)
 
-        # x_zero
+        # z_zero
         self._points_z[:, 1] = np.random.uniform(
             45e-6,
             55e-6,
-            self._num_points)
+            self._num_emitters)
 
         # sigma
         self._points_z[:, 2] = np.random.normal(
             0.5e-6,
             0.1e-6,
-            self._num_points)
+            self._num_emitters)
 
         # offset
         self._points_z[:, 3] = 0
+
+    def _get_photon_counts(self, scanner_pos):
+        """Simulate photon counts at a given position.
+        
+        This is based on the virtual sample that has been constructed.
+        """
+        # APD dark counts
+        counts = np.random.poisson(self._dark_count)
+
+        # Diamond Raman line
+        if scanner_pos[2] < 50e-6:
+            counts += np.random.poisson(self._raman_count)
+
+        # laser scatter off surface
+        counts += self.gaussian_function_1pt(scanner_pos[2],
+                                         self._laser_scatter_count,
+                                         50e-6,
+                                         2e-6,
+                                         0
+                                         )
+
+        # fluorescence from dirt on surface
+        counts += self.gaussian_function_1pt(scanner_pos[2],
+                                         self._surface_dirt_count,
+                                         50e-6,
+                                         2e-6,
+                                         0
+                                         )
+
+
+        #TODO: Change the gaussian function here to the one from fitlogic and delete 
+        #      the local modules to calculate
+        #      the gaussian functions
+
+        for i in range(self._num_emitters):
+            counts += self.twoD_gaussian_function((scanner_pos[0], scanner_pos[1]), *(self._points[i])
+                ) * self.gaussian_function(np.array(scanner_pos[2]), *(self._points_z[i]))
+
+
+        return counts 
 
     ##############################
     # Slow counter interface
@@ -512,19 +568,10 @@ class DiamondGeneralIntroSim(Base,
 
         @return float: the photon counts per second
         """
-        # Base-level ('background') counts
         count_data = np.array(
-            [np.random.uniform(0, 2e4, samples) + i * self.mean_signal
+            [self._get_photon_counts(self.get_scanner_position())
                 for i, ch in enumerate(self.get_counter_channels())]
-            )
-
-        # Now we add to this based on the position
-        [x, y, z, a] = self.get_scanner_position()
-
-        for i in range(self._num_points):
-            count_data += self.twoD_gaussian_function((x, y), *(self._points[i])
-                ) * self.gaussian_function(np.array(z), *(self._points_z[i]))
-
+        )
 
         time.sleep(1 / self._counter_clock_frequency * samples)
         return count_data
