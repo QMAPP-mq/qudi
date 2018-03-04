@@ -67,7 +67,7 @@ class DiamondGeneralIntroSim(Base,
         self._num_emitters = 100
 
         self._dark_count = 160
-        self._raman_count = 1000
+        self._raman_count = 18000
         self._laser_scatter_count = 3000
         self._surface_dirt_count = 15000
 
@@ -459,8 +459,8 @@ class DiamondGeneralIntroSim(Base,
 
         # z_zero
         self._points_z[:, 1] = np.random.uniform(
-            45e-6,
-            55e-6,
+            42e-6,
+            50e-6,
             self._num_emitters)
 
         # sigma
@@ -481,29 +481,41 @@ class DiamondGeneralIntroSim(Base,
         counts = np.random.poisson(self._dark_count)
 
         # Diamond Raman line
-        if scanner_pos[2] < 50e-6:
+        if scanner_pos[2] < 49e-6:
             counts += np.random.poisson(self._raman_count)
+        elif scanner_pos[2] < 52e-6:
+            counts += np.random.poisson(
+                self.gaussian_function_1pt(scanner_pos[2],
+                                           self._raman_count,
+                                           50e-6,
+                                           2e-6,
+                                           0
+                                           )
+            )
 
         # laser scatter off surface
-        counts += self.gaussian_function_1pt(scanner_pos[2],
-                                         self._laser_scatter_count,
-                                         50e-6,
-                                         2e-6,
-                                         0
-                                         )
+        counts += np.random.poisson(
+            self.gaussian_function_1pt(scanner_pos[2],
+                                       self._laser_scatter_count,
+                                       50e-6,
+                                       2e-6,
+                                       0
+                                       )
+        )
 
         # fluorescence from dirt on surface
-        counts += self.gaussian_function_1pt(scanner_pos[2],
-                                         self._surface_dirt_count,
-                                         50e-6,
-                                         2e-6,
-                                         0
-                                         )
+        counts += np.random.poisson(
+            self.gaussian_function_1pt(scanner_pos[2],
+                                       self._surface_dirt_count,
+                                       50e-6,
+                                       2e-6,
+                                       0
+                                       )
+        )
 
-
-        #TODO: Change the gaussian function here to the one from fitlogic and delete 
-        #      the local modules to calculate
-        #      the gaussian functions
+        # TODO: Change the gaussian function here to the one from fitlogic and delete
+        #       the local modules to calculate
+        #       the gaussian functions
 
         for i in range(self._num_emitters):
             counts += self.twoD_gaussian_function((scanner_pos[0], scanner_pos[1]), *(self._points[i])
