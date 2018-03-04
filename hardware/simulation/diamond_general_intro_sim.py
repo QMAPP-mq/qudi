@@ -22,16 +22,24 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 import numpy as np
 import time
 
+from time import strftime, localtime
+
 from core.module import Base, Connector, ConfigOption
+
 from interface.confocal_scanner_interface import ConfocalScannerInterface
+
 from interface.slow_counter_interface import SlowCounterInterface
 from interface.slow_counter_interface import SlowCounterConstraints
 from interface.slow_counter_interface import CountingMode
 
+from interface.spectrometer_interface import SpectrometerInterface
+
+
 
 class DiamondGeneralIntroSim(Base,
                              SlowCounterInterface,
-                             ConfocalScannerInterface
+                             ConfocalScannerInterface,
+                             SpectrometerInterface
                              ):
 
     """ Simulates experimental measurements on general diamond colour centres.
@@ -71,11 +79,13 @@ class DiamondGeneralIntroSim(Base,
         self._laser_scatter_count = 3000
         self._surface_dirt_count = 15000
 
+        self.spec_exposure = 0.1
+
     def on_activate(self):
         """ Initialisation performed during activation of the module.
         """
 
-        self._fit_logic = self.get_connector('fitlogic')
+        self._fitlogic = self.get_connector('fitlogic')
 
         self._build_sample()
 
@@ -480,11 +490,19 @@ class DiamondGeneralIntroSim(Base,
         # APD dark counts
         counts = np.random.poisson(self._dark_count)
 
-        # Diamond Raman line
+        counts += self._get_raman_counts(scanner_pos)
+        counts += self._get_laser_scatter_counts(scanner_pos)
+        counts += self._get_dirt_fluorescence_counts(scanner_pos)
+        counts += self._get_emitter_counts(scanner_pos)
+
+        return counts
+
+    def _get_raman_counts(self, scanner_pos):
+        """ Simulate raman count rate at position"""
         if scanner_pos[2] < 49e-6:
-            counts += np.random.poisson(self._raman_count)
+            counts = np.random.poisson(self._raman_count)
         elif scanner_pos[2] < 52e-6:
-            counts += np.random.poisson(
+            counts = np.random.poisson(
                 self.gaussian_function_1pt(scanner_pos[2],
                                            self._raman_count,
                                            50e-6,
@@ -492,9 +510,11 @@ class DiamondGeneralIntroSim(Base,
                                            0
                                            )
             )
+        return counts
 
-        # laser scatter off surface
-        counts += np.random.poisson(
+    def _get_laser_scatter_counts(self, scanner_pos):
+        """ Simulate laser scatter off surface """
+        counts = np.random.poisson(
             self.gaussian_function_1pt(scanner_pos[2],
                                        self._laser_scatter_count,
                                        50e-6,
@@ -502,9 +522,11 @@ class DiamondGeneralIntroSim(Base,
                                        0
                                        )
         )
+        return counts
 
-        # fluorescence from dirt on surface
-        counts += np.random.poisson(
+    def _get_dirt_fluorescence_counts(self, scanner_pos):
+        """ Simulate fluorescence from dirt on surface."""
+        counts = np.random.poisson(
             self.gaussian_function_1pt(scanner_pos[2],
                                        self._surface_dirt_count,
                                        50e-6,
@@ -512,13 +534,16 @@ class DiamondGeneralIntroSim(Base,
                                        0
                                        )
         )
+        return counts
 
+    def _get_emitter_counts(self, scanner_pos):
+        """ Simulate counts from colour centres"""
         # TODO: Change the gaussian function here to the one from fitlogic and delete
         #       the local modules to calculate
         #       the gaussian functions
 
         for i in range(self._num_emitters):
-            counts += self.twoD_gaussian_function((scanner_pos[0], scanner_pos[1]), *(self._points[i])
+            counts = self.twoD_gaussian_function((scanner_pos[0], scanner_pos[1]), *(self._points[i])
                 ) * self.gaussian_function(np.array(scanner_pos[2]), *(self._points_z[i]))
 
 
@@ -612,3 +637,62 @@ class DiamondGeneralIntroSim(Base,
 
         self.log.warning('slowcounterdummy>close_clock')
         return 0
+
+    ##############################
+    # Spectrometer interface
+    ##############################
+
+    def recordSpectrum(self):
+        """ Record a dummy spectrum.
+
+            @return ndarray: 1024-value ndarray containing wavelength and intensity of simulated spectrum
+        """
+        length = 1024
+
+        data = np.empty((2, length), dtype=np.double)
+        data[0] = np.arange(730, 750, 20/length)
+        data[1] = np.random.uniform(0, 2000, length)
+
+        lorentz, params = self._fitlogic.make_multiplelorentzian_model(no_of_functions=4)
+        sigma = 0.05
+        params.add('l0_amplitude', value=2000)
+        params.add('l0_center', value=736.46)
+        params.add('l0_sigma', value=1.5*sigma)
+        params.add('l1_amplitude', value=5800)
+        params.add('l1_center', value=736.545)
+        params.add('l1_sigma', value=sigma)
+        params.add('l2_amplitude', value=7500)
+        params.add('l2_center', value=736.923)
+        params.add('l2_sigma', value=sigma)
+        params.add('l3_amplitude', value=1000)
+        params.add('l3_center', value=736.99)
+        params.add('l3_sigma', value=1.5*sigma)
+        params.add('offset', value=50000.)
+
+        data[1] += lorentz.eval(x=data[0], params=params)
+
+        time.sleep(self.spec_exposure)
+        return data
+
+    def saveSpectrum(self, path, postfix = ''):
+        """ Dummy save function.
+
+            @param str path: path of saved spectrum
+            @param str postfix: postfix of saved spectrum file
+        """
+        timestr = strftime("%Y%m%d-%H%M-%S_", localtime())
+        print( 'Dummy would save to: ' + str(path) + timestr + str(postfix) + ".spe" )
+
+    def getExposure(self):
+        """ Get exposure time.
+
+            @return float: exposure time
+        """
+        return self.spec_exposure
+
+    def setExposure(self, exposureTime):
+        """ Set exposure time.
+
+            @param float exposureTime: exposure time
+        """
+        self.spec_exposure = exposureTime
