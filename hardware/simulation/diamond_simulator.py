@@ -36,7 +36,7 @@ from interface.spectrometer_interface import SpectrometerInterface
 
 
 
-class DiamondGeneralIntroSim(Base,
+class DiamondSimulator(Base,
                              SlowCounterInterface,
                              ConfocalScannerInterface,
                              SpectrometerInterface
