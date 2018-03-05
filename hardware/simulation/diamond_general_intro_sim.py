@@ -499,6 +499,8 @@ class DiamondGeneralIntroSim(Base,
 
     def _get_raman_counts(self, scanner_pos):
         """ Simulate raman count rate at position"""
+        counts = 0
+
         if scanner_pos[2] < 49e-6:
             counts = np.random.poisson(self._raman_count)
         elif scanner_pos[2] < 52e-6:
@@ -542,8 +544,10 @@ class DiamondGeneralIntroSim(Base,
         #       the local modules to calculate
         #       the gaussian functions
 
+        counts = 0
+
         for i in range(self._num_emitters):
-            counts = self.twoD_gaussian_function((scanner_pos[0], scanner_pos[1]), *(self._points[i])
+            counts += self.twoD_gaussian_function((scanner_pos[0], scanner_pos[1]), *(self._points[i])
                 ) * self.gaussian_function(np.array(scanner_pos[2]), *(self._points_z[i]))
 
 
@@ -648,10 +652,138 @@ class DiamondGeneralIntroSim(Base,
             @return ndarray: 1024-value ndarray containing wavelength and intensity of simulated spectrum
         """
         length = 1024
+        l_min = 520
+        l_max = 820
 
         data = np.empty((2, length), dtype=np.double)
-        data[0] = np.arange(730, 750, 20/length)
-        data[1] = np.random.uniform(0, 2000, length)
+        data[0] = np.arange(l_min, l_max, (l_max - l_min) / length)
+
+        # APD dark counts
+        data[1] = np.random.poisson(self._dark_count, length)
+
+        raman_amp = self._get_raman_counts(self.get_scanner_position())
+        data[1] += self._make_raman_spectrum(data[0], raman_amp/1e1)
+
+        laser_amp = self._get_laser_scatter_counts(self.get_scanner_position())
+        data[1] += self._make_laser_spectrum(data[0], laser_amp/1e1)
+
+        dirt_amp = self._get_dirt_fluorescence_counts(self.get_scanner_position())
+        data[1] += self._make_dirt_spectrum(data[0], dirt_amp/1e1)
+
+        nv_amp = self._get_emitter_counts(self.get_scanner_position())
+        data[1] += self._make_nv_spectrum(data[0], nv_amp/1e1)
+
+        time.sleep(self.spec_exposure)
+        return data
+
+    def _make_nv_spectrum(self, wavelengths, amplitude):
+        """ Make simulated NV spectrum.
+
+        @param array wavelengths: wavelength values over which to generate spectrum.
+
+        @param float amplitude: amplitude of NV fluorescence.
+
+        @return array spectrum:
+        """
+
+        # TODO: Change to Gaussian function
+        lorentz, params = self._fitlogic.make_multiplelorentzian_model(no_of_functions=4)
+        
+        params.add('l0_amplitude', value = 0.3 * amplitude)
+        params.add('l0_center', value=637.0)
+        params.add('l0_sigma', value=1.0)
+        params.add('l1_amplitude', value=0.5 * amplitude)
+        params.add('l1_center', value=660.0)
+        params.add('l1_sigma', value=20)
+        params.add('l2_amplitude', value=0.7 * amplitude)
+        params.add('l2_center', value=690)
+        params.add('l2_sigma', value=30)
+        params.add('l3_amplitude', value = 0.3 * amplitude)
+        params.add('l3_center', value=730.0)
+        params.add('l3_sigma', value=40)
+        params.add('offset', value=0)
+
+        signal = lorentz.eval(x=wavelengths, params=params)
+
+        for s in signal:
+            s = np.random.poisson(s)
+
+        return signal
+
+    def _make_raman_spectrum(self, wavelengths, amplitude):
+        """ Make simulated diamond raman spectrum.
+
+        @param array wavelengths: wavelength values over which to generate spectrum.
+
+        @param float amplitude: amplitude of NV fluorescence.
+
+        @return array spectrum:
+        """
+
+        # TODO: Change to Gaussian function
+        gaussian, params = self._fitlogic.make_gaussian_model()
+        
+        params.add('amplitude', value = 0.3 * amplitude)
+        params.add('center', value=575.0)
+        params.add('sigma', value=0.7)
+        params.add('offset', value=0)
+
+        signal = gaussian.eval(x=wavelengths, params=params)
+
+        for s in signal:
+            s = np.random.poisson(s)
+
+        return signal
+
+    def _make_laser_spectrum(self, wavelengths, amplitude):
+        """ Make simulated laser scatter spectrum.
+
+        @param array wavelengths: wavelength values over which to generate spectrum.
+
+        @param float amplitude: amplitude of NV fluorescence.
+
+        @return array spectrum:
+        """
+        gaussian, params = self._fitlogic.make_gaussian_model()
+        
+        params.add('amplitude', value = 0.3 * amplitude)
+        params.add('center', value=532.0)
+        params.add('sigma', value=0.7)
+        params.add('offset', value=0)
+
+        signal = gaussian.eval(x=wavelengths, params=params)
+
+        for s in signal:
+            s = np.random.poisson(s)
+
+        return signal
+
+    def _make_dirt_spectrum(self, wavelengths, amplitude):
+        """ Make simulated surface dirt spectrum.
+
+        @param array wavelengths: wavelength values over which to generate spectrum.
+
+        @param float amplitude: amplitude of NV fluorescence.
+
+        @return array spectrum:
+        """
+
+        gaussian, params = self._fitlogic.make_gaussian_model()
+        
+        params.add('amplitude', value = 0.3 * amplitude)
+        params.add('center', value=580.0)
+        params.add('sigma', value=100)
+        params.add('offset', value=0)
+
+        signal = gaussian.eval(x=wavelengths, params=params)
+
+        for s in signal:
+            s = np.random.poisson(s)
+
+        return signal
+
+    def _make_siv_cryo_spectrum(self, wavelengths, amplitude):
+        """ Make SiV low-temp spectrum"""
 
         lorentz, params = self._fitlogic.make_multiplelorentzian_model(no_of_functions=4)
         sigma = 0.05
@@ -669,10 +801,12 @@ class DiamondGeneralIntroSim(Base,
         params.add('l3_sigma', value=1.5*sigma)
         params.add('offset', value=50000.)
 
-        data[1] += lorentz.eval(x=data[0], params=params)
+        signal = lorentz.eval(x=wavelengths, params=params)
 
-        time.sleep(self.spec_exposure)
-        return data
+        for s in signal:
+            s = np.random.poisson(s)
+
+        return signal
 
     def saveSpectrum(self, path, postfix = ''):
         """ Dummy save function.
