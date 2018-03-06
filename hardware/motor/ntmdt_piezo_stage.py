@@ -52,7 +52,9 @@ class PiezoStageNTMDT(Base, MotorInterface):
     #         - x
     #         - y
     #         - z
-    #         - tube
+    #         - tube_x
+    #         - tube_y
+    #         - tube_z
     #     x:
     #         device_id: 1
     #         channel: 0
