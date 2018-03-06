@@ -71,7 +71,19 @@ class PiezoStageNTMDT(Base, MotorInterface):
     #         constraints:
     #             pos_min: 0e-6
     #             pos_max: 6e-6
-    #     tube:
+    #     tube_x:
+    #         device_id: 0
+    #         channel: 0
+    #         constraints:
+    #             pos_min: 0e-6
+    #             pos_max: 100e-6
+    #     tube_y:
+    #         device_id: 0
+    #         channel: 0
+    #         constraints:
+    #             pos_min: 0e-6
+    #             pos_max: 100e-6
+    #     tube_z:
     #         device_id: 0
     #         channel: 0
     #         constraints:
@@ -161,28 +173,52 @@ class PiezoStageNTMDT(Base, MotorInterface):
         axis2['pos_min'] = config['z']['constraints']['pos_min']
         axis2['pos_max'] = config['z']['constraints']['pos_max']
 
-        if config['tube']:
-            axis3 = {}
-            axis3['label'] = 'tube'
-            axis3['scanner'] = config['tube']['device_id']
-            axis3['channel'] = config['tube']['channel']
-            axis3['pos_min'] = config['tube']['constraints']['pos_min']
-            axis3['pos_max'] = config['tube']['constraints']['pos_max']
+        #  check if the user has specified they have the 'tube' scanner
+        if [s for s in config['axis_labels'] if 'tube' in s] is not None:
+
+                axis3 = {}
+                axis3['label'] = 'tube_x'
+                axis3['scanner'] = config['tube_x']['device_id']
+                axis3['channel'] = config['tube_x']['channel']
+                axis3['pos_min'] = config['tube_x']['constraints']['pos_min']
+                axis3['pos_max'] = config['tube_x']['constraints']['pos_max']
+
+                axis4 = {}
+                axis4['label'] = 'tube_y'
+                axis4['scanner'] = config['tube_y']['device_id']
+                axis4['channel'] = config['tube_y']['channel']
+                axis4['pos_min'] = config['tube_y']['constraints']['pos_min']
+                axis4['pos_max'] = config['tube_y']['constraints']['pos_max']
+
+                axis5 = {}
+                axis5['label'] = 'tube_z'
+                axis5['scanner'] = config['tube_z']['device_id']
+                axis5['channel'] = config['tube_z']['channel']
+                axis5['pos_min'] = config['tube_z']['constraints']['pos_min']
+                axis5['pos_max'] = config['tube_z']['constraints']['pos_max']
 
         # assign the parameter container for x to a name which will identify it
         constraints[axis0['label']] = axis0
         constraints[axis1['label']] = axis1
         constraints[axis2['label']] = axis2
-        if config['tube']:
+
+        #  check if the user has specified they have the 'tube' scanner
+        if [s for s in config['axis_labels'] if 'tube' in s] is not None:
             constraints[axis3['label']] = axis3
+            constraints[axis4['label']] = axis4
+            constraints[axis5['label']] = axis5
 
         if axis0['scanner'] != axis1['scanner']:
             self.log.warning('Your x and y axes are configured as different devices, is this correct?')
 
+        if [s for s in config['axis_labels'] if 'tube' in s] is not None:
+            if axis3['scanner'] != axis4['scanner']:
+                self.log.warning('Your x and y tube axes are configured as different devices, is this correct?')
+
         return constraints
 
     def move_rel(self, param_dict):
-        """Moves stage in given direction (relative movement)
+        """ Move the stage in given direction (relative movement)
 
         @param dict param_dict: dictionary, which passes all the relevant
                                 parameters, which should be changed. Usage:
@@ -193,11 +229,11 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         @return dict pos: dictionary with the current magnet position
         """
-
+        self.log.info('I cannot do this, use the absolute movement function')
         return param_dict
 
     def move_abs(self, param_dict=None):
-        """Moves stage to absolute position
+        """Move the stage to absolute position
 
         @param dict param_dict: dictionary, which passes all the relevant
                                 parameters, which should be changed. Usage:
@@ -218,33 +254,23 @@ class PiezoStageNTMDT(Base, MotorInterface):
                                 .format(axis=axis))
 
         for axis in ['x', 'y', 'z']:
-
             if axis in param_dict.keys():
-                if axis == 'x':
-                    scanner = self._configuration['x']['scanner']
-                    channel = self._configuration['x']['channel']
-                    to_position = param_dict['x']
-                    self._do_move_abs(axis, scanner, channel, to_position)
-                    time.sleep(0.1)
-                elif axis == 'y':
-                    scanner = self._configuration['y']['scanner']
-                    channel = self._configuration['y']['channel']
-                    to_position = param_dict['y']
-                    self._do_move_abs(axis, scanner, channel, to_position)
-                    time.sleep(0.1)
-                elif axis == 'z':
-                    scanner = self._configuration['z']['scanner']
-                    channel = self._configuration['z']['channel']
-                    to_position = param_dict['z']
-                    self._do_move_abs(axis, scanner, channel, to_position)
-                    time.sleep(0.1)
+                scanner = self._configuration[axis]['scanner']
+                channel = self._configuration[axis]['channel']
+                to_position = param_dict[axis]
+                self._do_move_abs(axis, scanner, channel, to_position)
+                time.sleep(0.1)
 
-        if 'tube' in param_dict:
-            scanner = self._configuration['tube']['scanner']
-            channel = self._configuration['tube']['channel']
-            to_position = param_dict['tube']
-            self._do_move_abs(axis, scanner, channel, to_position)
-            time.sleep(0.1)
+        #  check if the user has specified they have the 'tube' scanner
+        if [s for s in self._configuration['axis_labels'] if 'tube' in s] is not None:
+
+            for axis in ['tube_x', 'tube_y', 'tube_z']:
+                if axis in param_dict.keys():
+                    scanner = self._configuration[axis]['scanner']
+                    channel = self._configuration[axis]['channel']
+                    to_position = param_dict[axis]
+                    self._do_move_abs(axis, scanner, channel, to_position)
+                    time.sleep(0.1)
 
         self.get_pos()
         time.sleep(0.1)
@@ -303,47 +329,41 @@ class PiezoStageNTMDT(Base, MotorInterface):
         param_dict = {}
         
         for axis in ['x', 'y', 'z']:
+                scanner = self._configuration[axis]['scanner']
+                channel = self._configuration[axis]['channel']
 
-            if axis == 'x':
-                scanner = self._configuration['x']['scanner']
-                channel = self._configuration['x']['channel']
-            elif axis == 'y':
-                scanner = self._configuration['y']['scanner']
-                channel = self._configuration['y']['channel']
-            elif axis == 'z':
-                scanner = self._configuration['z']['scanner']
-                channel = self._configuration['z']['channel']
+                command = ('{axis}Pos = GetParam(tScanner, scPosition, {scanner}, {channel})\n\n'
+                        'SetSharedDataVal "shared_{axis}Pos", {axis}Pos, "F64", 8'
+                        .format(axis=axis, channel=channel, scanner=scanner))
 
-            command = ('{axis}Pos = GetParam(tScanner, scPosition, {scanner}, {channel})\n\n'
-                       'SetSharedDataVal "shared_{axis}Pos", {axis}Pos, "F64", 8'
-                       .format(axis=axis, channel=channel, scanner=scanner))
+                self._run_script_text(command)
+                time.sleep(0.1)
+                param_dict[axis] = self._get_shared_float('shared_{axis}Pos'.format(axis=axis))  *1e-6
+                # NT-MDT scanner communication in microns
+                time.sleep(0.1)
 
-            self._run_script_text(command)
-            time.sleep(0.1)
-            param_dict[axis] = self._get_shared_float('shared_{axis}Pos'.format(axis=axis))  *1e-6
-            # NT-MDT scanner communication in microns
-            time.sleep(0.1)
+                # reset shared data values
+                self._reset_shared_data('shared_{axis}Pos'.format(axis=axis))
+                time.sleep(0.1)
 
-        for axis in ['x', 'y', 'z']:  # reset shared data values
-            self._reset_shared_data('shared_{axis}Pos'.format(axis=axis))
-            time.sleep(0.1)
+        #  check if the user has specified they have the 'tube' scanner
+        if [s for s in self._configuration['axis_labels'] if 'tube' in s] is not None:
 
-        if (param_list is not None) and ('tube' in param_list):  # if tube specified
-            axis = 'tube'
-            scanner = self._configuration['tube']['scanner']
-            channel = self._configuration['tube']['channel']
+            for axis in ['tube_x', 'tube_y', 'tube_z']:
+                scanner = self._configuration[axis]['scanner']
+                channel = self._configuration[axis]['channel']
 
-            command = ('{axis}Pos = GetParam(tScanner, scPosition, {scanner}, {channel})\n\n'
-                       'SetSharedDataVal "shared_{axis}Pos", {axis}Pos, "F64", 8'
-                       .format(axis=axis, channel=channel, scanner=scanner))
+                command = ('{axis}Pos = GetParam(tScanner, scPosition, {scanner}, {channel})\n\n'
+                        'SetSharedDataVal "shared_{axis}Pos", {axis}Pos, "F64", 8'
+                        .format(axis=axis, channel=channel, scanner=scanner))
 
-            self._run_script_text(command)
-            time.sleep(0.1)
-            param_dict[axis] = self._get_shared_float('shared_{axis}Pos'.format(axis=axis))  *1e-6
-            # NT-MDT scanner communication in microns
-            time.sleep(0.1)
-            self._reset_shared_data('shared_{axis}Pos'.format(axis=axis))
-            time.sleep(0.1)
+                self._run_script_text(command)
+                time.sleep(0.1)
+                param_dict[axis] = self._get_shared_float('shared_{axis}Pos'.format(axis=axis))  *1e-6
+                # NT-MDT scanner communication in microns
+                time.sleep(0.1)
+                self._reset_shared_data('shared_{axis}Pos'.format(axis=axis))
+                time.sleep(0.1)
 
         if param_list:
             param_list = [x.lower() for x in param_list]  # make all param_list elements lower case
@@ -446,7 +466,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         self._run_script_text(command)
         time.sleep(0.1)
 
-########################## feedback methods ####################################
+########################## Feedback Methods ####################################
 
     def _set_servo_state(self, to_state):
         """ Internal method enabling / disabling the stage feedback
@@ -457,17 +477,28 @@ class PiezoStageNTMDT(Base, MotorInterface):
         time.sleep(0.5)
         self._update_gui()
 
+        #  not required, but will catch an odd configuration
+        self._set_servo_state_xy(self._configuration['y']['scanner'], to_state)
+        time.sleep(0.5)
+        self._update_gui()
+
         self._set_servo_state_z(self._configuration['z']['scanner'], to_state)
         time.sleep(0.5)
         self._update_gui()
 
-        if self._configuration['tube']:
+        #  check if the user has specified they have the 'tube' scanner
+        if [s for s in self._configuration['axis_labels'] if 'tube' in s] is not None:
             
-            self._set_servo_state_xy(self._configuration['tube']['scanner'], to_state)
+            self._set_servo_state_xy(self._configuration['tube_x']['scanner'], to_state)
             time.sleep(0.5)
             self._update_gui()
 
-            self._set_servo_state_z(self._configuration['tube']['scanner'], to_state)
+            #  not required, but will catch an odd configuration
+            self._set_servo_state_xy(self._configuration['tube_y']['scanner'], to_state)
+            time.sleep(0.5)
+            self._update_gui()
+
+            self._set_servo_state_z(self._configuration['tube_z']['scanner'], to_state)
             time.sleep(0.5)
             self._update_gui()
 
