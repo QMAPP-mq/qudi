@@ -152,3 +152,14 @@ class WinSpec32(Base, SpectrometerInterface):
             Not implemented.
         """
         pass
+
+    def _is_running(self):
+        """ Get the running state of the spectrometer
+
+        @return bool state: True if running, False if not
+        @return int status: 0 if ok
+        """
+
+        self.expt_is_running, self.status = self.WinspecExpt.GetParam(WinSpecLib.EXP_RUNNING)
+
+        return self.expt_is_running, self.status
