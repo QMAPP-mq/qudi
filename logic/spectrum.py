@@ -122,12 +122,13 @@ class SpectrumLogic(GenericLogic):
         # Clear any previous fit - TODO check this
         self.fc.clear_result()
 
-        # TODO: set to locked so that the logic knows that a measurement is running
+        self.module_state.lock()
+
         netobtain(self._spectrometer_device.recordSpectrum())
 
     def accept_new_data(self, specdata):
 
-        # TODO: set unlocked
+        self.module_state.unlock()
 
         self.spectrum_data = specdata
 
