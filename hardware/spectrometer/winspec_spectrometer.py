@@ -77,7 +77,7 @@ class WinSpec32(Base, SpectrometerInterface):
         self.WinspecDocs.CloseAll()
 
         # Initialise specdata array for return
-        self.specdata = np.empty((2, len(spectrum)), dtype=np.double)
+        self.specdata = np.empty((2, len(spectrum)))
 
         self._start_acquisition_Signal.emit()
 
@@ -109,7 +109,7 @@ class WinSpec32(Base, SpectrometerInterface):
         datapointer = c_float()
         raw_spectrum = self.WinspecDoc.GetFrame(1, datapointer)
         spectrum = np.array(raw_spectrum).flatten()
-        specdata = np.empty((2, len(spectrum)), dtype=np.double)
+        specdata = np.empty((2, len(spectrum)))
         specdata[1] = spectrum
         calibration = self.WinspecDoc.GetCalibration()
 
@@ -128,8 +128,6 @@ class WinSpec32(Base, SpectrometerInterface):
         specdata[0] = np.polyval(p, range(1, 1+len(spectrum)))
         
         self.specdata_updated_Signal.emit(specdata)
-
-        
 
     def saveSpectrum(self, path, postfix = ''):
         """ Save spectrum from WinSpec32 software.
