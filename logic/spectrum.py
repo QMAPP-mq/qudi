@@ -125,7 +125,7 @@ class SpectrumLogic(GenericLogic):
         # TODO: set to locked so that the logic knows that a measurement is running
         netobtain(self._spectrometer_device.recordSpectrum())
 
-    def accept_new_data(specdata):
+    def accept_new_data(self, specdata):
 
         # TODO: set unlocked
 

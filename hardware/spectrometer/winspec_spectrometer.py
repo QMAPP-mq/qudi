@@ -25,6 +25,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 
 """
 
+from qtpy import QtCore
 from core.module import Base
 from interface.spectrometer_interface import SpectrometerInterface
 import numpy as np
@@ -41,9 +42,9 @@ import comtypes.gen.WINX32Lib as WinSpecLib
 class WinSpec32(Base, SpectrometerInterface):
     """ Hardware module for reading spectra from the WinSpec32 spectrometer software.
     """
-    self._acquisition_done_Signal = QtCore.Signal()
-    self._start_acquisition_Signal = QtCore.Signal()
-    self.specdata_updated_Signal = QtCore.Signal(np.ndarray)
+    _acquisition_done_Signal = QtCore.Signal()
+    _start_acquisition_Signal = QtCore.Signal()
+    specdata_updated_Signal = QtCore.Signal(np.ndarray)
 
     def on_activate(self):
         """ Activate module.
@@ -80,7 +81,7 @@ class WinSpec32(Base, SpectrometerInterface):
 
         self._start_acquisition_Signal.emit()
 
-    def _do_acquisition():
+    def _do_acquisition(self):
         """ This does the actual waiting for the ccd exposure time in a separate thread.
         """
         if self.WinspecExpt.Start(self.WinspecDoc)[0]:
@@ -100,7 +101,7 @@ class WinSpec32(Base, SpectrometerInterface):
 
         self._acquisition_done_Signal.emit()
 
-    def _return_specdata():
+    def _return_specdata(self):
         """
             Pass a pointer to Winspec so it can put the spectrum in a place in
             memory where python will be able to find it.
