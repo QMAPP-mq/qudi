@@ -42,7 +42,7 @@ import comtypes.gen.WINX32Lib as WinSpecLib
 class WinSpec32(Base, SpectrometerInterface):
     """ Hardware module for reading spectra from the WinSpec32 spectrometer software.
     """
-    _acquisition_done_Signal = QtCore.Signal()
+    _acquisition_done_Signal = QtCore.Signal(bool)
     _start_acquisition_Signal = QtCore.Signal()
     specdata_updated_Signal = QtCore.Signal(np.ndarray)
 
@@ -95,9 +95,12 @@ class WinSpec32(Base, SpectrometerInterface):
 
             if self.status != 0:
                 print('Error running experiment.')
+            
+            success = True
         
         else:
             print("Could not initiate acquisition.")
+            success = False
 
         self._acquisition_done_Signal.emit(success)
 
