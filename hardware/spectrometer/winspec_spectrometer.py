@@ -77,7 +77,7 @@ class WinSpec32(Base, SpectrometerInterface):
         self.WinspecDocs.CloseAll()
 
         # Initialise specdata array for return
-        self.specdata = np.empty((2, len(spectrum)))
+        self.specdata = np.empty((2, 0))
 
         self._start_acquisition_Signal.emit()
 
@@ -99,35 +99,36 @@ class WinSpec32(Base, SpectrometerInterface):
         else:
             print("Could not initiate acquisition.")
 
-        self._acquisition_done_Signal.emit()
+        self._acquisition_done_Signal.emit(success)
 
-    def _return_specdata(self):
+    def _return_specdata(self, success):
         """
             Pass a pointer to Winspec so it can put the spectrum in a place in
             memory where python will be able to find it.
         """
-        datapointer = c_float()
-        raw_spectrum = self.WinspecDoc.GetFrame(1, datapointer)
-        spectrum = np.array(raw_spectrum).flatten()
-        specdata = np.empty((2, len(spectrum)))
-        specdata[1] = spectrum
-        calibration = self.WinspecDoc.GetCalibration()
+        if success:
+            datapointer = c_float()
+            raw_spectrum = self.WinspecDoc.GetFrame(1, datapointer)
+            spectrum = np.array(raw_spectrum).flatten()
+            self.specdata = np.empty((2, len(spectrum)))
+            self.specdata[1] = spectrum
+            calibration = self.WinspecDoc.GetCalibration()
 
-        if calibration.Order != 2:
-            raise ValueError('Cannot handle current WinSpec wavelength calibration.')
-        """
-            WinSpec doesn't actually store the wavelength information as an array but
-            instead calculates it every time you plot using the calibration information
-            stored with the spectrum.
-        """
-        p = np.array([
-                calibration.PolyCoeffs(2),
-                calibration.PolyCoeffs(1),
-                calibration.PolyCoeffs(0)
-            ])
-        specdata[0] = np.polyval(p, range(1, 1+len(spectrum)))
-        
-        self.specdata_updated_Signal.emit(specdata)
+            if calibration.Order != 2:
+                raise ValueError('Cannot handle current WinSpec wavelength calibration.')
+            """
+                WinSpec doesn't actually store the wavelength information as an array but
+                instead calculates it every time you plot using the calibration information
+                stored with the spectrum.
+            """
+            p = np.array([
+                    calibration.PolyCoeffs(2),
+                    calibration.PolyCoeffs(1),
+                    calibration.PolyCoeffs(0)
+                ])
+            self.specdata[0] = np.polyval(p, range(1, 1+len(spectrum)))
+                  
+        self.specdata_updated_Signal.emit(self.specdata)
 
     def saveSpectrum(self, path, postfix = ''):
         """ Save spectrum from WinSpec32 software.
