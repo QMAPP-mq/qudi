@@ -123,10 +123,11 @@ class PiezoStageNTMDT(Base, MotorInterface):
         self._novadll = ctypes.windll.LoadLibrary(path_dll)
         
         time.sleep(1)
+
+        self._configuration = self.get_constraints()
         
         if self._check_connection():
             self.log.info('Nova Px handshake successful')
-            self._configuration = self.get_constraints()
             self._set_servo_state(True)
             return 0
         else:
