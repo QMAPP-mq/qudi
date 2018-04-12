@@ -274,9 +274,11 @@ class PiezoStageNTMDT(Base, MotorInterface):
                     self._do_move_abs(axis, scanner, channel, to_position)
                     time.sleep(0.1)
 
-        self.get_pos()
-        time.sleep(0.1)
-        param_dict = self.get_pos()
+        # # Use this code to populate the returned parmeter dictionary, 
+        # # it has been removed to speed-up scanning.
+        # self.get_pos()
+        # time.sleep(0.1)
+        # param_dict = self.get_pos()
 
         self._update_gui()
         return param_dict
