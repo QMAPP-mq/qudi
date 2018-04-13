@@ -177,7 +177,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         axis2['pos_max'] = config['z']['constraints']['pos_max']
 
         #  check if the user has specified they have the 'tube' scanner
-        if [s for s in config['axis_labels'] if 'tube' in s] is not None:
+        if [s for s in config['axis_labels'] if 'tube' in s]:
 
                 axis3 = {}
                 axis3['label'] = 'tube_x'
@@ -206,7 +206,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         constraints[axis2['label']] = axis2
 
         #  check if the user has specified they have the 'tube' scanner
-        if [s for s in config['axis_labels'] if 'tube' in s] is not None:
+        if [s for s in config['axis_labels'] if 'tube' in s]:
             constraints[axis3['label']] = axis3
             constraints[axis4['label']] = axis4
             constraints[axis5['label']] = axis5
@@ -214,7 +214,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         if axis0['scanner'] != axis1['scanner']:
             self.log.warning('Your x and y axes are configured as different devices, is this correct?')
 
-        if [s for s in config['axis_labels'] if 'tube' in s] is not None:
+        if [s for s in config['axis_labels'] if 'tube' in s]:
             if axis3['scanner'] != axis4['scanner']:
                 self.log.warning('Your x and y tube axes are configured as different devices, is this correct?')
 
@@ -265,7 +265,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
                 time.sleep(0.1)
 
         #  check if the user has specified they have the 'tube' scanner
-        if [s for s in self._configured_constraints if 'tube' in s] is not None:
+        if [s for s in self._configured_constraints if 'tube' in s]:
 
             for axis in ['tube_x', 'tube_y', 'tube_z']:
                 if axis in param_dict.keys():
@@ -350,7 +350,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
                 time.sleep(0.1)
 
         #  check if the user has specified they have the 'tube' scanner
-        if [s for s in self._configured_constraints if 'tube' in s] is not None:
+        if [s for s in self._configured_constraints if 'tube' in s]:
 
             for axis in ['tube_x', 'tube_y', 'tube_z']:
                 scanner = self._configured_constraints[axis]['scanner']
@@ -490,7 +490,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         self._update_gui()
 
         #  check if the user has specified they have the 'tube' scanner
-        if [s for s in self._configured_constraints if 'tube' in s] is not None:
+        if [s for s in self._configured_constraints if 'tube' in s]:
             
             self._set_servo_state_xy(self._configured_constraints['tube_x']['scanner'], to_state)
             time.sleep(0.5)
