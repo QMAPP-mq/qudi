@@ -36,15 +36,24 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
     _modtype = 'TTCounter'
     _modclass = 'hardware'
 
-    _channel_apd_0 = ConfigOption('timetagger_channel_apd_0', missing='error')
-    _channel_apd_1 = ConfigOption('timetagger_channel_apd_1', None, missing='warn')
-    _sum_channels = ConfigOption('timetagger_sum_channels', False)
+	
+
+    #_channel_apd_0 = ConfigOption('timetagger_channel_apd_0', missing='error')
+    #_channel_apd_1 = ConfigOption('timetagger_channel_apd_1', None, missing='warn')
+    #_sum_channels = ConfigOption('timetagger_sum_channels', False)
 
     def on_activate(self):
         """ Start up TimeTagger interface
         """
         self._tagger = tt.createTimeTagger()
         self._count_frequency = 50  # Hz
+		
+		# Read HW from config
+        config = self.getConfiguration()
+	
+        self._channel_apd_0 = config['timetagger_channel_apd_0']
+        self._channel_apd_1 = None
+        self._sum_channels = False
 
         if self._sum_channels and self._channel_apd_1 is None:
             self.log.error('Cannot sum channels when only one apd channel given')
@@ -142,7 +151,7 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
 
     def get_counter_channels(self):
         if self._mode < 2:
-            return self._channel_apd
+            return [self._channel_apd_0]
         else:
             return [self._channel_apd_0, self._channel_apd_1]
 
