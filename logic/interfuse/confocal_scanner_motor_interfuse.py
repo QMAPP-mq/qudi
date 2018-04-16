@@ -313,13 +313,13 @@ class ScannerMotorInterfuse(Base, ConfocalScannerInterface):
             return [0, 0]
 
         if 'pos_min' in hw_constraints[axis].keys():
-            pos_min = hw_constraints['x']['pos_min']
+            pos_min = hw_constraints[axis]['pos_min']
         else:
             # TODO: give error
             return [0, 0]
         
         if 'pos_max' in hw_constraints[axis].keys():
-            pos_max = hw_constraints['x']['pos_max']
+            pos_max = hw_constraints[axis]['pos_max']
         else:
             # TODO: give error
             return [0, 0]
