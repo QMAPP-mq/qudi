@@ -123,10 +123,11 @@ class PiezoStageNTMDT(Base, MotorInterface):
         self._novadll = ctypes.windll.LoadLibrary(path_dll)
         
         time.sleep(1)
+
+        self._configured_constraints = self.get_constraints()
         
         if self._check_connection():
             self.log.info('Nova Px handshake successful')
-            self._configuration = self.get_constraints()
             self._set_servo_state(True)
             return 0
         else:
@@ -176,7 +177,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         axis2['pos_max'] = config['z']['constraints']['pos_max']
 
         #  check if the user has specified they have the 'tube' scanner
-        if [s for s in config['axis_labels'] if 'tube' in s] is not None:
+        if [s for s in config['axis_labels'] if 'tube' in s]:
 
                 axis3 = {}
                 axis3['label'] = 'tube_x'
@@ -205,7 +206,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         constraints[axis2['label']] = axis2
 
         #  check if the user has specified they have the 'tube' scanner
-        if [s for s in config['axis_labels'] if 'tube' in s] is not None:
+        if [s for s in config['axis_labels'] if 'tube' in s]:
             constraints[axis3['label']] = axis3
             constraints[axis4['label']] = axis4
             constraints[axis5['label']] = axis5
@@ -213,7 +214,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         if axis0['scanner'] != axis1['scanner']:
             self.log.warning('Your x and y axes are configured as different devices, is this correct?')
 
-        if [s for s in config['axis_labels'] if 'tube' in s] is not None:
+        if [s for s in config['axis_labels'] if 'tube' in s]:
             if axis3['scanner'] != axis4['scanner']:
                 self.log.warning('Your x and y tube axes are configured as different devices, is this correct?')
 
@@ -248,7 +249,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         @return dict pos: dictionary with the current axis position
         """
 
-        invalid_axis = set(param_dict)-set(self._configuration)
+        invalid_axis = set(param_dict)-set(self._configured_constraints)
 
         if invalid_axis:
             for axis in invalid_axis:      
@@ -257,19 +258,19 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         for axis in ['x', 'y', 'z']:
             if axis in param_dict.keys():
-                scanner = self._configuration[axis]['scanner']
-                channel = self._configuration[axis]['channel']
+                scanner = self._configured_constraints[axis]['scanner']
+                channel = self._configured_constraints[axis]['channel']
                 to_position = param_dict[axis]
                 self._do_move_abs(axis, scanner, channel, to_position)
                 time.sleep(0.1)
 
         #  check if the user has specified they have the 'tube' scanner
-        if [s for s in self._configuration['axis_labels'] if 'tube' in s] is not None:
+        if [s for s in self._configured_constraints if 'tube' in s]:
 
             for axis in ['tube_x', 'tube_y', 'tube_z']:
                 if axis in param_dict.keys():
-                    scanner = self._configuration[axis]['scanner']
-                    channel = self._configuration[axis]['channel']
+                    scanner = self._configured_constraints[axis]['scanner']
+                    channel = self._configured_constraints[axis]['channel']
                     to_position = param_dict[axis]
                     self._do_move_abs(axis, scanner, channel, to_position)
                     time.sleep(0.1)
@@ -292,9 +293,9 @@ class PiezoStageNTMDT(Base, MotorInterface):
         """
         scanners = []
 
-        for axis in set(self._configuration):
-            if self._configuration[axis]['scanner'] not in scanners:
-                scanners.append(self._configuration[axis]['scanner'])
+        for axis in set(self._configured_constraints):
+            if self._configured_constraints[axis]['scanner'] not in scanners:
+                scanners.append(self._configured_constraints[axis]['scanner'])
 
         for scanner in scanners:
             self._emergency_interrupt(scanner)
@@ -333,8 +334,8 @@ class PiezoStageNTMDT(Base, MotorInterface):
         param_dict = {}
         
         for axis in ['x', 'y', 'z']:
-                scanner = self._configuration[axis]['scanner']
-                channel = self._configuration[axis]['channel']
+                scanner = self._configured_constraints[axis]['scanner']
+                channel = self._configured_constraints[axis]['channel']
 
                 command = ('{axis}Pos = GetParam(tScanner, scPosition, {scanner}, {channel})\n\n'
                         'SetSharedDataVal "shared_{axis}Pos", {axis}Pos, "F64", 8'
@@ -351,11 +352,11 @@ class PiezoStageNTMDT(Base, MotorInterface):
                 time.sleep(0.1)
 
         #  check if the user has specified they have the 'tube' scanner
-        if [s for s in self._configuration['axis_labels'] if 'tube' in s] is not None:
+        if [s for s in self._configured_constraints if 'tube' in s]:
 
             for axis in ['tube_x', 'tube_y', 'tube_z']:
-                scanner = self._configuration[axis]['scanner']
-                channel = self._configuration[axis]['channel']
+                scanner = self._configured_constraints[axis]['scanner']
+                channel = self._configured_constraints[axis]['channel']
 
                 command = ('{axis}Pos = GetParam(tScanner, scPosition, {scanner}, {channel})\n\n'
                         'SetSharedDataVal "shared_{axis}Pos", {axis}Pos, "F64", 8'
@@ -444,10 +445,10 @@ class PiezoStageNTMDT(Base, MotorInterface):
         @param float to_pos: desired position in meters
         """
 
-        if not(self._configuration[axis]['pos_min'] <= to_pos <= self._configuration[axis]['pos_max']):
+        if not(self._configured_constraints[axis]['pos_min'] <= to_pos <= self._configured_constraints[axis]['pos_max']):
             self.log.warning('Cannot make the movement of the {axis} axis'
                              'since the border [{min},{max}] would be crossed! Ignore command!'
-                             .format(axis=axis, min=self._configuration[axis]['pos_min'], max=self._configuration[axis]['pos_max']))
+                             .format(axis=axis, min=self._configured_constraints[axis]['pos_min'], max=self._configured_constraints[axis]['pos_max']))
         else:
             self._write_axis_move(axis, scanner, channel, to_pos)
 
@@ -477,32 +478,32 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         @param bool to_state: desired state of the feedback servos
         """
-        self._set_servo_state_xy(self._configuration['x']['scanner'], to_state)
+        self._set_servo_state_xy(self._configured_constraints['x']['scanner'], to_state)
         time.sleep(0.5)
         self._update_gui()
 
         #  not required, but will catch an odd configuration
-        self._set_servo_state_xy(self._configuration['y']['scanner'], to_state)
+        self._set_servo_state_xy(self._configured_constraints['y']['scanner'], to_state)
         time.sleep(0.5)
         self._update_gui()
 
-        self._set_servo_state_z(self._configuration['z']['scanner'], to_state)
+        self._set_servo_state_z(self._configured_constraints['z']['scanner'], to_state)
         time.sleep(0.5)
         self._update_gui()
 
         #  check if the user has specified they have the 'tube' scanner
-        if [s for s in self._configuration['axis_labels'] if 'tube' in s] is not None:
+        if [s for s in self._configured_constraints if 'tube' in s]:
             
-            self._set_servo_state_xy(self._configuration['tube_x']['scanner'], to_state)
+            self._set_servo_state_xy(self._configured_constraints['tube_x']['scanner'], to_state)
             time.sleep(0.5)
             self._update_gui()
 
             #  not required, but will catch an odd configuration
-            self._set_servo_state_xy(self._configuration['tube_y']['scanner'], to_state)
+            self._set_servo_state_xy(self._configured_constraints['tube_y']['scanner'], to_state)
             time.sleep(0.5)
             self._update_gui()
 
-            self._set_servo_state_z(self._configuration['tube_z']['scanner'], to_state)
+            self._set_servo_state_z(self._configured_constraints['tube_z']['scanner'], to_state)
             time.sleep(0.5)
             self._update_gui()
 
