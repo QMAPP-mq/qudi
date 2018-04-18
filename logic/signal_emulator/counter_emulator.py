@@ -88,8 +88,9 @@ class CounterEmulator(GenericLogic):
         self._polling_interval = 1.0
 
         # pass through of data arrays
-        self.countdata = self._read_remote_data(self._counterlogic.countdata)
-        self.countdata_smoothed = self._read_remote_data(self._counterlogic.countdata_smoothed)
+        countdata_list, smoothed_list = self._counterlogic.get_countdata()
+        self.countdata = np.array(countdata_list)
+        self.countdata_smoothed = np.array(smoothed_list)
 
         # connect signals
         self.start_polling_Signal.connect(self.poll_loop, QtCore.Qt.QueuedConnection)
@@ -115,8 +116,9 @@ class CounterEmulator(GenericLogic):
             # pass through of data arrays
             if not self.module_state.isstate('locked'):
                 self.module_state.lock()
-            self.countdata = self._read_remote_data(self._counterlogic.countdata)
-            self.countdata_smoothed = self._read_remote_data(self._counterlogic.countdata_smoothed)
+            countdata_list, smoothed_list = self._counterlogic.get_countdata()
+            self.countdata = np.array(countdata_list)
+            self.countdata_smoothed = np.array(smoothed_list)
             self.sigCounterUpdated.emit()
         else:
             if not self.module_state.isstate('idle'):
@@ -157,7 +159,8 @@ class CounterEmulator(GenericLogic):
         return self._counterlogic.get_counting_mode()
     
     def get_channels(self):
-        return self._counterlogic.get_channels()
+        #return self._counterlogic.get_channels()
+        return ['Ctr0']
 
     def set_counting_samples(self, samples=1):
         return self._counterlogic.set_counting_samples(samples)
