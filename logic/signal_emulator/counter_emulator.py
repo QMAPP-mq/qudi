@@ -39,7 +39,7 @@ class CounterEmulator(GenericLogic):
     """
     sigCounterUpdated = QtCore.Signal()
 
-    sigCountDataNext = QtCore.Signal()
+    start_polling_Signal = QtCore.Signal()
 
     sigGatedCounterFinished = QtCore.Signal()
     sigGatedCounterContinue = QtCore.Signal(bool)
@@ -84,6 +84,17 @@ class CounterEmulator(GenericLogic):
         # Connect to hardware and save logic
         self._counterlogic = self.get_connector('counterlogic')
 
+        # Initialise polling interval
+        self._polling_interval = 1.0
+
+        # pass through of data arrays
+        self.countdata = self._read_remote_data(self._counterlogic.countdata)
+        self.countdata_smoothed = self._read_remote_data(self._counterlogic.countdata_smoothed)
+
+        # connect signals
+        self.start_polling_Signal.connect(self.poll_loop, QtCore.Qt.QueuedConnection)
+
+        self.start_polling_Signal.emit()
         # TODO open polling loop
         return
 
@@ -92,3 +103,98 @@ class CounterEmulator(GenericLogic):
         """
         # TODO stop polling
         return
+
+#######################
+# Reverse signal emulation
+# logic -> gui
+    def poll_loop(self):
+        """ Periodically poll the logic, and emit appropriate signals locally if
+        things have changed
+        """
+        if self._counterlogic.module_state.isstate('locked'):
+            # pass through of data arrays
+            if not self.module_state.isstate('locked'):
+                self.module_state.lock()
+            self.countdata = self._read_remote_data(self._counterlogic.countdata)
+            self.countdata_smoothed = self._read_remote_data(self._counterlogic.countdata_smoothed)
+            self.sigCounterUpdated.emit()
+        else:
+            if not self.module_state.isstate('idle'):
+                self.module_state.unlock()
+
+        time.sleep(self._polling_interval)
+        print('polling complete')
+        self.start_polling_Signal.emit()
+
+        
+        # self._counting_logic.sigCountingSamplesChanged.connect(self.update_oversampling_SpinBox)
+        # self._counting_logic.sigCountLengthChanged.connect(self.update_count_length_SpinBox)
+        # self._counting_logic.sigCountFrequencyChanged.connect(self.update_count_freq_SpinBox)
+        # self._counting_logic.sigSavingStatusChanged.connect(self.update_saving_Action)
+        # self._counting_logic.sigCountingModeChanged.connect(self.update_counting_mode_ComboBox)
+        # self._counting_logic.sigCountStatusChanged.connect(self.update_count_status_Action)
+
+
+########################
+# Forward pass-through
+# gui -> logic
+    def get_hardware_constraints(self):
+        return self._counterlogic.get_hardware_constraints()
+
+    def get_count_length(self):
+        return self._counterlogic.get_count_length()
+
+    def get_count_frequency(self):
+        return self._counterlogic.get_count_frequency()
+
+    def get_counting_samples(self):
+        return self._counterlogic.get_counting_samples()
+
+    def get_saving_state(self):
+        return self._counterlogic.get_saving_state()
+        
+    def get_counting_mode(self):
+        return self._counterlogic.get_counting_mode()
+    
+    def get_channels(self):
+        return self._counterlogic.get_channels()
+
+    def set_counting_samples(self, samples=1):
+        return self._counterlogic.set_counting_samples(samples)
+
+    def set_count_length(self, length=300):
+        return self._counterlogic.set_count_length(length)
+
+    def set_count_frequency(self, frequency=50):
+        return self._counterlogic.set_count_frequency(frequency)
+
+    def set_counting_mode(self, mode='CONTINUOUS'):
+        return self._counterlogic.set_counting_mode(mode)
+
+    def startCount(self):
+        return self._counterlogic.startCount()
+
+    def stopCount(self):
+        self._counterlogic.stopCount()
+
+    def start_saving(self, resume=False):
+        return self._counterlogic.start_saving(resume)
+
+    def save_data(self, to_file=True, postfix=''):
+        return self._counterlogic.save_data(to_file, postfix)
+
+##############
+# Emulator specific tools
+    
+    def _read_remote_data(self, remote_data):
+
+        localdata = []
+        for i,row in enumerate(remote_data):
+            local_row = [float(i) for i in remote_data[i]]
+            localdata.append(local_row) 
+        
+        localdata = np.array(localdata)
+        return localdata
+
+    def set_polling_interval(self, new_interval):
+        self._polling_interval = new_interval
