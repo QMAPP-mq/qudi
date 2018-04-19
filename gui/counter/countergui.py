@@ -257,10 +257,10 @@ class CounterGui(GUIBase):
                 self.curves[2 * i + 1].setData(y=self._counting_logic.countdata_smoothed[i],
                                                x=x_vals
                                                )
-                if ymax < self._counting_logic.countdata[i].max() and self._trace_selection[i]:
-                    ymax = self._counting_logic.countdata[i].max()
-                if ymin > self._counting_logic.countdata[i].min() and self._trace_selection[i]:
-                    ymin = self._counting_logic.countdata[i].min()
+                if ymax < max(self._counting_logic.countdata[i]) and self._trace_selection[i]:
+                    ymax = max(self._counting_logic.countdata[i])
+                if ymin > min(self._counting_logic.countdata[i]) and self._trace_selection[i]:
+                    ymin = min(self._counting_logic.countdata[i])
 
             if ymin == ymax:
                 ymax += 0.1
