@@ -657,6 +657,3 @@ class CounterLogic(GenericLogic):
 
     def get_countdata(self):
         return [self.countdata[0].tolist()], [self.countdata_smoothed[0].tolist()]
-
-    # def get_countdata_smoothed(self):
-    #     return [self.countdata_smoothed[0].tolist()]
