@@ -85,7 +85,14 @@ class CounterEmulator(GenericLogic):
         self._counterlogic = self.get_connector('counterlogic')
 
         # Initialise polling interval
-        self._polling_interval = 1.0
+        self._polling_interval = 0.1
+
+        self._prev_poll_time = time.time()
+
+        # Keep track of experimental parameters locally
+        self._counting_samples_local = self.get_counting_samples()
+        self._count_length_local = self.get_count_length()
+        self._count_frequency_local = self.get_count_frequency()
 
         # pass through of data arrays
         countdata_list, smoothed_list = self._counterlogic.get_countdata()
@@ -112,10 +119,13 @@ class CounterEmulator(GenericLogic):
         """ Periodically poll the logic, and emit appropriate signals locally if
         things have changed
         """
+        self._prev_poll_time = time.time()
+
         if self._counterlogic.module_state.isstate('locked'):
             # pass through of data arrays
             if not self.module_state.isstate('locked'):
                 self.module_state.lock()
+                self.sigCountStatusChanged.emit(True)
             countdata_list, smoothed_list = self._counterlogic.get_countdata()
             self.countdata = np.array(countdata_list)
             self.countdata_smoothed = np.array(smoothed_list)
@@ -123,15 +133,30 @@ class CounterEmulator(GenericLogic):
         else:
             if not self.module_state.isstate('idle'):
                 self.module_state.unlock()
+                self.sigCountStatusChanged.emit(False)
 
-        time.sleep(self._polling_interval)
-        print('polling complete')
+        current_counting_samples = self.get_counting_samples()
+        if current_counting_samples != self._counting_samples_local:
+            self.sigCountingSamplesChanged.emit(current_counting_samples)
+            self._counting_samples_local = current_counting_samples
+
+        current_count_length = self.get_count_length()
+        if current_count_length != self._count_length_local:
+            self.sigCountLengthChanged.emit(current_count_length)
+            self._count_length_local = current_count_length
+
+        current_count_frequency = self.get_count_frequency()
+        if current_count_frequency != self._count_frequency_local:
+            self.sigCountFrequencyChanged.emit(current_count_frequency)
+            self._count_frequency_local = current_count_frequency
+
+
+        while time.time() < self._prev_poll_time + self._polling_interval:
+            time.sleep(0.001)
+        print('polling complete at {}'.format(time.time()))
         self.start_polling_Signal.emit()
 
         
-        # self._counting_logic.sigCountingSamplesChanged.connect(self.update_oversampling_SpinBox)
-        # self._counting_logic.sigCountLengthChanged.connect(self.update_count_length_SpinBox)
-        # self._counting_logic.sigCountFrequencyChanged.connect(self.update_count_freq_SpinBox)
         # self._counting_logic.sigSavingStatusChanged.connect(self.update_saving_Action)
         # self._counting_logic.sigCountingModeChanged.connect(self.update_counting_mode_ComboBox)
         # self._counting_logic.sigCountStatusChanged.connect(self.update_count_status_Action)
