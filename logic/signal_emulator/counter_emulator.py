@@ -40,6 +40,7 @@ class CounterEmulator(GenericLogic):
     sigCounterUpdated = QtCore.Signal()
 
     start_polling_Signal = QtCore.Signal()
+    next_shifted_redraw_Signal = QtCore.Signal()
 
     sigGatedCounterFinished = QtCore.Signal()
     sigGatedCounterContinue = QtCore.Signal(bool)
@@ -101,6 +102,9 @@ class CounterEmulator(GenericLogic):
 
         # connect signals
         self.start_polling_Signal.connect(self.poll_loop, QtCore.Qt.QueuedConnection)
+        self.next_shifted_redraw_Signal.connect(self.shifted_redraw_loop,
+                                                QtCore.Qt.QueuedConnection
+                                               )
 
         self.start_polling_Signal.emit()
         # TODO open polling loop
@@ -125,6 +129,7 @@ class CounterEmulator(GenericLogic):
             # pass through of data arrays
             if not self.module_state.isstate('locked'):
                 self.module_state.lock()
+                self.next_shifted_redraw_Signal.emit()
                 self.sigCountStatusChanged.emit(True)
             countdata_list, smoothed_list = self._counterlogic.get_countdata()
             self.countdata = np.array(countdata_list)
@@ -160,6 +165,33 @@ class CounterEmulator(GenericLogic):
         # self._counting_logic.sigSavingStatusChanged.connect(self.update_saving_Action)
         # self._counting_logic.sigCountingModeChanged.connect(self.update_counting_mode_ComboBox)
         # self._counting_logic.sigCountStatusChanged.connect(self.update_count_status_Action)
+
+    def shifted_redraw_loop(self):
+
+        # Stop this loop if the state goes to idle
+        if self.module_state.isstate('idle'):
+            print('was idle')
+            return
+        
+        time.sleep(1 / self._count_frequency_local)
+        print('we did it at {}'.format(time.time()))
+
+        # Shift countdata along
+        self.countdata = np.roll(self.countdata, -1)
+        # replace wrapped "last entry" with nan
+        fill = np.empty(len(self.countdata))
+        fill[:] = np.nan
+        self.countdata[:,-1] = fill
+
+        # Shift countdata_smoothed along
+        self.countdata_smoothed = np.roll(self.countdata_smoothed, -1)
+        # replace wrapped "last entry" with zeros
+        self.countdata_smoothed[:,-1] = fill
+
+        # Emit signals to loop
+        self.next_shifted_redraw_Signal.emit()
+        self.sigCounterUpdated.emit()
+
 
 
 ########################
