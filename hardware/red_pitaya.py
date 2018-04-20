@@ -23,8 +23,6 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 import numpy as np
 import re
 
-import PyDAQmx as daq
-
 from core.module import Base, ConfigOption
 from interface.confocal_scanner_interface import ConfocalScannerInterface
 
@@ -73,8 +71,6 @@ class RedPitaya(Base, ConfocalScannerInterface):
         self._scanner_ao_task = None
         self._scanner_counter_daq_tasks = []
         self._line_length = None
-        self._odmr_length = None
-        self._gated_counter_daq_task = None
         self._scanner_analog_daq_task = None
 
         # handle all the parameters given by the config
@@ -96,7 +92,7 @@ class RedPitaya(Base, ConfocalScannerInterface):
         # rest, so start it always and leave it running
         if self._start_analog_output() < 0:
             self.log.error('Failed to start analog output.')
-            raise Exception('Failed to start NI Card module due to analog output failure.')
+            raise Exception('Failed to start RP Card module due to analog output failure.')
 
     def on_deactivate(self):
         """ Shut down the NI card.
@@ -152,7 +148,7 @@ class RedPitaya(Base, ConfocalScannerInterface):
 
         n_channels = daq.uInt32()
         daq.DAQmxGetTaskNumChans(self._scanner_ao_task, n_channels)
-        possible_channels = ['x', 'y', 'z', 'a']
+        possible_channels = ['x', 'y']
 
         return possible_channels[0:int(n_channels.value)]
 
@@ -181,7 +177,7 @@ class RedPitaya(Base, ConfocalScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
         if myrange is None:
-            myrange = [[0, 1e-6], [0, 1e-6], [0, 1e-6], [0, 1e-6]]
+            myrange = [[0, 1e-6], [0, 1e-6]]
 
         if not isinstance(myrange, (frozenset, list, set, tuple, np.ndarray, )):
             self.log.error('Given range is no array type.')
@@ -216,7 +212,7 @@ class RedPitaya(Base, ConfocalScannerInterface):
         """
         n_ch = len(self.get_scanner_axes())
         if myrange is None:
-            myrange = [[-10., 10.], [-10., 10.], [-10., 10.], [-10., 10.]][0:n_ch]
+            myrange = [[-1., 1.], [-1., 1.][0:n_ch]
 
         if not isinstance(myrange, (frozenset, list, set, tuple, np.ndarray)):
             self.log.error('Given range is no array type.')
@@ -577,7 +573,7 @@ class RedPitaya(Base, ConfocalScannerInterface):
     def get_scanner_position(self):
         """ Get the current position of the scanner hardware.
 
-        @return float[]: current position in (x, y, z, a).
+        @return float[]: current position in (x, y).
         """
         return self._current_position.tolist()
 
