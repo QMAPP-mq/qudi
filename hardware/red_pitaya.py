@@ -40,7 +40,7 @@ class RedPitaya(Base, SlowCounterInterface, ConfocalScannerInterface, ODMRCounte
 
     """
 
-    _modtype = 'RedPitaya'
+    _modtype = 'RPcard'
     _modclass = 'hardware'
 
     # config options
