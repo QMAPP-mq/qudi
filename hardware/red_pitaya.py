@@ -22,6 +22,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 
 import numpy as np
 import re
+import redpitaya_scpi as scpi
 
 from core.module import Base, ConfigOption
 from interface.confocal_scanner_interface import ConfocalScannerInterface
@@ -170,7 +171,7 @@ class RedPitaya(Base, ConfocalScannerInterface):
     def set_position_range(self, myrange=None):
         """ Sets the physical range of the scanner.
 
-        @param float [4][2] myrange: array of 4 ranges with an array containing
+        @param float [2][2] myrange: array of 2 ranges with an array containing
                                      lower and upper limit. The unit of the
                                      scan range is meters.
 
@@ -449,14 +450,12 @@ class RedPitaya(Base, ConfocalScannerInterface):
 
         return retval
 
-    def scanner_set_position(self, x=None, y=None, z=None, a=None):
+    def scanner_set_position(self, x=None, y=None):
         """Move stage to x, y, z, a (where a is the fourth voltage channel).
 
         #FIXME: No volts
         @param float x: postion in x-direction (volts)
         @param float y: postion in y-direction (volts)
-        @param float z: postion in z-direction (volts)
-        @param float a: postion in a-direction (volts)
 
         @return int: error code (0:OK, -1:error)
         """
@@ -476,18 +475,6 @@ class RedPitaya(Base, ConfocalScannerInterface):
                 self.log.error('You want to set y out of range: {0:f}.'.format(y))
                 return -1
             self._current_position[1] = np.float(y)
-
-        if z is not None:
-            if not(self._scanner_position_ranges[2][0] <= z <= self._scanner_position_ranges[2][1]):
-                self.log.error('You want to set z out of range: {0:f}.'.format(z))
-                return -1
-            self._current_position[2] = np.float(z)
-
-        if a is not None:
-            if not(self._scanner_position_ranges[3][0] <= a <= self._scanner_position_ranges[3][1]):
-                self.log.error('You want to set a out of range: {0:f}.'.format(a))
-                return -1
-            self._current_position[3] = np.float(a)
 
         # the position has to be a vstack
         my_position = np.vstack(self._current_position)
