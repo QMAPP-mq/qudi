@@ -299,8 +299,8 @@ class ConfocalEmulator(GenericLogic):
     def on_activate(self):
         """ Initialisation performed during activation of the module.
         """
-        self._confocallogic._scanning_device = self._confocallogic.get_connector('confocalscanner1')
-        self._confocallogic._save_logic = self._confocallogic.get_connector('savelogic')
+        self._confocallogic._scanning_device = self.get_connector('confocalscanner1')
+        self._confocallogic._save_logic = self.get_connector('savelogic')
 
         # Reads in the maximal scanning range. The unit of that scan range is micrometer!
         self._confocallogic.x_range = self._confocallogic._scanning_device.get_position_range()[0]
