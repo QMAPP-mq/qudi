@@ -22,6 +22,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 
 import numpy as np
 import re
+
 import redpitaya_scpi as scpi
 
 from core.module import Base, ConfigOption
@@ -134,24 +135,24 @@ class RedPitaya(Base, ConfocalScannerInterface):
         for device in set(devicelist):
             self.log.info('Reset device {0}.'.format(device))
             try:
-                daq.DAQmxResetDevice(device)
+                rp_s.tx_txt('GEN:RST')
             except:
                 self.log.exception('Could not reset NI device {0}'.format(device))
                 retval = -1
         return retval
 
     def get_scanner_axes(self):
-        """ Scanner axes depends on how many channels tha analog output task has.
+        """ Red Pitaya will only ever have 2 RF analog outputs.
         """
         if self._scanner_ao_task is None:
             self.log.error('Cannot get channel number, analog output task does not exist.')
             return []
 
-        n_channels = daq.uInt32()
-        daq.DAQmxGetTaskNumChans(self._scanner_ao_task, n_channels)
+        #n_channels = daq.uInt32()
+        #daq.DAQmxGetTaskNumChans(self._scanner_ao_task, n_channels)
         possible_channels = ['x', 'y']
 
-        return possible_channels[0:int(n_channels.value)]
+        return possible_channels
 
     def get_scanner_count_channels(self):
         """ Return list of counter channels """
@@ -242,10 +243,11 @@ class RedPitaya(Base, ConfocalScannerInterface):
             # If an analog task is already running, kill that one first
             if self._scanner_ao_task is not None:
                 # stop the analog output task
-                daq.DAQmxStopTask(self._scanner_ao_task)
+                #daq.DAQmxStopTask(self._scanner_ao_task)
 
                 # delete the configuration of the analog output
-                daq.DAQmxClearTask(self._scanner_ao_task)
+                #daq.DAQmxClearTask(self._scanner_ao_task)
+                rp_s.tx_txt('GEN:RST') #reset the task
 
                 # set the task handle to None as a safety
                 self._scanner_ao_task = None
@@ -256,24 +258,50 @@ class RedPitaya(Base, ConfocalScannerInterface):
 
             # create the actual analog output task on the hardware device. Via
             # byref you pass the pointer of the object to the TaskCreation function:
-            daq.DAQmxCreateTask('ScannerAO', daq.byref(self._scanner_ao_task))
-            for n, chan in enumerate(self._scanner_ao_channels):
-                # Assign and configure the created task to an analog output voltage channel.
-                daq.DAQmxCreateAOVoltageChan(
-                    # The AO voltage operation function is assigned to this task.
-                    self._scanner_ao_task,
-                    # use (all) scanner ao_channels for the output
-                    chan,
-                    # assign a name for that channel
-                    'Scanner AO Channel {0}'.format(n),
-                    # minimum possible voltage
-                    self._scanner_voltage_ranges[n][0],
-                    # maximum possible voltage
-                    self._scanner_voltage_ranges[n][1],
-                    # units is Volt
-                    daq.DAQmx_Val_Volts,
-                    # empty for future use
-                    '')
+            #daq.DAQmxCreateTask('ScannerAO', daq.byref(self._scanner_ao_task))
+            #for n, chan in enumerate(self._scanner_ao_channels):
+            #    # Assign and configure the created task to an analog output voltage channel.
+            #    daq.DAQmxCreateAOVoltageChan(
+            #        # The AO voltage operation function is assigned to this task.
+            #        self._scanner_ao_task,
+            #        # use (all) scanner ao_channels for the output
+            #        chan,
+            #        # assign a name for that channel
+            #        'Scanner AO Channel {0}'.format(n),
+            #        # minimum possible voltage
+            #        self._scanner_voltage_ranges[n][0],
+            #        # maximum possible voltage
+            #        self._scanner_voltage_ranges[n][1],
+            #        # units is Volt
+            #        daq.DAQmx_Val_Volts,
+            #        # empty for future use
+            #        '')
+
+
+            #reset the outputs
+            rp_s.tx_txt('GEN:RST')
+            #set the x, y frequencies
+            freq_x = 20
+            freq_y = 1000
+            #set the functions to arbitrary
+            rp_s.tx_txt('SOUR1:FUNC ARBITRARY')
+            rp_s.tx_txt('SOUR1:FUNC ARBITRARY')
+            #assign the frequencies
+            rp_s.tx_txt('SOUR1:FREQ:FIX ' + str(freq_x))
+            rp_s.tx_txt('SOUR2:FREQ:FIX ' + str(freq_y))
+            #write the waveform for scanning
+            rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + wave_form)
+            #set the number of burst repititions to 1
+            rp_s.tx_txt('SOUR1:BURS:NCYC 1')
+            rp_s.tx_txt('SOUR2:BURS:NCYC 1')
+            #make the x scanner trigger by external input
+            rp_s.tx_txt('SOUR1:TRIG:SOUR EXT_PE')
+            #set digital input/output pin 5_P to output
+            rp_s.tx_txt('DIG:PIN:DIR OUT,DIO5_P')
+            #set digital input/output pin 0_PE to external trigger input
+            rp_s.tx_txt('DIG:PIN:DIR IN,DIO0_PE')
+
+
         except:
             self.log.exception('Error starting analog output task.')
             return -1
@@ -289,7 +317,9 @@ class RedPitaya(Base, ConfocalScannerInterface):
         retval = 0
         try:
             # stop the analog output task
-            daq.DAQmxStopTask(self._scanner_ao_task)
+            #daq.DAQmxStopTask(self._scanner_ao_task)
+            rp_s.tx_txt('OUTPUT1:STATE OFF')
+            rp_s.tx_txt('OUTPUT2:STATE OFF')
         except:
             self.log.exception('Error stopping analog output.')
             retval = -1
@@ -468,16 +498,16 @@ class RedPitaya(Base, ConfocalScannerInterface):
             if not(self._scanner_position_ranges[0][0] <= x <= self._scanner_position_ranges[0][1]):
                 self.log.error('You want to set x out of range: {0:f}.'.format(x))
                 return -1
-            self._current_position[0] = np.float(x)
+            self._current_position[0] = str(x)
 
         if y is not None:
             if not(self._scanner_position_ranges[1][0] <= y <= self._scanner_position_ranges[1][1]):
                 self.log.error('You want to set y out of range: {0:f}.'.format(y))
                 return -1
-            self._current_position[1] = np.float(y)
+            self._current_position[1] = str(y)
 
         # the position has to be a vstack
-        my_position = np.vstack(self._current_position)
+        #my_position = np.vstack(self._current_position)
 
         # then directly write the position to the hardware
         try:
@@ -502,7 +532,11 @@ class RedPitaya(Base, ConfocalScannerInterface):
         # Number of samples which were actually written, will be stored here.
         # The error code of this variable can be asked with .value to check
         # whether all channels have been written successfully.
-        self._AONwritten = daq.int32()
+
+        #self._AONwritten = daq.int32()
+        rp_s.tx_txt('ACQ:BUF:SIZE?')
+        _AONwritten = int(rp_s.rx_txt())
+
         # write the voltage instructions for the analog output to the hardware
         daq.DAQmxWriteAnalogF64(
             # write to this task
