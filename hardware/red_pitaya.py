@@ -533,29 +533,18 @@ class RedPitaya(Base, ConfocalScannerInterface):
         # The error code of this variable can be asked with .value to check
         # whether all channels have been written successfully.
 
-        #self._AONwritten = daq.int32()
         rp_s.tx_txt('ACQ:BUF:SIZE?')
-        _AONwritten = int(rp_s.rx_txt())
+        BUFF_SIZE = int(rp_s.rx_txt())
+        #create a string with the voltage values we want the mirror to scan through
+        _AONwritten_array = np.linspace(-1,1, BUFF_SIZE)
+        _AONwritten_array = wave_form_list[::-1] #this makes the mirrors scan left to right 
 
-        # write the voltage instructions for the analog output to the hardware
-        daq.DAQmxWriteAnalogF64(
-            # write to this task
-            self._scanner_ao_task,
-            # length of the command (points)
-            length,
-            # start task immediately (True), or wait for software start (False)
-            start,
-            # maximal timeout in seconds for# the write process
-            self._RWTimeout,
-            # Specify how the samples are arranged: each pixel is grouped by channel number
-            daq.DAQmx_Val_GroupByChannel,
-            # the voltages to be written
-            voltages,
-            # The actual number of samples per channel successfully written to the buffer
-            daq.byref(self._AONwritten),
-            # Reserved for future use. Pass NULL(here None) to this parameter
-            None)
-        return self._AONwritten.value
+        # create csv text string of wave_form_list array
+        _AONwritten= ''
+        for value in _AONwritten_array:
+            _AONwritten += str(value) + ', '
+        _AONwritten = _AONwritten[:len(wave_form)-2] #remove the ", " at the end of the string
+        return self._AONwritten
 
     def _scanner_position_to_volt(self, positions=None):
         """ Converts a set of position pixels to acutal voltages.
