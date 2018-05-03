@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-This file contains the Qudi Interface file to control microwave devices.
+This file contains the Qudi Interface file for a general scanner hardware.
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -42,19 +42,7 @@ class GenScanInterface(metaclass=InterfaceMetaclass):
         @return int: error code (0:OK, -1:error)
         """
         pass
-
-    @abc.abstractmethod
-    def get_pos(self):
-        """
-        Gets the position of the scanner.
-        Returns single float value if the device is in set position mode.
-        Returns list like [start, stop, step] if the device is in sweep mode.
-        Returns list of positions if the device is in list mode.
-
-        @return [float, list]: frequency(s) currently set for this device in Hz
-        """
-        pass
-
+    
     @abc.abstractmethod
     def scanner_on(self):
         """
@@ -66,7 +54,19 @@ class GenScanInterface(metaclass=InterfaceMetaclass):
         pass
 
     @abc.abstractmethod
-    def set_pos(self, position=None):
+    def get_position(self):
+        """
+        Gets the position of the scanner.
+        Returns single float value if the device is in set position mode.
+        Returns list like [start, stop, step] if the device is in sweep mode.
+        Returns list of positions if the device is in list mode.
+
+        @return [float, list]: frequency(s) currently set for this device in Hz
+        """
+        pass
+
+    @abc.abstractmethod
+    def set_position(self, position=None):
         """
         Configures the device for set position-mode and optionally sets frequency.
 

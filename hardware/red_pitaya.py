@@ -29,7 +29,7 @@ from core.module import Base, ConfigOption
 from interface.confocal_scanner_interface import ConfocalScannerInterface
 
 
-class RedPitaya(Base, ConfocalScannerInterface):
+class RedPitaya(Base, GenScannerInterface):
     """ unstable: Matt Joliffe
 
     A Red Pitaya device that can do lots of things.
@@ -39,41 +39,9 @@ class RedPitaya(Base, ConfocalScannerInterface):
     _modtype = 'RPcard'
     _modclass = 'hardware'
 
-    # config options
-    _photon_sources = ConfigOption('photon_sources', missing='error')
-
-    # confocal scanner
-    _default_scanner_clock_frequency = ConfigOption(
-        'default_scanner_clock_frequency', 100, missing='info')
-    _scanner_clock_channel = ConfigOption('scanner_clock_channel', missing='warn')
-    _pixel_clock_channel = ConfigOption('pixel_clock_channel', None)
-    _scanner_ao_channels = ConfigOption('scanner_ao_channels', missing='error')
-    _scanner_ai_channels = ConfigOption('scanner_ai_channels', [], missing='info')
-    _scanner_counter_channels = ConfigOption('scanner_counter_channels', [], missing='warn')
-    _scanner_voltage_ranges = ConfigOption('scanner_voltage_ranges', missing='error')
-    _scanner_position_ranges = ConfigOption('scanner_position_ranges', missing='error')
-
-    _gate_in_channel = ConfigOption('gate_in_channel', missing='error')
-    # number of readout samples, mainly used for gated counter
-    _default_samples_number = ConfigOption('default_samples_number', 50, missing='info')
-    # used as a default for expected maximum counts
-    _max_counts = ConfigOption('max_counts', 3e7)
-    # timeout for the Read or/and write process in s
-    _RWTimeout = ConfigOption('read_write_timeout', 10)
-    _counting_edge_rising = ConfigOption('counting_edge_rising', True)
-
     def on_activate(self):
         """ Starts up the NI Card at activation.
         """
-        # the tasks used on that hardware device:
-        self._counter_daq_tasks = []
-        self._counter_analog_daq_task = None
-        self._clock_daq_task = None
-        self._scanner_clock_daq_task = None
-        self._scanner_ao_task = None
-        self._scanner_counter_daq_tasks = []
-        self._line_length = None
-        self._scanner_analog_daq_task = None
 
         # handle all the parameters given by the config
         self._current_position = np.zeros(len(self._scanner_ao_channels))
@@ -100,8 +68,8 @@ class RedPitaya(Base, ConfocalScannerInterface):
         """ Shut down the NI card.
         """
         self.reset_hardware()
-
    
+    ############################################################################
     # ================ ConfocalScannerInterface Commands =======================
     def reset_hardware(self):
         """ Resets the NI hardware, so the connection is lost and other
@@ -144,12 +112,6 @@ class RedPitaya(Base, ConfocalScannerInterface):
     def get_scanner_axes(self):
         """ Red Pitaya will only ever have 2 RF analog outputs.
         """
-        if self._scanner_ao_task is None:
-            self.log.error('Cannot get channel number, analog output task does not exist.')
-            return []
-
-        #n_channels = daq.uInt32()
-        #daq.DAQmxGetTaskNumChans(self._scanner_ao_task, n_channels)
         possible_channels = ['x', 'y']
 
         return possible_channels
@@ -205,282 +167,7 @@ class RedPitaya(Base, ConfocalScannerInterface):
         self._scanner_position_ranges = myrange
         return 0
 
-    def set_voltage_range(self, myrange=None):
-        """ Sets the voltage range of the NI Card.
-
-        @param float [n][2] myrange: array containing lower and upper limit
-
-        @return int: error code (0:OK, -1:error)
-        """
-        n_ch = len(self.get_scanner_axes())
-        if myrange is None:
-            myrange = [[-1., 1.], [-1., 1.][0:n_ch]
-
-        if not isinstance(myrange, (frozenset, list, set, tuple, np.ndarray)):
-            self.log.error('Given range is no array type.')
-            return -1
-
-        if len(myrange) != n_ch:
-            self.log.error(
-                'Given range should have dimension 2, but has {0:d} instead.'
-                ''.format(len(myrange)))
-            return -1
-
-        for r in myrange:
-            if r[0] > r[1]:
-                self.log.error('Given range limit {0:d} has the wrong order.'.format(r))
-                return -1
-
-        self._scanner_voltage_ranges = myrange
-        return 0
-
-    def _start_analog_output(self):
-        """ Starts or restarts the analog output.
-
-        @return int: error code (0:OK, -1:error)
-        """
-        try:
-            # If an analog task is already running, kill that one first
-            if self._scanner_ao_task is not None:
-                # stop the analog output task
-                #daq.DAQmxStopTask(self._scanner_ao_task)
-
-                # delete the configuration of the analog output
-                #daq.DAQmxClearTask(self._scanner_ao_task)
-                rp_s.tx_txt('GEN:RST') #reset the task
-
-                # set the task handle to None as a safety
-                self._scanner_ao_task = None
-
-            # initialize ao channels / task for scanner, should always be active.
-            # Define at first the type of the variable as a Task:
-            self._scanner_ao_task = daq.TaskHandle()
-
-            # create the actual analog output task on the hardware device. Via
-            # byref you pass the pointer of the object to the TaskCreation function:
-            #daq.DAQmxCreateTask('ScannerAO', daq.byref(self._scanner_ao_task))
-            #for n, chan in enumerate(self._scanner_ao_channels):
-            #    # Assign and configure the created task to an analog output voltage channel.
-            #    daq.DAQmxCreateAOVoltageChan(
-            #        # The AO voltage operation function is assigned to this task.
-            #        self._scanner_ao_task,
-            #        # use (all) scanner ao_channels for the output
-            #        chan,
-            #        # assign a name for that channel
-            #        'Scanner AO Channel {0}'.format(n),
-            #        # minimum possible voltage
-            #        self._scanner_voltage_ranges[n][0],
-            #        # maximum possible voltage
-            #        self._scanner_voltage_ranges[n][1],
-            #        # units is Volt
-            #        daq.DAQmx_Val_Volts,
-            #        # empty for future use
-            #        '')
-
-
-            #reset the outputs
-            rp_s.tx_txt('GEN:RST')
-            #set the x, y frequencies
-            freq_x = 20
-            freq_y = 1000
-            #set the functions to arbitrary
-            rp_s.tx_txt('SOUR1:FUNC ARBITRARY')
-            rp_s.tx_txt('SOUR1:FUNC ARBITRARY')
-            #assign the frequencies
-            rp_s.tx_txt('SOUR1:FREQ:FIX ' + str(freq_x))
-            rp_s.tx_txt('SOUR2:FREQ:FIX ' + str(freq_y))
-            #write the waveform for scanning
-            rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + wave_form)
-            #set the number of burst repititions to 1
-            rp_s.tx_txt('SOUR1:BURS:NCYC 1')
-            rp_s.tx_txt('SOUR2:BURS:NCYC 1')
-            #make the x scanner trigger by external input
-            rp_s.tx_txt('SOUR1:TRIG:SOUR EXT_PE')
-            #set digital input/output pin 5_P to output
-            rp_s.tx_txt('DIG:PIN:DIR OUT,DIO5_P')
-            #set digital input/output pin 0_PE to external trigger input
-            rp_s.tx_txt('DIG:PIN:DIR IN,DIO0_PE')
-
-
-        except:
-            self.log.exception('Error starting analog output task.')
-            return -1
-        return 0
-
-    def _stop_analog_output(self):
-        """ Stops the analog output.
-
-        @return int: error code (0:OK, -1:error)
-        """
-        if self._scanner_ao_task is None:
-            return -1
-        retval = 0
-        try:
-            # stop the analog output task
-            #daq.DAQmxStopTask(self._scanner_ao_task)
-            rp_s.tx_txt('OUTPUT1:STATE OFF')
-            rp_s.tx_txt('OUTPUT2:STATE OFF')
-        except:
-            self.log.exception('Error stopping analog output.')
-            retval = -1
-        try:
-            daq.DAQmxSetSampTimingType(self._scanner_ao_task, daq.DAQmx_Val_OnDemand)
-        except:
-            self.log.exception('Error changing analog output mode.')
-            retval = -1
-        return retval
-
-    def set_up_scanner_clock(self, clock_frequency=None, clock_channel=None):
-        """ Configures the hardware clock of the NiDAQ card to give the timing.
-
-        @param float clock_frequency: if defined, this sets the frequency of
-                                      the clock
-        @param string clock_channel: if defined, this is the physical channel
-                                     of the clock
-
-        @return int: error code (0:OK, -1:error)
-        """
-        # The clock for the scanner is created on the same principle as it is
-        # for the counter. Just to keep consistency, this function is a wrapper
-        # around the set_up_clock.
-        return self.set_up_clock(
-            clock_frequency=clock_frequency,
-            clock_channel=clock_channel,
-            scanner=True)
-
-    def set_up_scanner(self,
-                       counter_channels=None,
-                       sources=None,
-                       clock_channel=None,
-                       scanner_ao_channels=None):
-        """ Configures the actual scanner with a given clock.
-
-        The scanner works pretty much like the counter. Here you connect a
-        created clock with a counting task. That can be seen as a gated
-        counting, where the counts where sampled by the underlying clock.
-
-        @param list(str) counter_channels: this is the physical channel of the counter
-        @param list(str) sources:  this is the physical channel where the photons are to count from
-        @param string clock_channel: optional, if defined, this specifies the clock for the counter
-        @param list(str) scanner_ao_channels: optional, if defined, this specifies
-                                           the analog output channels
-
-        @return int: error code (0:OK, -1:error)
-        """
-        retval = 0
-        if self._scanner_clock_daq_task is None and clock_channel is None:
-            self.log.error('No clock running, call set_up_clock before starting the counter.')
-            return -1
-
-        if counter_channels is not None:
-            my_counter_channels = counter_channels
-        else:
-            my_counter_channels = self._scanner_counter_channels
-
-        if sources is not None:
-            my_photon_sources = sources
-        else:
-            my_photon_sources = self._photon_sources
-
-        if clock_channel is not None:
-            self._my_scanner_clock_channel = clock_channel
-        else:
-            self._my_scanner_clock_channel = self._scanner_clock_channel
-
-        if scanner_ao_channels is not None:
-            self._scanner_ao_channels = scanner_ao_channels
-            retval = self._start_analog_output()
-
-        if len(my_photon_sources) < len(my_counter_channels):
-            self.log.error('You have given {0} sources but {1} counting channels.'
-                           'Please give an equal or greater number of sources.'
-                           ''.format(len(my_photon_sources), len(my_counter_channels)))
-            return -1
-
-        try:
-            # Set the Sample Timing Type. Task timing to use a sampling clock:
-            # specify how the Data of the selected task is collected, i.e. set it
-            # now to be sampled on demand for the analog output, i.e. when
-            # demanded by software.
-            daq.DAQmxSetSampTimingType(self._scanner_ao_task, daq.DAQmx_Val_OnDemand)
-
-            for i, ch in enumerate(my_counter_channels):
-                # create handle for task, this task will do the photon counting for the
-                # scanner.
-                task = daq.TaskHandle()
-
-                # actually create the scanner counting task
-                daq.DAQmxCreateTask('ScannerCounter{0}'.format(i), daq.byref(task))
-
-                # Create a Counter Input which samples with Semi Perides the Channel.
-                # set up semi period width measurement in photon ticks, i.e. the width
-                # of each pulse (high and low) generated by pulse_out_task is measured
-                # in photon ticks.
-                #   (this task creates a channel to measure the time between state
-                #    transitions of a digital signal and adds the channel to the task
-                #    you choose)
-                daq.DAQmxCreateCISemiPeriodChan(
-                    # The task to which to add the channels
-                    task,
-                    # use this counter channel
-                    ch,
-                    # name to assign to it
-                    'Scanner Counter Channel {0}'.format(i),
-                    # expected minimum value
-                    0,
-                    # Expected maximum count value
-                    self._max_counts / self._scanner_clock_frequency,
-                    # units of width measurement, here Timebase photon ticks
-                    daq.DAQmx_Val_Ticks,
-                    '')
-
-                # Set the Counter Input to a Semi Period input Terminal.
-                # Connect the pulses from the scanner clock to the scanner counter
-                daq.DAQmxSetCISemiPeriodTerm(
-                    # The task to which to add the counter channel.
-                    task,
-                    # use this counter channel
-                    ch,
-                    # assign a Terminal Name
-                    self._my_scanner_clock_channel + 'InternalOutput')
-
-                # Set a CounterInput Control Timebase Source.
-                # Specify the terminal of the timebase which is used for the counter:
-                # Define the source of ticks for the counter as self._photon_source for
-                # the Scanner Task.
-                daq.DAQmxSetCICtrTimebaseSrc(
-                    # define to which task to# connect this function
-                    task,
-                    # counter channel to output the# counting results
-                    ch,
-                    # which channel to count
-                    my_photon_sources[i])
-                self._scanner_counter_daq_tasks.append(task)
-
-            # Scanner analog input task
-            if len(self._scanner_ai_channels) > 0:
-                atask = daq.TaskHandle()
-
-                daq.DAQmxCreateTask('ScanAnalogIn', daq.byref(atask))
-
-                daq.DAQmxCreateAIVoltageChan(
-                    atask,
-                    ', '.join(self._scanner_ai_channels),
-                    'Scan Analog In',
-                    daq.DAQmx_Val_RSE,
-                    -10,
-                    10,
-                    daq.DAQmx_Val_Volts,
-                    ''
-                )
-                self._scanner_analog_daq_task = atask
-        except:
-            self.log.exception('Error while setting up scanner.')
-            retval = -1
-
-        return retval
-
-    def scanner_set_position(self, x=None, y=None):
+    def set_position(self, x=None, y=None):
         """Move stage to x, y, z, a (where a is the fourth voltage channel).
 
         #FIXME: No volts
@@ -506,9 +193,6 @@ class RedPitaya(Base, ConfocalScannerInterface):
                 return -1
             self._current_position[1] = str(y)
 
-        # the position has to be a vstack
-        #my_position = np.vstack(self._current_position)
-
         # then directly write the position to the hardware
         try:
             #write the x,y positions to the Red Pitaya
@@ -523,172 +207,12 @@ class RedPitaya(Base, ConfocalScannerInterface):
             return -1
         return 0
 
-    def _write_scanner_ao(self, voltages, length=1, start=False):
-        """Writes a set of voltages to the analog outputs.
-
-        @param float[][n] voltages: array of n-part tuples defining the voltage
-                                    points
-        @param int length: number of tuples to write
-        @param bool start: write imediately (True)
-                           or wait for start of task (False)
-
-        n depends on how many channels are configured for analog output
-        """
-
-        # create csv text string of voltages from array array
-        _AONwritten= ''
-        for value in voltages:
-            _AONwritten += str(value) + ', '
-        _AONwritten = _AONwritten[:len(wave_form)-2] #remove the ", " at the end of the string
-        return self._AONwritten
-
-    def _scanner_position_to_volt(self, positions=None):
-        """ Converts a set of position pixels to acutal voltages.
-
-        @param float[][n] positions: array of n-part tuples defining the pixels
-
-        @return float[][n]: array of n-part tuples of corresponing voltages
-
-        The positions is typically a matrix like
-            [[x_values], [y_values], [z_values], [a_values]]
-            but x, xy, xyz and xyza are allowed formats.
-        """
-
-        if not isinstance(positions, (frozenset, list, set, tuple, np.ndarray, )):
-            self.log.error('Given position list is no array type.')
-            return np.array([np.NaN])
-
-        vlist = []
-        for i, position in enumerate(positions):
-            vlist.append(
-                (self._scanner_voltage_ranges[i][1] - self._scanner_voltage_ranges[i][0])
-                / (self._scanner_position_ranges[i][1] - self._scanner_position_ranges[i][0])
-                * (position - self._scanner_position_ranges[i][0])
-                + self._scanner_voltage_ranges[i][0]
-            )
-        volts = np.vstack(vlist)
-
-        for i, v in enumerate(volts):
-            if v.min() < self._scanner_voltage_ranges[i][0] or v.max() > self._scanner_voltage_ranges[i][1]:
-                self.log.error(
-                    'Voltages ({0}, {1}) exceed the limit, the positions have to '
-                    'be adjusted to stay in the given range.'.format(v.min(), v.max()))
-                return np.array([np.NaN])
-        return volts
-
     def get_scanner_position(self):
         """ Get the current position of the scanner hardware.
 
         @return float[]: current position in (x, y).
         """
         return self._current_position.tolist()
-
-    def _set_up_line(self, length=100):
-        """ Sets up the analog output for scanning a line.
-
-        Connect the timing of the Analog scanning task with the timing of the
-        counting task.
-
-        @param int length: length of the line in pixel
-
-        @return int: error code (0:OK, -1:error)
-        """
-        if len(self._scanner_counter_channels) > 0 and len(self._scanner_counter_daq_tasks) < 1:
-            self.log.error('Configured counter is not running, cannot scan a line.')
-            return np.array([[-1.]])
-
-        if len(self._scanner_ai_channels) > 0 and self._scanner_analog_daq_task is None:
-            self.log.error('Configured analog input is not running, cannot scan a line.')
-            return -1
-
-        self._line_length = length
-
-        try:
-            # Just a formal check whether length is not a too huge number
-            if length < np.inf:
-
-                # Configure the Sample Clock Timing.
-                # Set up the timing of the scanner counting while the voltages are
-                # being scanned (i.e. that you go through each voltage, which
-                # corresponds to a position. How fast the voltages are being
-                # changed is combined with obtaining the counts per voltage peak).
-                daq.DAQmxCfgSampClkTiming(
-                    # add to this task
-                    self._scanner_ao_task,
-                    # use this channel as clock
-                    self._my_scanner_clock_channel + 'InternalOutput',
-                    # Maximum expected clock frequency
-                    self._scanner_clock_frequency,
-                    # Generate sample on falling edge
-                    daq.DAQmx_Val_Rising,
-                    # generate finite number of samples
-                    daq.DAQmx_Val_FiniteSamps,
-                    # number of samples to generate
-                    self._line_length)
-
-            # Configure Implicit Timing for the clock.
-            # Set timing for scanner clock task to the number of pixel.
-            daq.DAQmxCfgImplicitTiming(
-                # define task
-                self._scanner_clock_daq_task,
-                # only a limited number of# counts
-                daq.DAQmx_Val_FiniteSamps,
-                # count twice for each voltage +1 for safety
-                self._line_length + 1)
-
-            for i, task in enumerate(self._scanner_counter_daq_tasks):
-                # Configure Implicit Timing for the scanner counting task.
-                # Set timing for scanner count task to the number of pixel.
-                daq.DAQmxCfgImplicitTiming(
-                    # define task
-                    task,
-                    # only a limited number of counts
-                    daq.DAQmx_Val_FiniteSamps,
-                    # count twice for each voltage +1 for safety
-                    2 * self._line_length + 1)
-
-                # Set the Read point Relative To an operation.
-                # Specifies the point in the buffer at which to begin a read operation,
-                # here we read samples from beginning of acquisition and do not overwrite
-                daq.DAQmxSetReadRelativeTo(
-                    # define to which task to connect this function
-                    task,
-                    # Start reading samples relative to the last sample returned
-                    # by the previous read
-                    daq.DAQmx_Val_CurrReadPos)
-
-                # Set the Read Offset.
-                # Specifies an offset in samples per channel at which to begin a read
-                # operation. This offset is relative to the location you specify with
-                # RelativeTo. Here we do not read the first sample.
-                daq.DAQmxSetReadOffset(
-                    # connect to this task
-                    task,
-                    # Offset after which to read
-                    1)
-
-                # Set Read OverWrite Mode.
-                # Specifies whether to overwrite samples in the buffer that you have
-                # not yet read. Unread data in buffer will be overwritten:
-                daq.DAQmxSetReadOverWrite(
-                    task,
-                    daq.DAQmx_Val_DoNotOverwriteUnreadSamps)
-
-            # Analog channels
-            if len(self._scanner_ai_channels) > 0:
-                # Analog in channel timebase
-                daq.DAQmxCfgSampClkTiming(
-                    self._scanner_analog_daq_task,
-                    self._scanner_clock_channel + 'InternalOutput',
-                    self._scanner_clock_frequency,
-                    daq.DAQmx_Val_Rising,
-                    daq.DAQmx_Val_ContSamps,
-                    self._line_length + 1
-                )
-        except:
-            self.log.exception('Error while setting up scanner to scan a line.')
-            return -1
-        return 0
 
     def scan_line(self, line_path=None, pixel_clock=False):
         """ Scans a line and return the counts on that line.
@@ -880,5 +404,170 @@ class RedPitaya(Base, ConfocalScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
         return self.close_clock(scanner=True)
+
+    ############################################################################
+    # ======== Private methods for ConfocalScannerInterface Commands ===========
+    
+    def _set_up_line(self, length=100):
+        """ Sets up the analog output for scanning a line.
+
+        Connect the timing of the Analog scanning task with the timing of the
+        counting task.
+
+        @param int length: length of the line in pixel
+
+        @return int: error code (0:OK, -1:error)
+        """
+        if len(self._scanner_counter_channels) > 0 and len(self._scanner_counter_daq_tasks) < 1:
+            self.log.error('Configured counter is not running, cannot scan a line.')
+            return np.array([[-1.]])
+
+        if len(self._scanner_ai_channels) > 0 and self._scanner_analog_daq_task is None:
+            self.log.error('Configured analog input is not running, cannot scan a line.')
+            return -1
+
+        self._line_length = length
+
+        try:
+            # Just a formal check whether length is not a too huge number
+            if length < np.inf:
+
+                # Configure the Sample Clock Timing.
+                # Set up the timing of the scanner counting while the voltages are
+                # being scanned (i.e. that you go through each voltage, which
+                # corresponds to a position. How fast the voltages are being
+                # changed is combined with obtaining the counts per voltage peak).
+                daq.DAQmxCfgSampClkTiming(
+                    # add to this task
+                    self._scanner_ao_task,
+                    # use this channel as clock
+                    self._my_scanner_clock_channel + 'InternalOutput',
+                    # Maximum expected clock frequency
+                    self._scanner_clock_frequency,
+                    # Generate sample on falling edge
+                    daq.DAQmx_Val_Rising,
+                    # generate finite number of samples
+                    daq.DAQmx_Val_FiniteSamps,
+                    # number of samples to generate
+                    self._line_length)
+
+            # Configure Implicit Timing for the clock.
+            # Set timing for scanner clock task to the number of pixel.
+            daq.DAQmxCfgImplicitTiming(
+                # define task
+                self._scanner_clock_daq_task,
+                # only a limited number of# counts
+                daq.DAQmx_Val_FiniteSamps,
+                # count twice for each voltage +1 for safety
+                self._line_length + 1)
+
+            for i, task in enumerate(self._scanner_counter_daq_tasks):
+                # Configure Implicit Timing for the scanner counting task.
+                # Set timing for scanner count task to the number of pixel.
+                daq.DAQmxCfgImplicitTiming(
+                    # define task
+                    task,
+                    # only a limited number of counts
+                    daq.DAQmx_Val_FiniteSamps,
+                    # count twice for each voltage +1 for safety
+                    2 * self._line_length + 1)
+
+                # Set the Read point Relative To an operation.
+                # Specifies the point in the buffer at which to begin a read operation,
+                # here we read samples from beginning of acquisition and do not overwrite
+                daq.DAQmxSetReadRelativeTo(
+                    # define to which task to connect this function
+                    task,
+                    # Start reading samples relative to the last sample returned
+                    # by the previous read
+                    daq.DAQmx_Val_CurrReadPos)
+
+                # Set the Read Offset.
+                # Specifies an offset in samples per channel at which to begin a read
+                # operation. This offset is relative to the location you specify with
+                # RelativeTo. Here we do not read the first sample.
+                daq.DAQmxSetReadOffset(
+                    # connect to this task
+                    task,
+                    # Offset after which to read
+                    1)
+
+                # Set Read OverWrite Mode.
+                # Specifies whether to overwrite samples in the buffer that you have
+                # not yet read. Unread data in buffer will be overwritten:
+                daq.DAQmxSetReadOverWrite(
+                    task,
+                    daq.DAQmx_Val_DoNotOverwriteUnreadSamps)
+
+            # Analog channels
+            if len(self._scanner_ai_channels) > 0:
+                # Analog in channel timebase
+                daq.DAQmxCfgSampClkTiming(
+                    self._scanner_analog_daq_task,
+                    self._scanner_clock_channel + 'InternalOutput',
+                    self._scanner_clock_frequency,
+                    daq.DAQmx_Val_Rising,
+                    daq.DAQmx_Val_ContSamps,
+                    self._line_length + 1
+                )
+        except:
+            self.log.exception('Error while setting up scanner to scan a line.')
+            return -1
+        return 0
+    
+    def _scanner_position_to_volt(self, positions=None):
+        """ Converts a set of position pixels to acutal voltages.
+
+        @param float[][n] positions: array of n-part tuples defining the pixels
+
+        @return float[][n]: array of n-part tuples of corresponing voltages
+
+        The positions is typically a matrix like
+            [[x_values], [y_values], [z_values], [a_values]]
+            but x, xy, xyz and xyza are allowed formats.
+        """
+
+        if not isinstance(positions, (frozenset, list, set, tuple, np.ndarray, )):
+            self.log.error('Given position list is no array type.')
+            return np.array([np.NaN])
+
+        vlist = []
+        for i, position in enumerate(positions):
+            vlist.append(
+                (self._scanner_voltage_ranges[i][1] - self._scanner_voltage_ranges[i][0])
+                / (self._scanner_position_ranges[i][1] - self._scanner_position_ranges[i][0])
+                * (position - self._scanner_position_ranges[i][0])
+                + self._scanner_voltage_ranges[i][0]
+            )
+        volts = np.vstack(vlist)
+
+        for i, v in enumerate(volts):
+            if v.min() < self._scanner_voltage_ranges[i][0] or v.max() > self._scanner_voltage_ranges[i][1]:
+                self.log.error(
+                    'Voltages ({0}, {1}) exceed the limit, the positions have to '
+                    'be adjusted to stay in the given range.'.format(v.min(), v.max()))
+                return np.array([np.NaN])
+        return volts
+
+    def _write_scanner_ao(self, voltages, length=1, start=False):
+        """Writes a set of voltages to the analog outputs.
+
+        @param float[][n] voltages: array of n-part tuples defining the voltage
+                                    points
+        @param int length: number of tuples to write
+        @param bool start: write imediately (True)
+                           or wait for start of task (False)
+
+        n depends on how many channels are configured for analog output
+        """
+
+        # create csv text string of voltages from array array
+        _AONwritten= ''
+        for value in voltages:
+            _AONwritten += str(value) + ', '
+        _AONwritten = _AONwritten[:len(wave_form)-2] #remove the ", " at the end of the string
+        return self._AONwritten
+
+    
 
     # ================ End ConfocalScannerInterface Commands ===================
