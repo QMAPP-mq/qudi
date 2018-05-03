@@ -25,28 +25,8 @@ from core.util.interfaces import InterfaceMetaclass
 from core.util.units import in_range
 from enum import Enum
 
-class TriggerEdge(Enum):
-    """ On which electrical signal edge does a trigger occur?
-      So edgy!
-    """
-    RISING = 0
-    FALLING = 1
-    NONE = 3
-    UNKNOWN = 4
 
-class MicrowaveMode(Enum):
-    """ Modes for microwave generators:
-        CW: continuous wave
-        LIST: ouptut list of arbitrary frequencies, each step triggered by electrical input
-        SWEEP: frequency sweep from f1 to f2, each step triggered by electrical input
-        ASWEEP: frequency sweep from f1 to f2, triggered only on the start of the sweep
-    """
-    CW = 0
-    LIST = 1
-    SWEEP = 3
-    ASWEEP = 4
-
-class MicrowaveInterface(metaclass=InterfaceMetaclass):
+class GenScanInterface(metaclass=InterfaceMetaclass):
     """This is the Interface class to define the controls for the simple
     microwave hardware.
     """
@@ -57,7 +37,7 @@ class MicrowaveInterface(metaclass=InterfaceMetaclass):
     @abc.abstractmethod
     def off(self):
         """
-        Switches off any microwave output.
+        Switches off any scanner output.
         Must return AFTER the device is actually stopped.
 
         @return int: error code (0:OK, -1:error)
@@ -65,40 +45,21 @@ class MicrowaveInterface(metaclass=InterfaceMetaclass):
         pass
 
     @abc.abstractmethod
-    def get_status(self):
+    def get_pos(self):
         """
-        Gets the current status of the MW source, i.e. the mode (cw, list or sweep) and
-        the output state (stopped, running)
-
-        @return str, bool: mode ['cw', 'list', 'sweep'], is_running [True, False]
-        """
-        pass
-
-    @abc.abstractmethod
-    def get_power(self):
-        """
-        Gets the microwave output power for the currently active mode.
-
-        @return float: the output power in dBm
-        """
-        pass
-
-    @abc.abstractmethod
-    def get_frequency(self):
-        """
-        Gets the frequency of the microwave output.
-        Returns single float value if the device is in cw mode.
+        Gets the position of the scanner.
+        Returns single float value if the device is in set position mode.
         Returns list like [start, stop, step] if the device is in sweep mode.
-        Returns list of frequencies if the device is in list mode.
+        Returns list of positions if the device is in list mode.
 
         @return [float, list]: frequency(s) currently set for this device in Hz
         """
         pass
 
     @abc.abstractmethod
-    def cw_on(self):
+    def scanner_on(self):
         """
-        Switches on cw microwave output.
+        Switches on the scanner output.
         Must return AFTER the device is actually running.
 
         @return int: error code (0:OK, -1:error)
@@ -106,12 +67,11 @@ class MicrowaveInterface(metaclass=InterfaceMetaclass):
         pass
 
     @abc.abstractmethod
-    def set_cw(self, frequency=None, power=None):
+    def set_pos(self, position=None):
         """
-        Configures the device for cw-mode and optionally sets frequency and/or power
+        Configures the device for set position-mode and optionally sets frequency.
 
-        @param float frequency: frequency to set in Hz
-        @param float power: power to set in dBm
+        @param float position: posittion set in [length unit]
 
         @return tuple(float, float, str): with the relation
             current frequency in Hz,
@@ -210,54 +170,3 @@ class MicrowaveInterface(metaclass=InterfaceMetaclass):
           @return MicrowaveLimits: Microwave limits object
         """
         pass
-
-
-class MicrowaveLimits:
-    """ A container to hold all limits for microwave sources.
-    """
-    def __init__(self):
-        """Create an instance containing all parameters with default values."""
-
-        self.supported_modes = (
-            MicrowaveMode.CW,
-            MicrowaveMode.LIST,
-            MicrowaveMode.SWEEP,
-            MicrowaveMode.ASWEEP,
-        )
-
-        # frequency in Hz
-        self.min_frequency = 1e6
-        self.max_frequency = 1e9
-
-        # power in dBm
-        self.min_power = -10
-        self.max_power = 0
-
-        # list limits, frequencies in Hz, entries are single steps
-        self.list_minstep = 1
-        self.list_maxstep = 1e9
-        self.list_maxentries = 1e3
-
-        # sweep limits, frequencies in Hz, entries are single steps
-        self.sweep_minstep = 1
-        self.sweep_maxstep = 1e9
-        self.sweep_maxentries = 1e3
-
-        # analog sweep limits, slope in Hz/s
-        self.sweep_minslope = 1
-        self.sweep_maxslope = 1e9
-
-    def frequency_in_range(self, frequency):
-        return in_range(frequency, self.min_frequency, self.max_frequency)
-
-    def power_in_range(self, power):
-        return in_range(power, self.min_power, self.max_power)
-
-    def list_step_in_range(self, step):
-        return in_range(step, self.list_minstep, self.list_maxstep)
-
-    def sweep_step_in_range(self, step):
-        return in_range(step, self.sweep_minstep, self.sweep_maxstep)
-
-    def slope_in_range(self, slope):
-        return in_range(slope, self.sweep_minslope, self.sweep_maxslope)
