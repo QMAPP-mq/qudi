@@ -869,11 +869,7 @@ class RedPitaya(Base, ConfocalScannerInterface):
         b = 0
         if len(self._scanner_ai_channels) > 0:
             try:
-                # stop the counter task
-                daq.DAQmxStopTask(self._scanner_analog_daq_task)
-                # after stopping delete all the configuration of the counter
-                daq.DAQmxClearTask(self._scanner_analog_daq_task)
-                # set the task handle to None as a safety
+                rp_s.tx_txt('GEN:RST')
                 self._scanner_analog_daq_task = None
             except:
                 self.log.exception('Could not close analog.')
