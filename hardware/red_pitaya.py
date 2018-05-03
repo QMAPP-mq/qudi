@@ -511,9 +511,14 @@ class RedPitaya(Base, ConfocalScannerInterface):
 
         # then directly write the position to the hardware
         try:
-            self._write_scanner_ao(
-                voltages=self._scanner_position_to_volt(my_position),
-                start=True)
+            #write the x,y positions to the Red Pitaya
+            rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + str(x))
+            rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + str(y))
+            #set the x,y outputs to trigger internally and simultaneously 
+            rp_s.tx_txt('TRIG:IMM')
+            #trigger the output to set position
+            rp_s.tx_txt('OUTPUT1:STATE ON')
+
         except:
             return -1
         return 0
