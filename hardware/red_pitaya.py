@@ -534,19 +534,10 @@ class RedPitaya(Base, ConfocalScannerInterface):
 
         n depends on how many channels are configured for analog output
         """
-        # Number of samples which were actually written, will be stored here.
-        # The error code of this variable can be asked with .value to check
-        # whether all channels have been written successfully.
 
-        rp_s.tx_txt('ACQ:BUF:SIZE?')
-        BUFF_SIZE = int(rp_s.rx_txt())
-        #create a string with the voltage values we want the mirror to scan through
-        _AONwritten_array = np.linspace(-1,1, BUFF_SIZE)
-        _AONwritten_array = wave_form_list[::-1] #this makes the mirrors scan left to right 
-
-        # create csv text string of wave_form_list array
+        # create csv text string of voltages from array array
         _AONwritten= ''
-        for value in _AONwritten_array:
+        for value in voltages:
             _AONwritten += str(value) + ', '
         _AONwritten = _AONwritten[:len(wave_form)-2] #remove the ", " at the end of the string
         return self._AONwritten
