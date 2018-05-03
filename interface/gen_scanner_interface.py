@@ -27,11 +27,10 @@ from enum import Enum
 
 
 class GenScanInterface(metaclass=InterfaceMetaclass):
-    """This is the Interface class to define the controls for the simple
-    microwave hardware.
+    """This is the Interface class to define the controls for general scanning hardware.
     """
 
-    _modclass = 'MicrowaveInterface'
+    _modclass = 'GenScanInterface'
     _modtype = 'interface'
 
     @abc.abstractmethod
@@ -74,16 +73,14 @@ class GenScanInterface(metaclass=InterfaceMetaclass):
         @param float position: posittion set in [length unit]
 
         @return tuple(float, float, str): with the relation
-            current frequency in Hz,
-            current power in dBm,
-            current mode
+            current position in [length unit]
         """
         pass
 
     @abc.abstractmethod
     def list_on(self):
         """
-        Switches on the list mode microwave output.
+        Switches on the list mode scanning.
         Must return AFTER the device is actually running.
 
         @return int: error code (0:OK, -1:error)
@@ -91,21 +88,20 @@ class GenScanInterface(metaclass=InterfaceMetaclass):
         pass
 
     @abc.abstractmethod
-    def set_list(self, frequency=None, power=None):
+    def set_list(self, position=None):
         """
-        Configures the device for list-mode and optionally sets frequencies and/or power
+        Configures the device for list-mode
 
-        @param list frequency: list of frequencies in Hz
-        @param float power: MW power of the frequency list in dBm
+        @param list position: list of positions in [length unit]
 
-        @return list, float, str: current frequencies in Hz, current power in dBm, current mode
+        @return list: current positions in [length unit]
         """
         pass
 
     @abc.abstractmethod
     def reset_listpos(self):
         """
-        Reset of MW list mode position to start (first frequency step)
+        Reset of scanning list mode position to start (first position step)
 
         @return int: error code (0:OK, -1:error)
         """
@@ -120,15 +116,13 @@ class GenScanInterface(metaclass=InterfaceMetaclass):
         pass
 
     @abc.abstractmethod
-    def set_sweep(self, start=None, stop=None, step=None, power=None):
+    def set_sweep(self, start=None, stop=None, step=None):
         """
-        Configures the device for sweep-mode and optionally sets frequency start/stop/step
-        and/or power
+        Configures the device for sweep-mode and optionally sets position start/stop/step
 
-        @return float, float, float, float, str: current start frequency in Hz,
-                                                 current stop frequency in Hz,
-                                                 current frequency step in Hz,
-                                                 current power in dBm,
+        @return float, float, float, float, str: current start position in [length unit],
+                                                 current stop position in [length unit],
+                                                 current position step in [length unit],
                                                  current mode
         """
         pass
@@ -136,7 +130,7 @@ class GenScanInterface(metaclass=InterfaceMetaclass):
     @abc.abstractmethod
     def reset_sweeppos(self):
         """
-        Reset of MW sweep mode position to start (start frequency)
+        Reset of scanner sweep mode position to start (start position)
 
         @return int: error code (0:OK, -1:error)
         """
@@ -167,6 +161,6 @@ class GenScanInterface(metaclass=InterfaceMetaclass):
     def get_limits(self):
         """ Return the device-specific limits in a nested dictionary.
 
-          @return MicrowaveLimits: Microwave limits object
+          @return GenScannerLimits: General scanner limits object
         """
         pass
