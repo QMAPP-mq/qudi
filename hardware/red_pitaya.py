@@ -241,84 +241,6 @@ class RedPitaya(Base, GenScannerInterface):
             self.log.error('Given line_path list is not array type.')
             return np.array([[-1.]])
         try:
-            # set task timing to use a sampling clock:
-            # specify how the Data of the selected task is collected, i.e. set it
-            # now to be sampled by a hardware (clock) signal.
-            daq.DAQmxSetSampTimingType(self._scanner_ao_task, daq.DAQmx_Val_SampClk)
-            self._set_up_line(np.shape(line_path)[1])
-            line_volts = self._scanner_position_to_volt(line_path)
-            # write the positions to the analog output
-            written_voltages = self._write_scanner_ao(
-                voltages=line_volts,
-                length=self._line_length,
-                start=False)
-
-            # start the timed analog output task
-            daq.DAQmxStartTask(self._scanner_ao_task)
-
-            for i, task in enumerate(self._scanner_counter_daq_tasks):
-                daq.DAQmxStopTask(task)
-
-            daq.DAQmxStopTask(self._scanner_clock_daq_task)
-
-            if pixel_clock and self._pixel_clock_channel is not None:
-                daq.DAQmxConnectTerms(
-                    self._scanner_clock_channel + 'InternalOutput',
-                    self._pixel_clock_channel,
-                    daq.DAQmx_Val_DoNotInvertPolarity)
-
-            # start the scanner counting task that acquires counts synchroneously
-            for i, task in enumerate(self._scanner_counter_daq_tasks):
-                daq.DAQmxStartTask(task)
-
-            if len(self._scanner_ai_channels) > 0:
-                daq.DAQmxStartTask(self._scanner_analog_daq_task)
-
-            daq.DAQmxStartTask(self._scanner_clock_daq_task)
-
-            for i, task in enumerate(self._scanner_counter_daq_tasks):
-                # wait for the scanner counter to finish
-                daq.DAQmxWaitUntilTaskDone(
-                    # define task
-                    task,
-                    # Maximum timeout for the counter times the positions. Unit is seconds.
-                    self._RWTimeout * 2 * self._line_length)
-
-            # wait for the scanner clock to finish
-            daq.DAQmxWaitUntilTaskDone(
-                # define task
-                self._scanner_clock_daq_task,
-                # maximal timeout for the counter times the positions
-                self._RWTimeout * 2 * self._line_length)
-
-            # count data will be written here
-            self._scan_data = np.empty(
-                (len(self.get_scanner_count_channels()), 2 * self._line_length),
-                dtype=np.uint32)
-
-            # number of samples which were read will be stored here
-            n_read_samples = daq.int32()
-            for i, task in enumerate(self._scanner_counter_daq_tasks):
-                # actually read the counted photons
-                daq.DAQmxReadCounterU32(
-                    # read from this task
-                    task,
-                    # read number of double the # number of samples
-                    2 * self._line_length,
-                    # maximal timeout for the read# process
-                    self._RWTimeout,
-                    # write into this array
-                    self._scan_data[i],
-                    # length of array to write into
-                    2 * self._line_length,
-                    # number of samples which were actually read
-                    daq.byref(n_read_samples),
-                    # Reserved for future use. Pass NULL(here None) to this parameter.
-                    None)
-
-                # stop the counter task
-                daq.DAQmxStopTask(task)
-
             # Analog channels
             if len(self._scanner_ai_channels) > 0:
                 self._analog_data = np.full(
@@ -428,91 +350,10 @@ class RedPitaya(Base, GenScannerInterface):
 
         self._line_length = length
 
-        try:
-            # Just a formal check whether length is not a too huge number
-            if length < np.inf:
-
-                # Configure the Sample Clock Timing.
-                # Set up the timing of the scanner counting while the voltages are
-                # being scanned (i.e. that you go through each voltage, which
-                # corresponds to a position. How fast the voltages are being
-                # changed is combined with obtaining the counts per voltage peak).
-                daq.DAQmxCfgSampClkTiming(
-                    # add to this task
-                    self._scanner_ao_task,
-                    # use this channel as clock
-                    self._my_scanner_clock_channel + 'InternalOutput',
-                    # Maximum expected clock frequency
-                    self._scanner_clock_frequency,
-                    # Generate sample on falling edge
-                    daq.DAQmx_Val_Rising,
-                    # generate finite number of samples
-                    daq.DAQmx_Val_FiniteSamps,
-                    # number of samples to generate
-                    self._line_length)
-
-            # Configure Implicit Timing for the clock.
-            # Set timing for scanner clock task to the number of pixel.
-            daq.DAQmxCfgImplicitTiming(
-                # define task
-                self._scanner_clock_daq_task,
-                # only a limited number of# counts
-                daq.DAQmx_Val_FiniteSamps,
-                # count twice for each voltage +1 for safety
-                self._line_length + 1)
-
-            for i, task in enumerate(self._scanner_counter_daq_tasks):
-                # Configure Implicit Timing for the scanner counting task.
-                # Set timing for scanner count task to the number of pixel.
-                daq.DAQmxCfgImplicitTiming(
-                    # define task
-                    task,
-                    # only a limited number of counts
-                    daq.DAQmx_Val_FiniteSamps,
-                    # count twice for each voltage +1 for safety
-                    2 * self._line_length + 1)
-
-                # Set the Read point Relative To an operation.
-                # Specifies the point in the buffer at which to begin a read operation,
-                # here we read samples from beginning of acquisition and do not overwrite
-                daq.DAQmxSetReadRelativeTo(
-                    # define to which task to connect this function
-                    task,
-                    # Start reading samples relative to the last sample returned
-                    # by the previous read
-                    daq.DAQmx_Val_CurrReadPos)
-
-                # Set the Read Offset.
-                # Specifies an offset in samples per channel at which to begin a read
-                # operation. This offset is relative to the location you specify with
-                # RelativeTo. Here we do not read the first sample.
-                daq.DAQmxSetReadOffset(
-                    # connect to this task
-                    task,
-                    # Offset after which to read
-                    1)
-
-                # Set Read OverWrite Mode.
-                # Specifies whether to overwrite samples in the buffer that you have
-                # not yet read. Unread data in buffer will be overwritten:
-                daq.DAQmxSetReadOverWrite(
-                    task,
-                    daq.DAQmx_Val_DoNotOverwriteUnreadSamps)
-
-            # Analog channels
-            if len(self._scanner_ai_channels) > 0:
-                # Analog in channel timebase
-                daq.DAQmxCfgSampClkTiming(
-                    self._scanner_analog_daq_task,
-                    self._scanner_clock_channel + 'InternalOutput',
-                    self._scanner_clock_frequency,
-                    daq.DAQmx_Val_Rising,
-                    daq.DAQmx_Val_ContSamps,
-                    self._line_length + 1
-                )
-        except:
+        if  length < np.inf:
             self.log.exception('Error while setting up scanner to scan a line.')
             return -1
+            
         return 0
     
     def _scanner_position_to_volt(self, positions=None):
