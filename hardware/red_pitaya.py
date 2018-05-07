@@ -197,7 +197,7 @@ class RedPitaya(Base, GenScannerInterface):
             self.log.error('Configured counter is not running, cannot scan a line.')
             return np.array([[-1.]])
 
-        if len(self._scanner_ai_channels) > 0 and self._scanner_analog_daq_task is None:
+        if len(self._scanner_ai_channels) > 0 :
             self.log.error('Configured analog input is not running, cannot scan a line.')
             return -1
 
@@ -259,7 +259,6 @@ class RedPitaya(Base, GenScannerInterface):
         if len(self._scanner_ai_channels) > 0:
             try:
                 rp_s.tx_txt('GEN:RST')
-                self._scanner_analog_daq_task = None
             except:
                 self.log.exception('Could not close analog.')
                 b = -1
@@ -280,7 +279,7 @@ class RedPitaya(Base, GenScannerInterface):
             self.log.error('Configured counter is not running, cannot scan a line.')
             return np.array([[-1.]])
 
-        if len(self._scanner_ai_channels) > 0 and self._scanner_analog_daq_task is None:
+        if len(self._scanner_ai_channels) > 0:
             self.log.error('Configured analog input is not running, cannot scan a line.')
             return -1
 
