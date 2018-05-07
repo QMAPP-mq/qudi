@@ -86,13 +86,6 @@ class RedPitaya(Base, GenScannerInterface):
             retval = -1
         return retval
 
-    def get_scanner_axes(self):
-        """ Red Pitaya will only ever have 2 RF analog outputs.
-        """
-        possible_channels = ['x', 'y']
-
-        return possible_channels
-
     def get_position_range(self):
         """ Returns the physical range of the scanner.
 
@@ -271,8 +264,7 @@ class RedPitaya(Base, GenScannerInterface):
                 self.log.exception('Could not close analog.')
                 b = -1
 
-        c = self.close_counter(scanner=True)
-        return -1 if a < 0 or b < 0 or c < 0 else 0
+        return -1 if a < 0 or b < 0 or else 0
         
     ############################################################################
     # ======== Private methods for GeneralScannerInterface Commands ===========

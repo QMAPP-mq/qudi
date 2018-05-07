@@ -34,7 +34,7 @@ class GenScanInterface(metaclass=InterfaceMetaclass):
     _modtype = 'interface'
 
     @abc.abstractmethod
-    def off(self):
+    def reset_hardware(self):
         """
         Switches off any scanner output.
         Must return AFTER the device is actually stopped.
@@ -61,19 +61,19 @@ class GenScanInterface(metaclass=InterfaceMetaclass):
         Returns list like [start, stop, step] if the device is in sweep mode.
         Returns list of positions if the device is in list mode.
 
-        @return [float, list]: frequency(s) currently set for this device in Hz
+        @return [float, list]: positions(s) currently set for this device in metres
         """
         pass
 
     @abc.abstractmethod
     def set_position(self, position=None):
         """
-        Configures the device for set position-mode and optionally sets frequency.
+        Configures the device for set position-mode.
 
-        @param float position: posittion set in [length unit]
+        @param float position: posittion set in metres
 
         @return tuple(float, float, str): with the relation
-            current position in [length unit]
+            current position in metres
         """
         pass
 
@@ -92,9 +92,9 @@ class GenScanInterface(metaclass=InterfaceMetaclass):
         """
         Configures the device for list-mode
 
-        @param list position: list of positions in [length unit]
+        @param list position: list of positions in metres
 
-        @return list: current positions in [length unit]
+        @return list: current positions in metres
         """
         pass
 
@@ -120,9 +120,9 @@ class GenScanInterface(metaclass=InterfaceMetaclass):
         """
         Configures the device for sweep-mode and optionally sets position start/stop/step
 
-        @return float, float, float, float, str: current start position in [length unit],
-                                                 current stop position in [length unit],
-                                                 current position step in [length unit],
+        @return float, float, float, float, str: current start position in metres,
+                                                 current stop position in metres,
+                                                 current position step in metres,
                                                  current mode
         """
         pass
