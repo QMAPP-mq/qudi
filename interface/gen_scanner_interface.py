@@ -136,16 +136,6 @@ class GenScanInterface(metaclass=InterfaceMetaclass):
         """
         pass
 
-    @abc.abstractmethod
-    def set_ext_trigger(self, pol=TriggerEdge.RISING):
-        """ Set the external trigger for this device with proper polarization.
-
-        @param TriggerEdge pol: polarisation of the trigger (basically rising edge or falling edge)
-
-        @return object: current trigger polarity [TriggerEdge.RISING, TriggerEdge.FALLING]
-        """
-        pass
-
     def trigger(self):
         """ Trigger the next element in the list or sweep mode programmatically.
 
