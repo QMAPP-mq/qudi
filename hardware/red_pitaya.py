@@ -319,14 +319,7 @@ class RedPitaya(Base, GenScannerInterface):
 
         c = self.close_counter(scanner=True)
         return -1 if a < 0 or b < 0 or c < 0 else 0
-
-    def close_scanner_clock(self):
-        """ Closes the clock and cleans up afterwards.
-
-        @return int: error code (0:OK, -1:error)
-        """
-        return self.close_clock(scanner=True)
-
+        
     ############################################################################
     # ======== Private methods for ConfocalScannerInterface Commands ===========
     
