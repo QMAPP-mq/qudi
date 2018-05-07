@@ -241,23 +241,11 @@ class RedPitaya(Base, GenScannerInterface):
                     222,
                     dtype=np.float64)
 
-                x_value = ''
-                y_value = ''
-
-                for x_val in line_path[0]:
-                    x_value += str(x_val) + ', '
-                
-                x_value = x_value[:len(x_value)-2]   
-
-                for y_val in line_path[1]:
-                    y_value += str(y_val) + ', '
-
-                y_value = y_value[:len(y_value)-2]
-
-                rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + x_value)
-                rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_value)
-
-
+                #turn digital output on
+                rp_s.tx_txt('DIG:PIN DIO5_P, 1')
+                time.sleep(0.01)
+                #turn digital output off
+                rp_s.tx_txt('DIG:PIN DIO5_P, 0')    
                 )
 
             # stop the analog output task
@@ -332,6 +320,54 @@ class RedPitaya(Base, GenScannerInterface):
         if  length < np.inf:
             self.log.exception('Error while setting up scanner to scan a line.')
             return -1
+
+        try:
+            x_value = ''
+            y_value = ''
+
+            for x_val in line_path[0]:
+                x_value += str(x_val) + ', '
+                
+                x_value = x_value[:len(x_value)-2]   
+
+            for y_val in line_path[1]:
+                y_value += str(y_val) + ', '
+
+            y_value = y_value[:len(y_value)-2]
+
+            freq_x = 20
+            freq_y = 1000
+
+            #resets generator to default settings
+            rp_s.tx_txt('GEN:RST')
+
+            #set source 1,2 to have an arbitrary input 
+            rp_s.tx_txt('SOUR1:FUNC ARBITRARY')
+            rp_s.tx_txt('SOUR2:FUNC ARBITRARY')
+
+            rp_s.tx_txt('SOUR1:FREQ:FIX ' + str(freq_x))
+            rp_s.tx_txt('SOUR2:FREQ:FIX ' + str(freq_y))
+
+            #set source 1,2 waveform to our scan values
+            rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + x_value)
+            rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_value)                        
+
+            #set source burst repititions to 1
+            rp_s.tx_txt('SOUR1:BURS:NCYC 1')
+            rp_s.tx_txt('SOUR2:BURS:NCYC 1')
+
+            #enable source 1,2 to be triggered (may cause a trigger)
+            rp_s.tx_txt('OUTPUT1:STATE ON')
+            rp_s.tx_txt('OUTPUT2:STATE ON')
+
+            #set trigger to be external
+            rp_s.tx_txt('SOUR1:TRIG:SOUR EXT_PE')
+            rp_s.tx_txt('SOUR2:TRIG:SOUR EXT_PE')
+
+            #set digital input/output pin 5_P to output
+            rp_s.tx_txt('DIG:PIN:DIR OUT,DIO5_P')
+            #set digital input/output pin 0_PE to external trigger input
+            rp_s.tx_txt('DIG:PIN:DIR IN,DIO0_PE')
             
         return 0
     
