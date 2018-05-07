@@ -305,7 +305,7 @@ class RedPitaya(Base, GenScannerInterface):
             for x_val in line_path[0]:
                 x_value += str(x_val) + ', '
                 
-                x_value = x_value[:len(x_value)-2]   
+            x_value = x_value[:len(x_value)-2]   
 
             for y_val in line_path[1]:
                 y_value += str(y_val) + ', '
