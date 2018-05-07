@@ -70,7 +70,7 @@ class RedPitaya(Base, GenScannerInterface):
         self.reset_hardware()
    
     ############################################################################
-    # ================ ConfocalScannerInterface Commands =======================
+    # ================ GenerallScannerInterface Commands =======================
     def reset_hardware(self):
         """ Resets the NI hardware, so the connection is lost and other
             programs can access it.
@@ -78,7 +78,7 @@ class RedPitaya(Base, GenScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
         retval = 0
-        
+
         try:
             rp_s.tx_txt('GEN:RST')
         except:
@@ -275,7 +275,7 @@ class RedPitaya(Base, GenScannerInterface):
         return -1 if a < 0 or b < 0 or c < 0 else 0
         
     ############################################################################
-    # ======== Private methods for ConfocalScannerInterface Commands ===========
+    # ======== Private methods for GeneralScannerInterface Commands ===========
     
     def _set_up_line(self, length=100):
         """ Sets up the analog output for scanning a line.
