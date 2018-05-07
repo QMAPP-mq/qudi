@@ -78,35 +78,12 @@ class RedPitaya(Base, GenScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
         retval = 0
-        chanlist = [
-            self._odmr_trigger_channel,
-            self._clock_channel,
-            self._scanner_clock_channel,
-            self._gate_in_channel
-            ]
-        chanlist.extend(self._scanner_ao_channels)
-        chanlist.extend(self._photon_sources)
-        chanlist.extend(self._counter_channels)
-        chanlist.extend(self._scanner_counter_channels)
-
-        devicelist = []
-        for channel in chanlist:
-            if channel is None:
-                continue
-            match = re.match(
-                '^/(?P<dev>[0-9A-Za-z\- ]+[0-9A-Za-z\-_ ]*)/(?P<chan>[0-9A-Za-z]+)',
-                channel)
-            if match:
-                devicelist.append(match.group('dev'))
-            else:
-                self.log.error('Did not find device name in {0}.'.format(channel))
-        for device in set(devicelist):
-            self.log.info('Reset device {0}.'.format(device))
-            try:
-                rp_s.tx_txt('GEN:RST')
-            except:
-                self.log.exception('Could not reset NI device {0}'.format(device))
-                retval = -1
+        
+        try:
+            rp_s.tx_txt('GEN:RST')
+        except:
+            self.log.exception('Could not reset NI device {0}'.format(device))
+            retval = -1
         return retval
 
     def get_scanner_axes(self):
@@ -368,7 +345,7 @@ class RedPitaya(Base, GenScannerInterface):
             rp_s.tx_txt('DIG:PIN:DIR OUT,DIO5_P')
             #set digital input/output pin 0_PE to external trigger input
             rp_s.tx_txt('DIG:PIN:DIR IN,DIO0_PE')
-            
+
         return 0
     
     def _scanner_position_to_volt(self, positions=None):
