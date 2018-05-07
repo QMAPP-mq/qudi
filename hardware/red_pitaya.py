@@ -116,12 +116,6 @@ class RedPitaya(Base, GenScannerInterface):
 
         return possible_channels
 
-    def get_scanner_count_channels(self):
-        """ Return list of counter channels """
-        ch = self._scanner_counter_channels[:]
-        ch.extend(self._scanner_ai_channels)
-        return ch
-
     def get_position_range(self):
         """ Returns the physical range of the scanner.
 
@@ -320,9 +314,6 @@ class RedPitaya(Base, GenScannerInterface):
     
     def _set_up_line(self, length=100):
         """ Sets up the analog output for scanning a line.
-
-        Connect the timing of the Analog scanning task with the timing of the
-        counting task.
 
         @param int length: length of the line in pixel
 
