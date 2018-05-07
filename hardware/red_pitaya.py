@@ -214,7 +214,7 @@ class RedPitaya(Base, GenScannerInterface):
         """
         return self._current_position.tolist()
 
-    def scan_line(self, line_path=None, pixel_clock=False):
+    def scan_line(self, line_path=None):
         """ Scans a line and return the counts on that line.
 
         @param float[c][m] line_path: array of c-tuples defining the voltage points
@@ -241,38 +241,33 @@ class RedPitaya(Base, GenScannerInterface):
             self.log.error('Given line_path list is not array type.')
             return np.array([[-1.]])
         try:
-            # Analog channels
             if len(self._scanner_ai_channels) > 0:
                 self._analog_data = np.full(
                     (len(self._scanner_ai_channels), self._line_length + 1),
                     222,
                     dtype=np.float64)
 
-                analog_read_samples = daq.int32()
+                x_value = ''
+                y_value = ''
 
-                daq.DAQmxReadAnalogF64(
-                    self._scanner_analog_daq_task,
-                    self._line_length + 1,
-                    self._RWTimeout,
-                    daq.DAQmx_Val_GroupByChannel,
-                    self._analog_data,
-                    len(self._scanner_ai_channels) * (self._line_length + 1),
-                    daq.byref(analog_read_samples),
-                    None
+                for x_val in line_path[0]:
+                    x_value += str(x_val) + ', '
+                
+                x_value = x_value[:len(x_value)-2]   
+
+                for y_val in line_path[1]:
+                    y_value += str(y_val) + ', '
+
+                y_value = y_value[:len(y_value)-2]
+
+                rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + x_value)
+                rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_value)
+
+
                 )
-
-                daq.DAQmxStopTask(self._scanner_analog_daq_task)
-
-            # stop the clock task
-            daq.DAQmxStopTask(self._scanner_clock_daq_task)
 
             # stop the analog output task
             self._stop_analog_output()
-
-            if pixel_clock and self._pixel_clock_channel is not None:
-                daq.DAQmxDisconnectTerms(
-                    self._scanner_clock_channel + 'InternalOutput',
-                    self._pixel_clock_channel)
 
             # create a new array for the final data (this time of the length
             # number of samples):
