@@ -40,8 +40,11 @@ class RedPitaya(Base, GenScannerInterface):
     _modclass = 'hardware'
 
     def on_activate(self):
-        """ Starts up the NI Card at activation.
+        """ Starts up the RP Card at activation.
         """
+
+        ip = '10.37.24.37'
+        self.rp_s = scpi.scpi(ip)
 
         # handle all the parameters given by the config
         self._current_position = np.zeros(len(self._scanner_ao_channels))
@@ -80,7 +83,7 @@ class RedPitaya(Base, GenScannerInterface):
         retval = 0
 
         try:
-            rp_s.tx_txt('GEN:RST')
+            self.rp_s.tx_txt('GEN:RST')
         except:
             self.log.exception('Could not reset NI device {0}'.format(device))
             retval = -1
@@ -160,12 +163,12 @@ class RedPitaya(Base, GenScannerInterface):
         # then directly write the position to the hardware
         try:
             #write the x,y positions to the Red Pitaya
-            rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + str(x))
-            rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + str(y))
+            self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + str(x))
+            self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + str(y))
             #set the x,y outputs to trigger internally and simultaneously 
-            rp_s.tx_txt('TRIG:IMM')
+            self.rp_s.tx_txt('TRIG:IMM')
             #trigger the output to set position
-            rp_s.tx_txt('OUTPUT1:STATE ON')
+            self.rp_s.tx_txt('OUTPUT1:STATE ON')
 
         except:
             return -1
@@ -212,10 +215,10 @@ class RedPitaya(Base, GenScannerInterface):
                     dtype=np.float64)
 
                 #turn digital output on
-                rp_s.tx_txt('DIG:PIN DIO5_P, 1')
+                self.rp_s.tx_txt('DIG:PIN DIO5_P, 1')
                 time.sleep(0.01)
                 #turn digital output off
-                rp_s.tx_txt('DIG:PIN DIO5_P, 0')    
+                self.rp_s.tx_txt('DIG:PIN DIO5_P, 0')    
                 )
 
             # stop the analog output task
@@ -258,7 +261,7 @@ class RedPitaya(Base, GenScannerInterface):
         b = 0
         if len(self._scanner_ai_channels) > 0:
             try:
-                rp_s.tx_txt('GEN:RST')
+                self.rp_s.tx_txt('GEN:RST')
             except:
                 self.log.exception('Could not close analog.')
                 b = -1
@@ -307,35 +310,35 @@ class RedPitaya(Base, GenScannerInterface):
             freq_y = 1000
 
             #resets generator to default settings
-            rp_s.tx_txt('GEN:RST')
+            self.rp_s.tx_txt('GEN:RST')
 
             #set source 1,2 to have an arbitrary input 
-            rp_s.tx_txt('SOUR1:FUNC ARBITRARY')
-            rp_s.tx_txt('SOUR2:FUNC ARBITRARY')
+            self.rp_s.tx_txt('SOUR1:FUNC ARBITRARY')
+            self.rp_s.tx_txt('SOUR2:FUNC ARBITRARY')
 
-            rp_s.tx_txt('SOUR1:FREQ:FIX ' + str(freq_x))
-            rp_s.tx_txt('SOUR2:FREQ:FIX ' + str(freq_y))
+            self.rp_s.tx_txt('SOUR1:FREQ:FIX ' + str(freq_x))
+            self.rp_s.tx_txt('SOUR2:FREQ:FIX ' + str(freq_y))
 
             #set source 1,2 waveform to our scan values
-            rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + x_value)
-            rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_value)                        
+            self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + x_value)
+            self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_value)                        
 
             #set source burst repititions to 1
-            rp_s.tx_txt('SOUR1:BURS:NCYC 1')
-            rp_s.tx_txt('SOUR2:BURS:NCYC 1')
+            self.rp_s.tx_txt('SOUR1:BURS:NCYC 1')
+            self.rp_s.tx_txt('SOUR2:BURS:NCYC 1')
 
             #enable source 1,2 to be triggered (may cause a trigger)
-            rp_s.tx_txt('OUTPUT1:STATE ON')
-            rp_s.tx_txt('OUTPUT2:STATE ON')
+            self.rp_s.tx_txt('OUTPUT1:STATE ON')
+            self.rp_s.tx_txt('OUTPUT2:STATE ON')
 
             #set trigger to be external
-            rp_s.tx_txt('SOUR1:TRIG:SOUR EXT_PE')
-            rp_s.tx_txt('SOUR2:TRIG:SOUR EXT_PE')
+            self.rp_s.tx_txt('SOUR1:TRIG:SOUR EXT_PE')
+            self.rp_s.tx_txt('SOUR2:TRIG:SOUR EXT_PE')
 
             #set digital input/output pin 5_P to output
-            rp_s.tx_txt('DIG:PIN:DIR OUT,DIO5_P')
+            self.rp_s.tx_txt('DIG:PIN:DIR OUT,DIO5_P')
             #set digital input/output pin 0_PE to external trigger input
-            rp_s.tx_txt('DIG:PIN:DIR IN,DIO0_PE')
+            self.rp_s.tx_txt('DIG:PIN:DIR IN,DIO0_PE')
 
         return 0
     
