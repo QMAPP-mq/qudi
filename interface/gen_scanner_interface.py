@@ -52,6 +52,15 @@ class GenScanInterface(metaclass=InterfaceMetaclass):
         @return int: error code (0:OK, -1:error)
         """
         pass
+        
+    @abc.abstractmethod
+    def get_position_range(self):
+        """ Returns the physical range of the scanner.
+
+        @return float [4][2]: array of 4 ranges with an array containing lower
+                              and upper limit
+        """
+        pass
 
     @abc.abstractmethod
     def get_position(self):
