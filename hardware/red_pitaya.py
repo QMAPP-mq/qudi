@@ -196,30 +196,21 @@ class RedPitaya(Base, GenScannerInterface):
         n is the number of scanner axes, which can vary. Typical values are 2 for galvo scanners,
         3 for xyz scanners and 4 for xyz scanners with a special function on the a axis.
         """
-        if len(self._scanner_counter_channels) > 0 and len(self._scanner_counter_daq_tasks) < 1:
-            self.log.error('Configured counter is not running, cannot scan a line.')
-            return np.array([[-1.]])
-
-        if len(self._scanner_ai_channels) > 0 :
-            self.log.error('Configured analog input is not running, cannot scan a line.')
-            return -1
 
         if not isinstance(line_path, (frozenset, list, set, tuple, np.ndarray, ) ):
             self.log.error('Given line_path list is not array type.')
             return np.array([[-1.]])
         try:
-            if len(self._scanner_ai_channels) > 0:
-                self._analog_data = np.full(
-                    (len(self._scanner_ai_channels), self._line_length + 1),
-                    222,
-                    dtype=np.float64)
+            self._analog_data = np.full(
+                (len(self._scanner_ai_channels), self._line_length + 1),
+                222,
+                dtype=np.float64)
 
-                #turn digital output on
-                self.rp_s.tx_txt('DIG:PIN DIO5_P, 1')
-                time.sleep(0.01)
-                #turn digital output off
-                self.rp_s.tx_txt('DIG:PIN DIO5_P, 0')    
-                )
+            #turn digital output on
+            self.rp_s.tx_txt('DIG:PIN DIO5_P, 1')
+            time.sleep(0.01)
+            #turn digital output off
+            self.rp_s.tx_txt('DIG:PIN DIO5_P, 0')    
 
             # stop the analog output task
             self._stop_analog_output()
@@ -402,7 +393,7 @@ class RedPitaya(Base, GenScannerInterface):
         """
         retval = 0
         try:
-            # stop the analog output task
+            # stop the analog output
             rp_s.tx_txt('OUTPUT1:STATE OFF')
             rp_s.tx_txt('OUTPUT2:STATE OFF')
         except:
