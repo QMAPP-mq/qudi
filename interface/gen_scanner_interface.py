@@ -54,6 +54,15 @@ class GenScanInterface(metaclass=InterfaceMetaclass):
         pass
 
     @abc.abstractmethod
+    def scanner_off(self):
+        """ Closes the scanner and cleans up afterwards.
+
+        @return int: error code (0:OK, -1:error)
+        """
+        pass
+
+
+    @abc.abstractmethod
     def get_position_range(self):
         """ Returns the physical range of the scanner.
 
