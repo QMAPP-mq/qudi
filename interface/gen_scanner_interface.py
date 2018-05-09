@@ -94,6 +94,17 @@ class GenScanInterface(metaclass=InterfaceMetaclass):
             current position in metres
         """
         pass
+        @abc.abstractmethod
+        
+    def set_position_range(self, myrange=None):
+        """ Sets the physical range of the scanner.
+
+        @param float [4][2] myrange: array of 4 ranges with an array containing
+                                     lower and upper limit
+
+        @return int: error code (0:OK, -1:error)
+        """
+        pass
 
     @abc.abstractmethod
     def list_on(self):
