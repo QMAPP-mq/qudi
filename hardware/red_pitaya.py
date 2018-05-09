@@ -387,18 +387,18 @@ class RedPitaya(Base, GenScannerInterface):
         return self._AONwritten
 
     def _stop_analog_output(self):
-    """ Stops the analog output.
+        """ Stops the analog output.
 
-    @return int: error code (0:OK, -1:error)
-    """
-    retval = 0
-    try:
-        # stop the analog output
-        rp_s.tx_txt('OUTPUT1:STATE OFF')
-        rp_s.tx_txt('OUTPUT2:STATE OFF')
-    except:
-        self.log.exception('Error stopping analog output.')
-        retval = -1
-    return retval
+        @return int: error code (0:OK, -1:error)
+        """
+        retval = 0
+        try:
+            # stop the analog output
+            rp_s.tx_txt('OUTPUT1:STATE OFF')
+            rp_s.tx_txt('OUTPUT2:STATE OFF')
+        except:
+            self.log.exception('Error stopping analog output.')
+            retval = -1
+        return retval
 
     # ================ End ConfocalScannerInterface Commands ===================
