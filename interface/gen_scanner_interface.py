@@ -95,7 +95,7 @@ class GenScanInterface(metaclass=InterfaceMetaclass):
         """
         pass
         @abc.abstractmethod
-        
+
     def set_position_range(self, myrange=None):
         """ Sets the physical range of the scanner.
 
@@ -103,27 +103,6 @@ class GenScanInterface(metaclass=InterfaceMetaclass):
                                      lower and upper limit
 
         @return int: error code (0:OK, -1:error)
-        """
-        pass
-
-    @abc.abstractmethod
-    def list_on(self):
-        """
-        Switches on the list mode scanning.
-        Must return AFTER the device is actually running.
-
-        @return int: error code (0:OK, -1:error)
-        """
-        pass
-
-    @abc.abstractmethod
-    def set_list(self, position=None):
-        """
-        Configures the device for list-mode
-
-        @param list position: list of positions in metres
-
-        @return list: current positions in metres
         """
         pass
 
