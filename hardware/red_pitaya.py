@@ -262,7 +262,7 @@ class RedPitaya(Base, GenScannerInterface):
     ############################################################################
     # ======== Private methods for GeneralScannerInterface Commands ===========
     
-    def _set_up_line(self, length=100):
+    def _set_up_line(self):
         """ Sets up the analog output for scanning a line.
 
         @param int length: length of the line in pixel
@@ -277,7 +277,7 @@ class RedPitaya(Base, GenScannerInterface):
             self.log.error('Configured analog input is not running, cannot scan a line.')
             return -1
 
-        self._line_length = length
+        self._line_length = self.BUFF_SIZE
 
         if  length < np.inf:
             self.log.exception('Error while setting up scanner to scan a line.')
@@ -341,8 +341,8 @@ class RedPitaya(Base, GenScannerInterface):
         @return float[][n]: array of n-part tuples of corresponing voltages
 
         The positions is typically a matrix like
-            [[x_values], [y_values], [z_values], [a_values]]
-            but x, xy, xyz and xyza are allowed formats.
+            [[x_values], [y_values]]
+            but x, xy is allowed formats.
         """
 
         if not isinstance(positions, (frozenset, list, set, tuple, np.ndarray, )):
@@ -386,19 +386,19 @@ class RedPitaya(Base, GenScannerInterface):
         _AONwritten = _AONwritten[:len(wave_form)-2] #remove the ", " at the end of the string
         return self._AONwritten
 
-        def _stop_analog_output(self):
-        """ Stops the analog output.
+    def _stop_analog_output(self):
+    """ Stops the analog output.
 
-        @return int: error code (0:OK, -1:error)
-        """
-        retval = 0
-        try:
-            # stop the analog output
-            rp_s.tx_txt('OUTPUT1:STATE OFF')
-            rp_s.tx_txt('OUTPUT2:STATE OFF')
-        except:
-            self.log.exception('Error stopping analog output.')
-            retval = -1
-        return retval
+    @return int: error code (0:OK, -1:error)
+    """
+    retval = 0
+    try:
+        # stop the analog output
+        rp_s.tx_txt('OUTPUT1:STATE OFF')
+        rp_s.tx_txt('OUTPUT2:STATE OFF')
+    except:
+        self.log.exception('Error stopping analog output.')
+        retval = -1
+    return retval
 
     # ================ End ConfocalScannerInterface Commands ===================
