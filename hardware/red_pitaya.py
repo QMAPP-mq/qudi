@@ -152,13 +152,13 @@ class RedPitaya(Base, GenScannerInterface):
             if not(self._scanner_position_ranges[0][0] <= x <= self._scanner_position_ranges[0][1]):
                 self.log.error('You want to set x out of range: {0:f}.'.format(x))
                 return -1
-            self._current_position[0] = str(x)
+            self._current_position[0] = np.float(x)
 
         if y is not None:
             if not(self._scanner_position_ranges[1][0] <= y <= self._scanner_position_ranges[1][1]):
                 self.log.error('You want to set y out of range: {0:f}.'.format(y))
                 return -1
-            self._current_position[1] = str(y)
+            self._current_position[1] = np.float(y)
 
         # then directly write the position to the hardware
         try:
@@ -174,7 +174,7 @@ class RedPitaya(Base, GenScannerInterface):
             return -1
         return 0
 
-    def get_scanner_position(self):
+    def get_position(self):
         """ Get the current position of the scanner hardware.
 
         @return float[]: current position in (x, y).
@@ -395,6 +395,19 @@ class RedPitaya(Base, GenScannerInterface):
         _AONwritten = _AONwritten[:len(wave_form)-2] #remove the ", " at the end of the string
         return self._AONwritten
 
-    
+        def _stop_analog_output(self):
+        """ Stops the analog output.
+
+        @return int: error code (0:OK, -1:error)
+        """
+        retval = 0
+        try:
+            # stop the analog output task
+            rp_s.tx_txt('OUTPUT1:STATE OFF')
+            rp_s.tx_txt('OUTPUT2:STATE OFF')
+        except:
+            self.log.exception('Error stopping analog output.')
+            retval = -1
+        return retval
 
     # ================ End ConfocalScannerInterface Commands ===================
