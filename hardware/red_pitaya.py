@@ -186,7 +186,6 @@ class RedPitaya(Base, GenScannerInterface):
 
         @param float[c][m] line_path: array of c-tuples defining the voltage points
             (m = samples per line)
-        @param bool pixel_clock: whether we need to output a pixel clock for this line
 
         @return float[m][n]: m (samples per line) n-channel photon counts per second
 
@@ -200,6 +199,10 @@ class RedPitaya(Base, GenScannerInterface):
         if not isinstance(line_path, (frozenset, list, set, tuple, np.ndarray, ) ):
             self.log.error('Given line_path list is not array type.')
             return np.array([[-1.]])
+
+        if len(self.x_line) == 0 and len(self.y_line) == 0:
+            _set_up_line()
+
         try:
             self._analog_data = np.full(
                 (len(self._scanner_ai_channels), self._line_length + 1),
@@ -262,16 +265,14 @@ class RedPitaya(Base, GenScannerInterface):
     ############################################################################
     # ======== Private methods for GeneralScannerInterface Commands ===========
     
-    def _set_up_line(self):
+    def _set_up_line(self, line_path):
         """ Sets up the analog output for scanning a line.
 
-        @param int length: length of the line in pixel
+        @param float[c][m] line_path: array of c-tuples defining the voltage points
+        (m = samples per line)
 
         @return int: error code (0:OK, -1:error)
         """
-        if len(self._scanner_counter_channels) > 0 and len(self._scanner_counter_daq_tasks) < 1:
-            self.log.error('Configured counter is not running, cannot scan a line.')
-            return np.array([[-1.]])
 
         if len(self._scanner_ai_channels) > 0:
             self.log.error('Configured analog input is not running, cannot scan a line.')
@@ -284,18 +285,18 @@ class RedPitaya(Base, GenScannerInterface):
             return -1
 
         try:
-            x_line = ''
-            y_line = ''
+            self.x_line = ''
+            self.y_line = ''
 
             for x_val in line_path[0]:
-                x_line += str(x_val) + ', '
+                self.x_line += str(x_val) + ', '
                 
-            x_line = x_line[:len(x_line)-2]   
+            self.x_line = self.x_line[:len(self.x_line)-2]   
 
             for y_val in line_path[1]:
-                y_line += str(y_line) + ', '
+                self.y_line += str(self.y_line) + ', '
 
-            y_line = y_line[:len(y_line)-2]
+            self.y_line = y_line[:len(self.y_line)-2]
 
             freq_x = 100
             freq_y = 100
@@ -311,8 +312,8 @@ class RedPitaya(Base, GenScannerInterface):
             self.rp_s.tx_txt('SOUR2:FREQ:FIX ' + str(freq_y))
 
             #set source 1,2 waveform to our scan values
-            self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + x_line)
-            self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_line)                        
+            self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + self.x_line)
+            self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + self.y_line)                        
 
             #set source burst repititions to 1
             self.rp_s.tx_txt('SOUR1:BURS:NCYC 1')
