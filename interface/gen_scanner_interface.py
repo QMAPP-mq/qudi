@@ -52,7 +52,7 @@ class GenScanInterface(metaclass=InterfaceMetaclass):
         @return int: error code (0:OK, -1:error)
         """
         pass
-        
+
     @abc.abstractmethod
     def get_position_range(self):
         """ Returns the physical range of the scanner.
@@ -117,7 +117,7 @@ class GenScanInterface(metaclass=InterfaceMetaclass):
         pass
 
     @abc.abstractmethod
-    def sweep_on(self):
+    def scan_line(self):
         """ Switches on the sweep mode.
 
         @return int: error code (0:OK, -1:error)
@@ -125,7 +125,7 @@ class GenScanInterface(metaclass=InterfaceMetaclass):
         pass
 
     @abc.abstractmethod
-    def set_sweep(self, start=None, stop=None, step=None):
+    def set_up_line(self, start=None, stop=None, step=None):
         """
         Configures the device for sweep-mode and optionally sets position start/stop/step
 
