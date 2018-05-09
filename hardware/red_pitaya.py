@@ -242,7 +242,7 @@ class RedPitaya(Base, GenScannerInterface):
         # return values is a rate of counts/s
         return all_data.transpose()
 
-    def close_scanner(self):
+    def scanner_off(self):
         """ Closes the scanner and cleans up afterwards.
 
         @return int: error code (0:OK, -1:error)
@@ -284,21 +284,21 @@ class RedPitaya(Base, GenScannerInterface):
             return -1
 
         try:
-            x_value = ''
-            y_value = ''
+            x_line = ''
+            y_line = ''
 
             for x_val in line_path[0]:
-                x_value += str(x_val) + ', '
+                x_line += str(x_val) + ', '
                 
-            x_value = x_value[:len(x_value)-2]   
+            x_line = x_line[:len(x_line)-2]   
 
             for y_val in line_path[1]:
-                y_value += str(y_val) + ', '
+                y_line += str(y_line) + ', '
 
-            y_value = y_value[:len(y_value)-2]
+            y_line = y_line[:len(y_line)-2]
 
-            freq_x = 20
-            freq_y = 1000
+            freq_x = 100
+            freq_y = 100
 
             #resets generator to default settings
             self.rp_s.tx_txt('GEN:RST')
@@ -311,8 +311,8 @@ class RedPitaya(Base, GenScannerInterface):
             self.rp_s.tx_txt('SOUR2:FREQ:FIX ' + str(freq_y))
 
             #set source 1,2 waveform to our scan values
-            self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + x_value)
-            self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_value)                        
+            self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + x_line)
+            self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_line)                        
 
             #set source burst repititions to 1
             self.rp_s.tx_txt('SOUR1:BURS:NCYC 1')
