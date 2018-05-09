@@ -108,15 +108,6 @@ class GenScanInterface(metaclass=InterfaceMetaclass):
         pass
 
     @abc.abstractmethod
-    def reset_listpos(self):
-        """
-        Reset of scanning list mode position to start (first position step)
-
-        @return int: error code (0:OK, -1:error)
-        """
-        pass
-
-    @abc.abstractmethod
     def scan_line(self):
         """ Switches on the sweep mode.
 
@@ -133,15 +124,6 @@ class GenScanInterface(metaclass=InterfaceMetaclass):
                                                  current stop position in metres,
                                                  current position step in metres,
                                                  current mode
-        """
-        pass
-
-    @abc.abstractmethod
-    def reset_sweeppos(self):
-        """
-        Reset of scanner sweep mode position to start (start position)
-
-        @return int: error code (0:OK, -1:error)
         """
         pass
 
