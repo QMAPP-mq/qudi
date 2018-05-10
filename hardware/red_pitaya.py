@@ -92,7 +92,7 @@ class RedPitaya(Base, GenScannerInterface):
     def get_position_range(self):
         """ Returns the physical range of the scanner.
 
-        @return float [4][2]: array of 4 ranges with an array containing lower
+        @return float [2][2]: array of 4 ranges with an array containing lower
                               and upper limit. The unit of the scan range is
                               meters.
         """
@@ -160,11 +160,14 @@ class RedPitaya(Base, GenScannerInterface):
                 return -1
             self._current_position[1] = np.float(y)
 
+        x_volt = str(self._scanner_position_to_volt(self, positions=x))
+        y_volt = str(self._scanner_position_to_volt(self, positions=y))
+
         # then directly write the position to the hardware
         try:
             #write the x,y positions to the Red Pitaya
-            self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + str(x))
-            self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + str(y))
+            self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + x_volt)
+            self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_volt)
             #set the x,y outputs to trigger internally and simultaneously 
             self.rp_s.tx_txt('TRIG:IMM')
             #trigger the output to set position
