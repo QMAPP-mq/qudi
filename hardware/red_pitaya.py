@@ -204,7 +204,7 @@ class RedPitaya(Base, GenScannerInterface):
             return np.array([[-1.]])
 
         if len(self.x_line) == 0 and len(self.y_line) == 0:
-            _set_up_line()
+            self._set_up_line(line_path=line_path)
 
         try:
             self._analog_data = np.full(
@@ -287,16 +287,23 @@ class RedPitaya(Base, GenScannerInterface):
             self.log.exception('Error while setting up scanner to scan a line.')
             return -1
 
+        #Red Pitaya does not like having a line path less than its buffer size
+        x_path = np.linspace(line_path[0][0], line_path[0][len(line_path[0])-1], BUFF_SIZE)
+        y_path = np.linspace(line_path[1][0], line_path[1][len(line_path[1])-1], BUFF_SIZE)
+
+        x_path = _scanner_position_to_volt(positions = x_path)
+        y_path = _scanner_position_to_volt(positions = y_path)
+        
         try:
             self.x_line = ''
             self.y_line = ''
 
-            for x_val in line_path[0]:
+            for x_val in x_path:
                 self.x_line += str(x_val) + ', '
                 
             self.x_line = self.x_line[:len(self.x_line)-2]   
 
-            for y_val in line_path[1]:
+            for y_val in y_path:
                 self.y_line += str(self.y_line) + ', '
 
             self.y_line = y_line[:len(self.y_line)-2]
