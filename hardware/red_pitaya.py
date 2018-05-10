@@ -21,9 +21,8 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 """
 
 import numpy as np
-import re
 
-import redpitaya_scpi as scpi
+from thirdparty.redpitaya import redpitaya_scpi as scpi
 
 from core.module import Base, ConfigOption
 from interface.confocal_scanner_interface import ConfocalScannerInterface
@@ -34,38 +33,43 @@ class RedPitaya(Base, GenScannerInterface):
 
     A Red Pitaya device that can do lots of things.
 
+    An example config file entry 0would look like:
+
+    ```
+    # red_pitaya:
+    #     module.Class: 'red_pitaya.RedPitaya'
+    #     ip_address: '1.1.1.1'
+    #     scanner_ao_channels:
+    #         - 'OUT1'
+    #         - 'OUT2'
+    #     scanner_voltage_ranges:
+    #         - [-1, 1]
+    #         - [-1, 1]
+    #     trigger_out_channel: 'DOUT1'
+    #     trigger_in_channel: 'DIN3'  #Hardcoded?
+    ```
+
     """
 
     _modtype = 'RPcard'
     _modclass = 'hardware'
 
+    _ip = ConfigOption('ip_address', missing='error')
+    _scanner_ao_channels = ConfigOption('scanner_ao_channels', missing='error')
+    _scanner_voltage_ranges = ConfigOption('scanner_voltage_ranges', missing='error')
+
     def on_activate(self):
         """ Starts up the RP Card at activation.
         """
 
-        ip = '10.37.24.37'
-        self.rp_s = scpi.scpi(ip)
+        self.rp_s = scpi.scpi(self._ip)
 
         # handle all the parameters given by the config
         self._current_position = np.zeros(len(self._scanner_ao_channels))
 
-        if len(self._scanner_ao_channels) < len(self._scanner_voltage_ranges):
+        if len(self._scanner_ao_channels) != len(self._scanner_voltage_ranges):
             self.log.error(
-                'Specify at least as many scanner_voltage_ranges as scanner_ao_channels!')
-
-        if len(self._scanner_ao_channels) < len(self._scanner_position_ranges):
-            self.log.error(
-                'Specify at least as many scanner_position_ranges as scanner_ao_channels!')
-
-        if len(self._scanner_counter_channels) + len(self._scanner_ai_channels) < 1:
-            self.log.error(
-                'Specify at least one counter or analog input channel for the scanner!')
-
-        # Analog output is always needed and it does not interfere with the
-        # rest, so start it always and leave it running
-        if self._start_analog_output() < 0:
-            self.log.error('Failed to start analog output.')
-            raise Exception('Failed to start RP Card module due to analog output failure.')
+                'Specify as many scanner_voltage_ranges as scanner_ao_channels!')
 
     def on_deactivate(self):
         """ Shut down the NI card.
@@ -85,7 +89,7 @@ class RedPitaya(Base, GenScannerInterface):
         try:
             self.rp_s.tx_txt('GEN:RST')
         except:
-            self.log.exception('Could not reset NI device {0}'.format(device))
+            self.log.exception('Could not reset RedPitaya device at ' + self._ip
             retval = -1
         return retval
 
@@ -110,26 +114,7 @@ class RedPitaya(Base, GenScannerInterface):
         if myrange is None:
             myrange = [[0, 1e-6], [0, 1e-6]]
 
-        if not isinstance(myrange, (frozenset, list, set, tuple, np.ndarray, )):
-            self.log.error('Given range is no array type.')
-            return -1
-
-        if len(myrange) != 4:
-            self.log.error(
-                'Given range should have dimension 4, but has {0:d} instead.'
-                ''.format(len(myrange)))
-            return -1
-
-        for pos in myrange:
-            if len(pos) != 2:
-                self.log.error(
-                    'Given range limit {1:d} should have dimension 2, but has {0:d} instead.'
-                    ''.format(len(pos), pos))
-                return -1
-            if pos[0]>pos[1]:
-                self.log.error(
-                    'Given range limit {0:d} has the wrong order.'.format(pos))
-                return -1
+        # TODO: do something here
 
         self._scanner_position_ranges = myrange
         return 0
@@ -207,38 +192,11 @@ class RedPitaya(Base, GenScannerInterface):
             self._set_up_line(line_path=line_path)
 
         try:
-            self._analog_data = np.full(
-                (len(self._scanner_ai_channels), self._line_length + 1),
-                222,
-                dtype=np.float64)
-
             #turn digital output on
-            self.rp_s.tx_txt('DIG:PIN DIO5_P, 1')
+            self.rp_s.tx_txt('DIG:PIN DIO5_P, 1')  # TODO: make this the channel from the config
             time.sleep(0.01)
             #turn digital output off
             self.rp_s.tx_txt('DIG:PIN DIO5_P, 0')    
-
-            # stop the analog output task
-            self._stop_analog_output()
-
-            # create a new array for the final data (this time of the length
-            # number of samples):
-            self._real_data = np.empty(
-                (len(self._scanner_counter_channels), self._line_length),
-                dtype=np.uint32)
-
-            # add up adjoint pixels to also get the counts from the low time of
-            # the clock:
-            self._real_data = self._scan_data[:, ::2]
-            self._real_data += self._scan_data[:, 1::2]
-
-            all_data = np.full(
-                (len(self.get_scanner_count_channels()), self._line_length), 2, dtype=np.float64)
-            all_data[0:len(self._real_data)] = np.array(
-                self._real_data * self._scanner_clock_frequency, np.float64)
-
-            if len(self._scanner_ai_channels) > 0:
-                all_data[len(self._scanner_counter_channels):] = self._analog_data[:, :-1]
 
             # update the scanner position instance variable
             self._current_position = np.array(line_path[:, -1])
@@ -256,7 +214,7 @@ class RedPitaya(Base, GenScannerInterface):
         a = self._stop_analog_output()
 
         b = 0
-        if len(self._scanner_ai_channels) > 0:
+        if len(self._scanner_ai_channels) > 0:  # TODO: what does this mean?
             try:
                 self.rp_s.tx_txt('GEN:RST')
             except:
@@ -277,15 +235,7 @@ class RedPitaya(Base, GenScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
 
-        if len(self._scanner_ai_channels) > 0:
-            self.log.error('Configured analog input is not running, cannot scan a line.')
-            return -1
-
-        self._line_length = self.BUFF_SIZE
-
-        if  length < np.inf:
-            self.log.exception('Error while setting up scanner to scan a line.')
-            return -1
+        self._line_length = self.BUFF_SIZE  # TODO: initialise this at head of class
 
         #Red Pitaya does not like having a line path less than its buffer size
         x_path = np.linspace(line_path[0][0], line_path[0][len(line_path[0])-1], BUFF_SIZE)
@@ -338,7 +288,7 @@ class RedPitaya(Base, GenScannerInterface):
             self.rp_s.tx_txt('SOUR2:TRIG:SOUR EXT_PE')
 
             #set digital input/output pin 5_P to output
-            self.rp_s.tx_txt('DIG:PIN:DIR OUT,DIO5_P')
+            self.rp_s.tx_txt('DIG:PIN:DIR OUT,DIO5_P')  # TODO: configured trigger channel
             #set digital input/output pin 0_PE to external trigger input
             self.rp_s.tx_txt('DIG:PIN:DIR IN,DIO0_PE')
 
