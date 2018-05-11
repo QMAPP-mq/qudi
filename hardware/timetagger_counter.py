@@ -52,7 +52,7 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
         config = self.getConfiguration()
 	
         self._channel_apd_0 = config['timetagger_channel_apd_0']
-        self._channel_apd_1 = None
+        self._channel_apd_1 = config['timetagger_channel_apd_1']
         self._sum_channels = False
 
         if self._sum_channels and self._channel_apd_1 is None:
