@@ -47,6 +47,8 @@ class RedPitaya(Base, GenScannerInterface):
     #         - [-1, 1]
     #     trigger_out_channel: 'DOUT1'
     #     trigger_in_channel: 'DIN3'  #Hardcoded?
+    #     scanner_frequency:
+    #         - 100
     ```
 
     """
@@ -57,6 +59,7 @@ class RedPitaya(Base, GenScannerInterface):
     _ip = ConfigOption('ip_address', missing='error')
     _scanner_ao_channels = ConfigOption('scanner_ao_channels', missing='error')
     _scanner_voltage_ranges = ConfigOption('scanner_voltage_ranges', missing='error')
+    _scanner_frequency = ConfigOption('scanner_frequency', missing='error')
 
     def on_activate(self):
         """ Starts up the RP Card at activation.
@@ -258,9 +261,6 @@ class RedPitaya(Base, GenScannerInterface):
 
             self.y_line = y_line[:len(self.y_line)-2]
 
-            freq_x = 100
-            freq_y = 100
-
             #resets generator to default settings
             self.rp_s.tx_txt('GEN:RST')
 
@@ -268,8 +268,9 @@ class RedPitaya(Base, GenScannerInterface):
             self.rp_s.tx_txt('SOUR1:FUNC ARBITRARY')
             self.rp_s.tx_txt('SOUR2:FUNC ARBITRARY')
 
-            self.rp_s.tx_txt('SOUR1:FREQ:FIX ' + str(freq_x))
-            self.rp_s.tx_txt('SOUR2:FREQ:FIX ' + str(freq_y))
+            #set the scanner frequencies from the config file
+            self.rp_s.tx_txt('SOUR1:FREQ:FIX ' + str(self._scanner_frequency))
+            self.rp_s.tx_txt('SOUR2:FREQ:FIX ' + str(self._scanner_frequency))
 
             #set source 1,2 waveform to our scan values
             self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + self.x_line)
