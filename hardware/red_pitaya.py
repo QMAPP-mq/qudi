@@ -73,19 +73,21 @@ class RedPitaya(Base, GenScannerInterface):
         # handle all the parameters given by the config
         self._current_position = np.zeros(len(self._scanner_ao_channels))
 
+        self._scanner_position_ranges = self.set_position_range()
+
         if len(self._scanner_ao_channels) != len(self._scanner_voltage_ranges):
             self.log.error(
                 'Specify as many scanner_voltage_ranges as scanner_ao_channels!')
 
     def on_deactivate(self):
-        """ Shut down the NI card.
+        """ Shut down the Red Pitaya.
         """
         self.reset_hardware()
    
     ############################################################################
     # ================ GenerallScannerInterface Commands =======================
     def reset_hardware(self):
-        """ Resets the NI hardware, so the connection is lost and other
+        """ Resets the Red Pitaya hardware, so the connection is lost and other
             programs can access it.
 
         @return int: error code (0:OK, -1:error)
@@ -119,6 +121,8 @@ class RedPitaya(Base, GenScannerInterface):
         """
         if myrange is None:
             myrange = [[0, 1e-6], [0, 1e-6]]
+
+        self.log.info('Setting the position range to ', myrange, ' but this property cannot be configured with this device.')
 
         # TODO: do something here
 
@@ -165,6 +169,7 @@ class RedPitaya(Base, GenScannerInterface):
             self.rp_s.tx_txt('OUTPUT1:STATE ON')
 
         except:
+            self.log.warning('Cound not set position of RP device on ', self._ip)
             return -1
         return 0
 
@@ -224,7 +229,7 @@ class RedPitaya(Base, GenScannerInterface):
             try:
                 self.rp_s.tx_txt('GEN:RST')
             except:
-                self.log.exception('Could not close analog.')
+                self.log.exception('Could not close analog on RP device on ', self._ip)
                 b = -1
 
         return -1 if a < 0 or b < 0 or else 0
@@ -342,11 +347,11 @@ class RedPitaya(Base, GenScannerInterface):
         n depends on how many channels are configured for analog output
         """
 
-        # create csv text string of voltages from array array
+        # create csv text string of voltages from array
         _AONwritten= ''
         for value in voltages:
             _AONwritten += str(value) + ', '
-        _AONwritten = _AONwritten[:len(wave_form)-2] #remove the ", " at the end of the string
+        _AONwritten = _AONwritten[:len(wave_form)-2] #r emove the ", " at the end of the string
         return self._AONwritten
 
     def _stop_analog_output(self):
@@ -360,7 +365,7 @@ class RedPitaya(Base, GenScannerInterface):
             rp_s.tx_txt('OUTPUT1:STATE OFF')
             rp_s.tx_txt('OUTPUT2:STATE OFF')
         except:
-            self.log.exception('Error stopping analog output.')
+            self.log.exception('Error stopping analog output on RP device at ', self._ip)
             retval = -1
         return retval
 
