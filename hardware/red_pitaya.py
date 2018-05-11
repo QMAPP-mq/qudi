@@ -60,15 +60,15 @@ class RedPitaya(Base, GenScannerInterface):
     _scanner_voltage_ranges = ConfigOption('scanner_voltage_ranges', missing='error')
     _scanner_frequency = ConfigOption('scanner_frequency', missing='error')
     _trigger_out_channel = ConfigOption(trigger_out_channel, missing='error')
-    
-    rp_s.tx_txt('ACQ:BUF:SIZE?')
-    _buffer_size = int(rp_s.rx_txt())
 
     def on_activate(self):
         """ Starts up the RP Card at activation.
         """
 
         self.rp_s = scpi.scpi(self._ip)
+
+        rp_s.tx_txt('ACQ:BUF:SIZE?')
+        self._buffer_size = int(rp_s.rx_txt())
 
         # handle all the parameters given by the config
         self._current_position = np.zeros(len(self._scanner_ao_channels))
