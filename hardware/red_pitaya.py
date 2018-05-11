@@ -97,7 +97,7 @@ class RedPitaya(Base, GenScannerInterface):
         try:
             self.rp_s.tx_txt('GEN:RST')
         except:
-            self.log.exception('Could not reset RedPitaya device at ' + self._ip
+            self.log.exception('Could not reset RedPitaya device at ' + self._ip)
             retval = -1
         return retval
 
@@ -245,7 +245,8 @@ class RedPitaya(Base, GenScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-
+        #TODO: Change this to use set y pos for horizontal scan lines
+         
         #Red Pitaya does not like having a line path less than its buffer size
         x_path = np.linspace(line_path[0][0], line_path[0][len(line_path[0])-1], self._buffer_size)
         y_path = np.linspace(line_path[1][0], line_path[1][len(line_path[1])-1], self._buffer_size)
@@ -346,7 +347,8 @@ class RedPitaya(Base, GenScannerInterface):
 
         n depends on how many channels are configured for analog output
         """
-
+        # TODO: rethink whether this function is needed at all
+        
         # create csv text string of voltages from array
         _AONwritten= ''
         for value in voltages:
