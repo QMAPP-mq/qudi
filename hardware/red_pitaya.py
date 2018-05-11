@@ -130,9 +130,8 @@ class RedPitaya(Base, GenScannerInterface):
         return 0
 
     def set_position(self, x=None, y=None):
-        """Move stage to x, y, z, a (where a is the fourth voltage channel).
+        """Move stage to x, y
 
-        #FIXME: No volts
         @param float x: postion in x-direction (volts)
         @param float y: postion in y-direction (volts)
 
@@ -158,13 +157,16 @@ class RedPitaya(Base, GenScannerInterface):
         x_volt = str(self._scanner_position_to_volt(self, positions=x))
         y_volt = str(self._scanner_position_to_volt(self, positions=y))
 
-        # then directly write the position to the hardware
+        #TODO: check if I need to set more RP parameters (mode, freq etc)
         try:
-            #write the x,y positions to the Red Pitaya
-            self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + x_volt)
-            self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_volt)
+            # then directly write the position to the hardware
+            if x is not None:
+                self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + x_volt)
+            if y is not None:
+                self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_volt)
+
             #set the x,y outputs to trigger internally and simultaneously 
-            self.rp_s.tx_txt('TRIG:IMM')
+            self.rp_s.tx_txt('TRIG:IMM') #TODO check the order of these functions
             #trigger the output to set position
             self.rp_s.tx_txt('OUTPUT1:STATE ON')
 
@@ -245,55 +247,46 @@ class RedPitaya(Base, GenScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        #TODO: Change this to use set y pos for horizontal scan lines
-         
+
+        #if the scan path varies in y, set the y position to the final value, don't touch x
+        #dirty hack to prevent delays from writing positions to RP
+        if line_path[1][0] == line_path[1][len(line_path)-1]:
+            self.set_position(y=line_path[1][len(line_path)-1])
+            return 0
+
         #Red Pitaya does not like having a line path less than its buffer size
         x_path = np.linspace(line_path[0][0], line_path[0][len(line_path[0])-1], self._buffer_size)
-        y_path = np.linspace(line_path[1][0], line_path[1][len(line_path[1])-1], self._buffer_size)
 
         x_path = _scanner_position_to_volt(positions = x_path)
-        y_path = _scanner_position_to_volt(positions = y_path)
         
         try:
             self.x_line = ''
-            self.y_line = ''
 
             for x_val in x_path:
                 self.x_line += str(x_val) + ', '
                 
             self.x_line = self.x_line[:len(self.x_line)-2]   
 
-            for y_val in y_path:
-                self.y_line += str(self.y_line) + ', '
-
-            self.y_line = y_line[:len(self.y_line)-2]
-
             #resets generator to default settings
             self.rp_s.tx_txt('GEN:RST')
 
             #set source 1,2 to have an arbitrary input 
             self.rp_s.tx_txt('SOUR1:FUNC ARBITRARY')
-            self.rp_s.tx_txt('SOUR2:FUNC ARBITRARY')
 
             #set the scanner frequencies from the config file
             self.rp_s.tx_txt('SOUR1:FREQ:FIX ' + str(self._scanner_frequency))
-            self.rp_s.tx_txt('SOUR2:FREQ:FIX ' + str(self._scanner_frequency))
 
             #set source 1,2 waveform to our scan values
-            self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + self.x_line)
-            self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + self.y_line)                        
+            self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + self.x_line)                       
 
             #set source burst repititions to 1
             self.rp_s.tx_txt('SOUR1:BURS:NCYC 1')
-            self.rp_s.tx_txt('SOUR2:BURS:NCYC 1')
 
             #enable source 1,2 to be triggered (may cause a trigger)
             self.rp_s.tx_txt('OUTPUT1:STATE ON')
-            self.rp_s.tx_txt('OUTPUT2:STATE ON')
 
             #set trigger to be external
             self.rp_s.tx_txt('SOUR1:TRIG:SOUR EXT_PE')
-            self.rp_s.tx_txt('SOUR2:TRIG:SOUR EXT_PE')
 
             #set digital input/output of trigger channel to output
             self.rp_s.tx_txt('DIG:PIN:DIR OUT,'+ self._trigger_out_channel)
@@ -348,7 +341,7 @@ class RedPitaya(Base, GenScannerInterface):
         n depends on how many channels are configured for analog output
         """
         # TODO: rethink whether this function is needed at all
-        
+
         # create csv text string of voltages from array
         _AONwritten= ''
         for value in voltages:
