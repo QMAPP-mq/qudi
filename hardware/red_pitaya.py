@@ -45,8 +45,7 @@ class RedPitaya(Base, GenScannerInterface):
     #     scanner_voltage_ranges:
     #         - [-1, 1]
     #         - [-1, 1]
-    #     trigger_out_channel: 'DOUT1'
-    #     trigger_in_channel: 'DIN3'  #Hardcoded?
+    #     trigger_out_channel: 'DIO1_P'
     #     scanner_frequency:
     #         - 100
     ```
@@ -60,6 +59,10 @@ class RedPitaya(Base, GenScannerInterface):
     _scanner_ao_channels = ConfigOption('scanner_ao_channels', missing='error')
     _scanner_voltage_ranges = ConfigOption('scanner_voltage_ranges', missing='error')
     _scanner_frequency = ConfigOption('scanner_frequency', missing='error')
+    _trigger_out_channel = ConfigOption(trigger_out_channel, missing='error')
+    
+    rp_s.tx_txt('ACQ:BUF:SIZE?')
+    _buffer_size = int(rp_s.rx_txt())
 
     def on_activate(self):
         """ Starts up the RP Card at activation.
@@ -196,10 +199,10 @@ class RedPitaya(Base, GenScannerInterface):
 
         try:
             #turn digital output on
-            self.rp_s.tx_txt('DIG:PIN DIO5_P, 1')  # TODO: make this the channel from the config
+            self.rp_s.tx_txt('DIG:PIN'+ self._trigger_out_channel+', 1')  
             time.sleep(0.01)
             #turn digital output off
-            self.rp_s.tx_txt('DIG:PIN DIO5_P, 0')    
+            self.rp_s.tx_txt('DIG:PIN'+ self._trigger_out_channel+', 0')    
 
             # update the scanner position instance variable
             self._current_position = np.array(line_path[:, -1])
@@ -217,7 +220,7 @@ class RedPitaya(Base, GenScannerInterface):
         a = self._stop_analog_output()
 
         b = 0
-        if len(self._scanner_ai_channels) > 0:  # TODO: what does this mean?
+        if len(self._scaner_ai_channels) > 0:  # TODO: what does this mean?
             try:
                 self.rp_s.tx_txt('GEN:RST')
             except:
@@ -238,11 +241,9 @@ class RedPitaya(Base, GenScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
 
-        self._line_length = self.BUFF_SIZE  # TODO: initialise this at head of class
-
         #Red Pitaya does not like having a line path less than its buffer size
-        x_path = np.linspace(line_path[0][0], line_path[0][len(line_path[0])-1], BUFF_SIZE)
-        y_path = np.linspace(line_path[1][0], line_path[1][len(line_path[1])-1], BUFF_SIZE)
+        x_path = np.linspace(line_path[0][0], line_path[0][len(line_path[0])-1], self._buffer_size)
+        y_path = np.linspace(line_path[1][0], line_path[1][len(line_path[1])-1], self._buffer_size)
 
         x_path = _scanner_position_to_volt(positions = x_path)
         y_path = _scanner_position_to_volt(positions = y_path)
@@ -288,8 +289,8 @@ class RedPitaya(Base, GenScannerInterface):
             self.rp_s.tx_txt('SOUR1:TRIG:SOUR EXT_PE')
             self.rp_s.tx_txt('SOUR2:TRIG:SOUR EXT_PE')
 
-            #set digital input/output pin 5_P to output
-            self.rp_s.tx_txt('DIG:PIN:DIR OUT,DIO5_P')  # TODO: configured trigger channel
+            #set digital input/output of trigger channel to output
+            self.rp_s.tx_txt('DIG:PIN:DIR OUT,'+ self._trigger_out_channel)
             #set digital input/output pin 0_PE to external trigger input
             self.rp_s.tx_txt('DIG:PIN:DIR IN,DIO0_PE')
 
