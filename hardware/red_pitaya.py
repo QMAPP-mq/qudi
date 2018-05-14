@@ -73,7 +73,8 @@ class RedPitaya(Base, GenScannerInterface):
         # handle all the parameters given by the config
         self._current_position = np.zeros(len(self._scanner_ao_channels))
 
-        self._scanner_position_ranges = self.set_position_range()
+        self.set_position_range()
+        self. x_path_volt = 0
 
         if len(self._scanner_ao_channels) != len(self._scanner_voltage_ranges):
             self.log.error(
@@ -132,30 +133,33 @@ class RedPitaya(Base, GenScannerInterface):
     def set_position(self, x=None, y=None):
         """Move stage to x, y
 
-        @param float x: postion in x-direction (volts)
-        @param float y: postion in y-direction (volts)
+        @param float x: postion in x-direction (metres)
+        @param float y: postion in y-direction (metres)
 
         @return int: error code (0:OK, -1:error)
         """
 
+
+        
         if self.module_state() == 'locked':
             self.log.error('Another scan_line is already running, close this one first.')
             return -1
 
         if x is not None:
+            x_volt = str(self._scanner_position_to_volt(self, positions=x))
             if not(self._scanner_position_ranges[0][0] <= x <= self._scanner_position_ranges[0][1]):
                 self.log.error('You want to set x out of range: {0:f}.'.format(x))
                 return -1
             self._current_position[0] = np.float(x)
 
         if y is not None:
+            y_volt = str(self._scanner_position_to_volt(self, positions=y))
             if not(self._scanner_position_ranges[1][0] <= y <= self._scanner_position_ranges[1][1]):
                 self.log.error('You want to set y out of range: {0:f}.'.format(y))
                 return -1
             self._current_position[1] = np.float(y)
 
-        x_volt = str(self._scanner_position_to_volt(self, positions=x))
-        y_volt = str(self._scanner_position_to_volt(self, positions=y))
+
 
         #TODO: check if I need to set more RP parameters (mode, freq etc)
         try:
@@ -183,25 +187,23 @@ class RedPitaya(Base, GenScannerInterface):
         return self._current_position.tolist()
 
     def scan_line(self, line_path=None):
-        """ Scans a line and return the counts on that line.
+        """ Scans a line.
 
         @param float[c][m] line_path: array of c-tuples defining the voltage points
             (m = samples per line)
 
         @return float[m][n]: m (samples per line) n-channel photon counts per second
 
-        The input array looks for a xy scan of 5x5 points at the position z=-2
+        The input array looks for a xy scan of 5x5 points at the position y=1
         like the following:
-            [ [1, 2, 3, 4, 5], [1, 1, 1, 1, 1], [-2, -2, -2, -2] ]
+            [ [1, 2, 3, 4, 5], [1, 1, 1, 1, 1]]
         n is the number of scanner axes, which can vary. Typical values are 2 for galvo scanners,
-        3 for xyz scanners and 4 for xyz scanners with a special function on the a axis.
         """
-
         if not isinstance(line_path, (frozenset, list, set, tuple, np.ndarray, ) ):
             self.log.error('Given line_path list is not array type.')
             return np.array([[-1.]])
 
-        if len(self.x_line) == 0 and len(self.y_line) == 0:
+        if self.x_path_volt[0] != line_path[0][0] and self.x_path_volt[len(x_line)-1] != line_path[0][len(x_line)-1]:
             self._set_up_line(line_path=line_path)
 
         try:
@@ -227,7 +229,7 @@ class RedPitaya(Base, GenScannerInterface):
         a = self._stop_analog_output()
 
         b = 0
-        if len(self._scaner_ai_channels) > 0:  # TODO: what does this mean?
+        if len(self._scanner_ai_channels) > 0:  # TODO: what does this mean?
             try:
                 self.rp_s.tx_txt('GEN:RST')
             except:
@@ -255,9 +257,9 @@ class RedPitaya(Base, GenScannerInterface):
             return 0
 
         #Red Pitaya does not like having a line path less than its buffer size
-        x_path = np.linspace(line_path[0][0], line_path[0][len(line_path[0])-1], self._buffer_size)
+        self.x_path_volt = np.linspace(line_path[0][0], line_path[0][len(line_path[0])-1], self._buffer_size)
 
-        x_path = _scanner_position_to_volt(positions = x_path)
+        x_path = _scanner_position_to_volt(positions = x_path_volt)
         
         try:
             self.x_line = ''
@@ -328,40 +330,5 @@ class RedPitaya(Base, GenScannerInterface):
                     'be adjusted to stay in the given range.'.format(v.min(), v.max()))
                 return np.array([np.NaN])
         return volts
-
-    def _write_scanner_ao(self, voltages, length=1, start=False):
-        """Writes a set of voltages to the analog outputs.
-
-        @param float[][n] voltages: array of n-part tuples defining the voltage
-                                    points
-        @param int length: number of tuples to write
-        @param bool start: write imediately (True)
-                           or wait for start of task (False)
-
-        n depends on how many channels are configured for analog output
-        """
-        # TODO: rethink whether this function is needed at all
-
-        # create csv text string of voltages from array
-        _AONwritten= ''
-        for value in voltages:
-            _AONwritten += str(value) + ', '
-        _AONwritten = _AONwritten[:len(wave_form)-2] #r emove the ", " at the end of the string
-        return self._AONwritten
-
-    def _stop_analog_output(self):
-        """ Stops the analog output.
-
-        @return int: error code (0:OK, -1:error)
-        """
-        retval = 0
-        try:
-            # stop the analog output
-            rp_s.tx_txt('OUTPUT1:STATE OFF')
-            rp_s.tx_txt('OUTPUT2:STATE OFF')
-        except:
-            self.log.exception('Error stopping analog output on RP device at ', self._ip)
-            retval = -1
-        return retval
 
     # ================ End ConfocalScannerInterface Commands ===================
