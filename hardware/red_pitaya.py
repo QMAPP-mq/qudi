@@ -75,6 +75,7 @@ class RedPitaya(Base, GenScannerInterface):
 
         self.set_position_range()
         self. x_path_volt = 0
+        self._scan_state = None
 
         if len(self._scanner_ao_channels) != len(self._scanner_voltage_ranges):
             self.log.error(
@@ -139,21 +140,21 @@ class RedPitaya(Base, GenScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
 
-
-        
+        x_volt = str(self._scanner_position_to_volt(self, positions=x))
+        y_volt = str(self._scanner_position_to_volt(self, positions=y))
         if self.module_state() == 'locked':
             self.log.error('Another scan_line is already running, close this one first.')
             return -1
 
         if x is not None:
-            x_volt = str(self._scanner_position_to_volt(self, positions=x))
+            
             if not(self._scanner_position_ranges[0][0] <= x <= self._scanner_position_ranges[0][1]):
                 self.log.error('You want to set x out of range: {0:f}.'.format(x))
                 return -1
             self._current_position[0] = np.float(x)
 
         if y is not None:
-            y_volt = str(self._scanner_position_to_volt(self, positions=y))
+            
             if not(self._scanner_position_ranges[1][0] <= y <= self._scanner_position_ranges[1][1]):
                 self.log.error('You want to set y out of range: {0:f}.'.format(y))
                 return -1
@@ -163,17 +164,29 @@ class RedPitaya(Base, GenScannerInterface):
 
         #TODO: check if I need to set more RP parameters (mode, freq etc)
         try:
-            # then directly write the position to the hardware
-            if x is not None:
-                self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + x_volt)
-            if y is not None:
-                self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_volt)
+            if self._scan_state != self._set_pos:
 
-            #set the x,y outputs to trigger internally and simultaneously 
-            self.rp_s.tx_txt('TRIG:IMM') #TODO check the order of these functions
-            #trigger the output to set position
+                self._red_pitaya_setpos(x_volt, y_volt)
+                # then directly write the position to the hardware
+                if x is not None:
+                    self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + x_volt)
+                if y is not None:
+                    self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_volt)
+
+                #set the x,y outputs to trigger internally and simultaneously 
+                self.rp_s.tx_txt('TRIG:IMM') #TODO check the order of these functions
+                #trigger the output to set position
+            
+                self._scan_state = _set_pos
+            else:
+                if x is not None:
+                    self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + x_volt)
+                if y is not None:
+                    self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_volt)
+
+                self.rp_s.tx_txt('TRIG:IMM')
+
             self.rp_s.tx_txt('OUTPUT1:STATE ON')
-
         except:
             self.log.warning('Cound not set position of RP device on ', self._ip)
             return -1
@@ -269,31 +282,21 @@ class RedPitaya(Base, GenScannerInterface):
                 
             self.x_line = self.x_line[:len(self.x_line)-2]   
 
-            #resets generator to default settings
-            self.rp_s.tx_txt('GEN:RST')
+            if _scan_state != _scanner:
 
-            #set source 1,2 to have an arbitrary input 
-            self.rp_s.tx_txt('SOUR1:FUNC ARBITRARY')
+                self._red_pitaya_scanline_setup()
 
-            #set the scanner frequencies from the config file
-            self.rp_s.tx_txt('SOUR1:FREQ:FIX ' + str(self._scanner_frequency))
+                #set source 1,2 waveform to our scan values
+                self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + self.x_line) 
 
-            #set source 1,2 waveform to our scan values
-            self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + self.x_line)                       
+                self._red_pitaya_scanline_burstmode()
 
-            #set source burst repititions to 1
-            self.rp_s.tx_txt('SOUR1:BURS:NCYC 1')
-
-            #enable source 1,2 to be triggered (may cause a trigger)
-            self.rp_s.tx_txt('OUTPUT1:STATE ON')
-
-            #set trigger to be external
-            self.rp_s.tx_txt('SOUR1:TRIG:SOUR EXT_PE')
-
-            #set digital input/output of trigger channel to output
-            self.rp_s.tx_txt('DIG:PIN:DIR OUT,'+ self._trigger_out_channel)
-            #set digital input/output pin 0_PE to external trigger input
-            self.rp_s.tx_txt('DIG:PIN:DIR IN,DIO0_PE')
+                self._scan_state = _scanner
+            else:
+                self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + self.x_line) 
+        except:        
+            self.log.exception('Could not set up scanline on RP device on ', self._ip)
+            return -1
 
         return 0
     
@@ -330,5 +333,50 @@ class RedPitaya(Base, GenScannerInterface):
                     'be adjusted to stay in the given range.'.format(v.min(), v.max()))
                 return np.array([np.NaN])
         return volts
+
+    def _red_pitaya_scanline_setup():
+
+        #resets generator to default settings
+        self.rp_s.tx_txt('GEN:RST')
+
+        #set source 1,2 to have an arbitrary input 
+        self.rp_s.tx_txt('SOUR1:FUNC ARBITRARY')
+
+        #set the scanner frequencies from the config file
+        self.rp_s.tx_txt('SOUR1:FREQ:FIX ' + str(self._scanner_frequency))
+
+    def _red_pitaya_scanline_burstmode():
+        #set source burst repititions to 1
+        self.rp_s.tx_txt('SOUR1:BURS:NCYC 1')
+
+        #enable source 1,2 to be triggered (may cause a trigger)
+        self.rp_s.tx_txt('OUTPUT1:STATE ON')
+
+        #set trigger to be external
+        self.rp_s.tx_txt('SOUR1:TRIG:SOUR EXT_PE')
+
+        #set digital input/output of trigger channel to output
+        self.rp_s.tx_txt('DIG:PIN:DIR OUT,'+ self._trigger_out_channel)
+        #set digital input/output pin 0_PE to external trigger input
+        self.rp_s.tx_txt('DIG:PIN:DIR IN,DIO0_PE')
+
+    def _red_pitaya_setpos(x=None, y=None):
+
+        #resets generator to default settings
+        self.rp_s.tx_txt('GEN:RST')
+
+        #set source 1,2 to have an arbitrary input 
+        self.rp_s.tx_txt('SOUR1:FUNC ARBITRARY')
+
+        #set the scanner frequencies from the config file
+        self.rp_s.tx_txt('SOUR1:FREQ:FIX ' + str(self._scanner_frequency))
+        self.rp_s.tx_txt('SOUR2:FREQ:FIX ' + str(self._scanner_frequency))
+
+        #set source 1,2 waveform to our scan values
+        self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + str(x))
+        self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + str(y))  
+
+        #set the x,y outputs to trigger internally and simultaneously 
+        self.rp_s.tx_txt('TRIG:IMM') #TODO check the order of these functions  
 
     # ================ End ConfocalScannerInterface Commands ===================
