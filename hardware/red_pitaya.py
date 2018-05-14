@@ -21,11 +21,12 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 """
 
 import numpy as np
+import time
 
 from thirdparty.redpitaya import redpitaya_scpi as scpi
 
 from core.module import Base, ConfigOption
-from interface.confocal_scanner_interface import ConfocalScannerInterface
+from interface.gen_scanner_interface import GenScannerInterface
 
 
 class RedPitaya(Base, GenScannerInterface):
@@ -62,8 +63,8 @@ class RedPitaya(Base, GenScannerInterface):
     _scanner_ao_channels = ConfigOption('scanner_ao_channels', missing='error')
     _scanner_voltage_ranges = ConfigOption('scanner_voltage_ranges', missing='error')
     _scanner_frequency = ConfigOption('scanner_frequency', missing='error')
-    _trigger_out_channel = ConfigOption(trigger_out_channel, missing='error')
-    _scanner_position_ranges = ConfigOption(scanner_position_ranges, missing='error')
+    _trigger_out_channel = ConfigOption('trigger_out_channel', missing='warn')
+    _scanner_position_ranges = ConfigOption('scanner_position_ranges', missing='error')
 
     def on_activate(self):
         """ Starts up the RP Card at activation.
@@ -73,10 +74,10 @@ class RedPitaya(Base, GenScannerInterface):
         except:
             self.log.error('Could not connect to Red Pitaya '+self._ip)
 
-        rp_s.tx_txt('ACQ:BUF:SIZE?')
-        self._buffer_size = int(rp_s.rx_txt())
+        self.rp_s.tx_txt('ACQ:BUF:SIZE?')
+        self._buffer_size = int(self.rp_s.rx_txt())
 
-        self. x_path_volt = 0
+        self.x_path_volt = 0
         self._scan_state = None
 
         # handle all the parameters given by the config
@@ -93,6 +94,9 @@ class RedPitaya(Base, GenScannerInterface):
         """ Shut down the Red Pitaya.
         """
         self.reset_hardware()
+
+    def scanner_on(self):
+        pass
    
     ############################################################################
     # ================ GenerallScannerInterface Commands =======================
@@ -143,12 +147,13 @@ class RedPitaya(Base, GenScannerInterface):
         if self.module_state() == 'locked': #TODO: check if this is necessary
             self.log.error('Another scan_line is already running, close this one first.')
             return -1
-        x_volt = self.current_position[0]
-        y_volt = self.current_position[1]
+        x_volt = self._current_position[0]
+        y_volt = self._current_position[1]
 
         if x is not None:
             _is_x_check = 1
-            x_volt = str(self._scanner_position_to_volt(self, positions=x, is_x_check=_is_x_check))
+            x_volt = self._scanner_position_to_volt(positions=[x], is_x_check=_is_x_check)
+            x_volt = str(x_volt[0])
             if not(self._scanner_position_ranges[0][0] <= x <= self._scanner_position_ranges[0][1]):
                 self.log.error('You want to set x out of range: {0:f}.'.format(x))
                 return -1
@@ -156,25 +161,23 @@ class RedPitaya(Base, GenScannerInterface):
 
         if y is not None:
             _is_x_check = 0
-            x_volt = str(self._scanner_position_to_volt(self, positions=x, is_x_check=_is_x_check))
+            y_volt = self._scanner_position_to_volt(positions=[y], is_x_check=_is_x_check)
+            y_volt = str(y_volt[0])
             if not(self._scanner_position_ranges[1][0] <= y <= self._scanner_position_ranges[1][1]):
                 self.log.error('You want to set y out of range: {0:f}.'.format(y))
                 return -1
             self._current_position[1] = np.float(y)
 
         try:
-            if self._scan_state != self.'_set_pos':
+            if self._scan_state != '_set_pos':
 
-                self._red_pitaya_setpos(x_volt, y_volt)
-                # then directly write the position to the hardware
-
-                #set the x,y outputs to trigger internally and simultaneously 
-                self.rp_s.tx_txt('TRIG:IMM') #TODO check the order of these functions
-            
+                self._red_pitaya_setpos(x_volt, y_volt)            
                 self._scan_state = '_set_pos'
+
             else:
                 if x is not None:
                     self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + x_volt)
+                    self.rp_s.tx_txt('OUTPUT1:STATE ON')
                 if y is not None:
                     self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_volt)
 
@@ -292,7 +295,7 @@ class RedPitaya(Base, GenScannerInterface):
 
         return 0
     
-    def _scanner_position_to_volt(self, positions=None, is_x_line=1):
+    def _scanner_position_to_volt(self, is_x_check, positions=None):
         """ Converts a set of position pixels to acutal voltages.
 
         @param float[][n] positions: array of n-part tuples defining the pixels
@@ -304,12 +307,12 @@ class RedPitaya(Base, GenScannerInterface):
             but x, xy is allowed formats.
         """
 
-        if not isinstance(positions, (frozenset, list, set, tuple, np.ndarray, )):
-            self.log.error('Given position list is no array type.')
-            return np.array([np.NaN])
+        #if not isinstance(positions, (frozenset, list, set, tuple, np.ndarray, )):
+        #    self.log.error('Given position list is no array type.')
+        #    return np.array([np.NaN])
 
         x_check = 0
-        if is_x_line ==1:
+        if is_x_check ==1:
             x_check = 1
         vlist = []
         for i in (positions):
@@ -367,8 +370,10 @@ class RedPitaya(Base, GenScannerInterface):
         self.rp_s.tx_txt('SOUR2:FREQ:FIX ' + str(self._scanner_frequency))
 
         #set source 1,2 waveform to our scan values
-        self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + str(x))
-        self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + str(y))  
+        if x is not None:
+            self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + str(x))
+        if y is not None:
+            self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + str(y))  
 
         #set the x,y outputs to trigger internally and simultaneously 
         self.rp_s.tx_txt('TRIG:IMM') 
