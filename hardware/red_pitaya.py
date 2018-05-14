@@ -48,6 +48,9 @@ class RedPitaya(Base, GenScannerInterface):
     #     trigger_out_channel: 'DIO1_P'
     #     scanner_frequency:
     #         - 100
+    #     scanner_position_ranges:
+    #         - [0, 1e-6]
+    #         - [0, 1e-6]
     ```
 
     """
@@ -60,6 +63,7 @@ class RedPitaya(Base, GenScannerInterface):
     _scanner_voltage_ranges = ConfigOption('scanner_voltage_ranges', missing='error')
     _scanner_frequency = ConfigOption('scanner_frequency', missing='error')
     _trigger_out_channel = ConfigOption(trigger_out_channel, missing='error')
+    _scanner_position_ranges = ConfigOption(scanner_position_ranges, missing='error')
 
     def on_activate(self):
         """ Starts up the RP Card at activation.
@@ -113,7 +117,7 @@ class RedPitaya(Base, GenScannerInterface):
         return self._scanner_position_ranges
 
     def set_position_range(self, myrange=None):
-        """ Sets the physical range of the scanner.
+        """ Tells QUDI the physical range parameters of the scanner. This can't actually be set by the software
 
         @param float [2][2] myrange: array of 2 ranges with an array containing
                                      lower and upper limit. The unit of the
@@ -121,14 +125,9 @@ class RedPitaya(Base, GenScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        if myrange is None:
-            myrange = [[0, 1e-6], [0, 1e-6]]
-
+        myrange = self._scanner_position_ranges
         self.log.info('Setting the position range to ', myrange, ' but this property cannot be configured with this device.')
 
-        # TODO: do something here
-
-        self._scanner_position_ranges = myrange
         return 0
 
     def set_position(self, x=None, y=None):
@@ -160,9 +159,6 @@ class RedPitaya(Base, GenScannerInterface):
                 return -1
             self._current_position[1] = np.float(y)
 
-
-
-        #TODO: check if I need to set more RP parameters (mode, freq etc)
         try:
             if self._scan_state != self._set_pos:
 
@@ -175,7 +171,6 @@ class RedPitaya(Base, GenScannerInterface):
 
                 #set the x,y outputs to trigger internally and simultaneously 
                 self.rp_s.tx_txt('TRIG:IMM') #TODO check the order of these functions
-                #trigger the output to set position
             
                 self._scan_state = _set_pos
             else:
@@ -239,17 +234,14 @@ class RedPitaya(Base, GenScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        a = self._stop_analog_output()
 
-        b = 0
-        if len(self._scanner_ai_channels) > 0:  # TODO: what does this mean?
-            try:
-                self.rp_s.tx_txt('GEN:RST')
-            except:
-                self.log.exception('Could not close analog on RP device on ', self._ip)
-                b = -1
+        try:
+            self.rp_s.tx_txt('GEN:RST')
+        except:
+            self.log.exception('Could not close analog on RP device on ', self._ip)
+            return -1
 
-        return -1 if a < 0 or b < 0 or else 0
+        return 0
         
     ############################################################################
     # ======== Private methods for GeneralScannerInterface Commands ===========
@@ -377,6 +369,6 @@ class RedPitaya(Base, GenScannerInterface):
         self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + str(y))  
 
         #set the x,y outputs to trigger internally and simultaneously 
-        self.rp_s.tx_txt('TRIG:IMM') #TODO check the order of these functions  
+        self.rp_s.tx_txt('TRIG:IMM') 
 
     # ================ End ConfocalScannerInterface Commands ===================
