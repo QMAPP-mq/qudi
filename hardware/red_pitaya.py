@@ -68,22 +68,26 @@ class RedPitaya(Base, GenScannerInterface):
     def on_activate(self):
         """ Starts up the RP Card at activation.
         """
-
-        self.rp_s = scpi.scpi(self._ip)
+        try:
+            self.rp_s = scpi.scpi(self._ip)
+        except:
+            self.log.error('Could not connect to Red Pitaya '+self._ip)
 
         rp_s.tx_txt('ACQ:BUF:SIZE?')
         self._buffer_size = int(rp_s.rx_txt())
 
-        # handle all the parameters given by the config
-        self._current_position = np.zeros(len(self._scanner_ao_channels))
-
-        self.set_position_range()
         self. x_path_volt = 0
         self._scan_state = None
+
+        # handle all the parameters given by the config
+        self._current_position = np.zeros(len(self._scanner_ao_channels))
 
         if len(self._scanner_ao_channels) != len(self._scanner_voltage_ranges):
             self.log.error(
                 'Specify as many scanner_voltage_ranges as scanner_ao_channels!')
+        if len(self._scanner_ao_channels) != len(self._scanner_position_ranges):
+            self.log.error(
+                'Specify as many scanner_position_ranges as scanner_ao_channels!')
 
     def on_deactivate(self):
         """ Shut down the Red Pitaya.
@@ -98,14 +102,12 @@ class RedPitaya(Base, GenScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        retval = 0
-
         try:
             self.rp_s.tx_txt('GEN:RST')
         except:
             self.log.exception('Could not reset RedPitaya device at ' + self._ip)
-            retval = -1
-        return retval
+            return -1
+        return 0
 
     def get_position_range(self):
         """ Returns the physical range of the scanner.
@@ -125,7 +127,6 @@ class RedPitaya(Base, GenScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        myrange = self._scanner_position_ranges
         self.log.info('This property cannot be configured with this device.')
 
         return 0
@@ -139,28 +140,30 @@ class RedPitaya(Base, GenScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
 
-        x_volt = str(self._scanner_position_to_volt(self, positions=x))
-        y_volt = str(self._scanner_position_to_volt(self, positions=y))
-        if self.module_state() == 'locked':
+        if self.module_state() == 'locked': #TODO: check if this is necessary
             self.log.error('Another scan_line is already running, close this one first.')
             return -1
+        x_volt = self.current_position[0]
+        y_volt = self.current_position[1]
 
         if x is not None:
-            
+            _is_x_check = 1
+            x_volt = str(self._scanner_position_to_volt(self, positions=x, is_x_check=_is_x_check))
             if not(self._scanner_position_ranges[0][0] <= x <= self._scanner_position_ranges[0][1]):
                 self.log.error('You want to set x out of range: {0:f}.'.format(x))
                 return -1
             self._current_position[0] = np.float(x)
 
         if y is not None:
-            
+            _is_x_check = 0
+            x_volt = str(self._scanner_position_to_volt(self, positions=x, is_x_check=_is_x_check))
             if not(self._scanner_position_ranges[1][0] <= y <= self._scanner_position_ranges[1][1]):
                 self.log.error('You want to set y out of range: {0:f}.'.format(y))
                 return -1
             self._current_position[1] = np.float(y)
 
         try:
-            if self._scan_state != self._set_pos:
+            if self._scan_state != self.'_set_pos':
 
                 self._red_pitaya_setpos(x_volt, y_volt)
                 # then directly write the position to the hardware
@@ -168,7 +171,7 @@ class RedPitaya(Base, GenScannerInterface):
                 #set the x,y outputs to trigger internally and simultaneously 
                 self.rp_s.tx_txt('TRIG:IMM') #TODO check the order of these functions
             
-                self._scan_state = _set_pos
+                self._scan_state = '_set_pos'
             else:
                 if x is not None:
                     self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + x_volt)
@@ -196,7 +199,7 @@ class RedPitaya(Base, GenScannerInterface):
         @param float[c][m] line_path: array of c-tuples defining the voltage points
             (m = samples per line)
 
-        @return float[m][n]: m (samples per line) n-channel photon counts per second
+        @return int: error code (0:OK, -1:error)
 
         The input array looks for a xy scan of 5x5 points at the position y=1
         like the following:
@@ -207,7 +210,7 @@ class RedPitaya(Base, GenScannerInterface):
             self.log.error('Given line_path list is not array type.')
             return np.array([[-1.]])
 
-        if self.x_path_volt[0] != line_path[0][0] and self.x_path_volt[len(x_line)-1] != line_path[0][len(x_line)-1]:
+        if self.x_path_volt[0] != line_path[0][0] and self.x_path_volt[len(x_path_volt)-1] != line_path[0][len(x_path_volt)-1]:
             self._set_up_line(line_path=line_path)
 
         try:
@@ -221,9 +224,8 @@ class RedPitaya(Base, GenScannerInterface):
             self._current_position = np.array(line_path[:, -1])
         except:
             self.log.exception('Error while scanning line.')
-            return np.array([[-1.]])
-        # return values is a rate of counts/s
-        return all_data.transpose()
+            return -1
+        return 0
 
     def scanner_off(self):
         """ Closes the scanner and cleans up afterwards.
@@ -238,7 +240,7 @@ class RedPitaya(Base, GenScannerInterface):
             return -1
 
         return 0
-           
+
     ############################################################################
     # ======== Private methods for GeneralScannerInterface Commands ===========
     
@@ -253,14 +255,16 @@ class RedPitaya(Base, GenScannerInterface):
 
         #if the scan path varies in y, set the y position to the final value, don't touch x
         #dirty hack to prevent delays from writing positions to RP
-        if line_path[1][0] == line_path[1][len(line_path)-1]:
+        if line_path[1][0] != line_path[1][len(line_path)-1]:
             self.set_position(y=line_path[1][len(line_path)-1])
             return 0
+
+        self._is_x_line = 1
 
         #Red Pitaya does not like having a line path less than its buffer size
         self.x_path_volt = np.linspace(line_path[0][0], line_path[0][len(line_path[0])-1], self._buffer_size)
 
-        x_path = _scanner_position_to_volt(positions = x_path_volt)
+        x_path = _scanner_position_to_volt(positions = x_path_volt,is_x_line=_is_x_line)
         
         try:
             self.x_line = ''
@@ -270,7 +274,7 @@ class RedPitaya(Base, GenScannerInterface):
                 
             self.x_line = self.x_line[:len(self.x_line)-2]   
 
-            if _scan_state != _scanner:
+            if _scan_state != '_scanner':
 
                 self._red_pitaya_scanline_setup()
 
@@ -279,7 +283,7 @@ class RedPitaya(Base, GenScannerInterface):
 
                 self._red_pitaya_scanline_burstmode()
 
-                self._scan_state = _scanner
+                self._scan_state = '_scanner'
             else:
                 self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + self.x_line) 
         except:        
@@ -288,7 +292,7 @@ class RedPitaya(Base, GenScannerInterface):
 
         return 0
     
-    def _scanner_position_to_volt(self, positions=None):
+    def _scanner_position_to_volt(self, positions=None, is_x_line=1):
         """ Converts a set of position pixels to acutal voltages.
 
         @param float[][n] positions: array of n-part tuples defining the pixels
@@ -304,25 +308,27 @@ class RedPitaya(Base, GenScannerInterface):
             self.log.error('Given position list is no array type.')
             return np.array([np.NaN])
 
+        x_check = 0
+        if is_x_line ==1:
+            x_check = 1
         vlist = []
-        for i, position in enumerate(positions):
+        for i in (positions):
             vlist.append(
-                (self._scanner_voltage_ranges[i][1] - self._scanner_voltage_ranges[i][0])
-                / (self._scanner_position_ranges[i][1] - self._scanner_position_ranges[i][0])
-                * (position - self._scanner_position_ranges[i][0])
-                + self._scanner_voltage_ranges[i][0]
+                (self._scanner_voltage_ranges[x_check][1] - self._scanner_voltage_ranges[x_check][0])
+                / (self._scanner_position_ranges[x_check][1] - self._scanner_position_ranges[x_check][0])
+                * (i - self._scanner_position_ranges[x_check][0])
+                + self._scanner_voltage_ranges[x_check][0]
             )
         volts = np.vstack(vlist)
 
-        for i, v in enumerate(volts):
-            if v.min() < self._scanner_voltage_ranges[i][0] or v.max() > self._scanner_voltage_ranges[i][1]:
-                self.log.error(
-                    'Voltages ({0}, {1}) exceed the limit, the positions have to '
-                    'be adjusted to stay in the given range.'.format(v.min(), v.max()))
-                return np.array([np.NaN])
+        if volts.min() < self._scanner_voltage_ranges[x_check][0] or volts.max() > self._scanner_voltage_ranges[x_check][1]:
+            self.log.error(
+                'Voltages ({0}, {1}) exceed the limit, the positions have to '
+                'be adjusted to stay in the given range.'.format(volts.min(), volts.max()))
+            return np.array([np.NaN])
         return volts
 
-    def _red_pitaya_scanline_setup():
+    def _red_pitaya_scanline_setup(self):
 
         #resets generator to default settings
         self.rp_s.tx_txt('GEN:RST')
@@ -333,7 +339,7 @@ class RedPitaya(Base, GenScannerInterface):
         #set the scanner frequencies from the config file
         self.rp_s.tx_txt('SOUR1:FREQ:FIX ' + str(self._scanner_frequency))
 
-    def _red_pitaya_scanline_burstmode():
+    def _red_pitaya_scanline_burstmode(self):
         #set source burst repititions to 1
         self.rp_s.tx_txt('SOUR1:BURS:NCYC 1')
 
@@ -348,7 +354,7 @@ class RedPitaya(Base, GenScannerInterface):
         #set digital input/output pin 0_PE to external trigger input
         self.rp_s.tx_txt('DIG:PIN:DIR IN,DIO0_PE')
 
-    def _red_pitaya_setpos(x=None, y=None):
+    def _red_pitaya_setpos(self, x=None, y=None):
 
         #resets generator to default settings
         self.rp_s.tx_txt('GEN:RST')
