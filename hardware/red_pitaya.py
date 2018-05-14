@@ -117,7 +117,7 @@ class RedPitaya(Base, GenScannerInterface):
         return self._scanner_position_ranges
 
     def set_position_range(self, myrange=None):
-        """ Tells QUDI the physical range parameters of the scanner. This can't actually be set by the software
+        """ Sets the physical position ranges. This can't actually be set by the software for RP.
 
         @param float [2][2] myrange: array of 2 ranges with an array containing
                                      lower and upper limit. The unit of the
@@ -126,7 +126,7 @@ class RedPitaya(Base, GenScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
         myrange = self._scanner_position_ranges
-        self.log.info('Setting the position range to ', myrange, ' but this property cannot be configured with this device.')
+        self.log.info('This property cannot be configured with this device.')
 
         return 0
 
@@ -164,10 +164,6 @@ class RedPitaya(Base, GenScannerInterface):
 
                 self._red_pitaya_setpos(x_volt, y_volt)
                 # then directly write the position to the hardware
-                if x is not None:
-                    self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + x_volt)
-                if y is not None:
-                    self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_volt)
 
                 #set the x,y outputs to trigger internally and simultaneously 
                 self.rp_s.tx_txt('TRIG:IMM') #TODO check the order of these functions
@@ -242,7 +238,7 @@ class RedPitaya(Base, GenScannerInterface):
             return -1
 
         return 0
-        
+           
     ############################################################################
     # ======== Private methods for GeneralScannerInterface Commands ===========
     
