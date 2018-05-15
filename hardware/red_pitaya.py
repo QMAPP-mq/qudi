@@ -149,11 +149,10 @@ class RedPitaya(Base, GenScannerInterface):
             return -1
         x_volt = self._current_position[0]
         y_volt = self._current_position[1]
-
         if x is not None:
             _is_x_check = 1
             x_volt = self._scanner_position_to_volt(positions=[x], is_x_check=_is_x_check)
-            x_volt = str(x_volt[0])
+            x_volt = str(x_volt[0][0])
             if not(self._scanner_position_ranges[0][0] <= x <= self._scanner_position_ranges[0][1]):
                 self.log.error('You want to set x out of range: {0:f}.'.format(x))
                 return -1
@@ -162,7 +161,7 @@ class RedPitaya(Base, GenScannerInterface):
         if y is not None:
             _is_x_check = 0
             y_volt = self._scanner_position_to_volt(positions=[y], is_x_check=_is_x_check)
-            y_volt = str(y_volt[0])
+            y_volt = str(y_volt[0][0])
             if not(self._scanner_position_ranges[1][0] <= y <= self._scanner_position_ranges[1][1]):
                 self.log.error('You want to set y out of range: {0:f}.'.format(y))
                 return -1
@@ -180,6 +179,7 @@ class RedPitaya(Base, GenScannerInterface):
                     self.rp_s.tx_txt('OUTPUT1:STATE ON')
                 if y is not None:
                     self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_volt)
+                    self.rp_s.tx_txt('OUTPUT2:STATE ON')
 
                 self.rp_s.tx_txt('TRIG:IMM')
 
@@ -322,6 +322,8 @@ class RedPitaya(Base, GenScannerInterface):
                 * (i - self._scanner_position_ranges[x_check][0])
                 + self._scanner_voltage_ranges[x_check][0]
             )
+        if x_check ==1:
+            vlist = [-x for x in vlist]
         volts = np.vstack(vlist)
 
         if volts.min() < self._scanner_voltage_ranges[x_check][0] or volts.max() > self._scanner_voltage_ranges[x_check][1]:
@@ -364,6 +366,7 @@ class RedPitaya(Base, GenScannerInterface):
 
         #set source 1,2 to have an arbitrary input 
         self.rp_s.tx_txt('SOUR1:FUNC ARBITRARY')
+        self.rp_s.tx_txt('SOUR2:FUNC ARBITRARY')
 
         #set the scanner frequencies from the config file
         self.rp_s.tx_txt('SOUR1:FREQ:FIX ' + str(self._scanner_frequency))
@@ -374,8 +377,10 @@ class RedPitaya(Base, GenScannerInterface):
             self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + str(x))
         if y is not None:
             self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + str(y))  
-
+        self.rp_s.tx_txt('OUTPUT1:STATE ON')
+        self.rp_s.tx_txt('OUTPUT2:STATE ON')
         #set the x,y outputs to trigger internally and simultaneously 
         self.rp_s.tx_txt('TRIG:IMM') 
+        
 
     # ================ End ConfocalScannerInterface Commands ===================
