@@ -104,14 +104,12 @@ class PiezoStageNTMDT(Base, MotorInterface):
         @return: error code
         """
         if platform.architecture()[0] == '64bit':
-            # path_dll = os.path.join(self.get_main_dir(),
             path_dll = os.path.join(os.path.abspath(''),
                                     'thirdparty',
                                     'nt_mdt',
                                     'NovaSDK_x64.dll'
                                     )
         elif platform.architecture()[0] == '32bit':
-            # path_dll = os.path.join(self.get_main_dir(),
             path_dll = os.path.join(os.path.abspath(''),
                                     'thirdparty',
                                     'nt_mdt',
