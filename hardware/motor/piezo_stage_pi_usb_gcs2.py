@@ -144,20 +144,20 @@ class PiezoStagePI(Base, MotorInterface):
         axis0 = {}
         axis0['label'] = 'x'
         axis0['channel'] = config['x']['channel']
-        axis0['pos_min'] = config['constraints']['x_range']['min']
-        axis0['pos_max'] = config['constraints']['x_range']['max']
+        axis0['pos_min'] = config['x']['constraints']['pos_min']
+        axis0['pos_max'] = config['x']['constraints']['pos_max']
 
         axis1 = {}
         axis1['label'] = 'y'
         axis1['channel'] = config['y']['channel']
-        axis1['pos_min'] = config['constraints']['y_range']['min']
-        axis1['pos_max'] = config['constraints']['y_range']['max']
+        axis1['pos_min'] = config['y']['constraints']['pos_min']
+        axis1['pos_max'] = config['y']['constraints']['pos_max']
 
         axis2 = {}
         axis2['label'] = 'z'
         axis2['channel'] = config['z']['channel']
-        axis2['pos_min'] = config['constraints']['z_range']['min']
-        axis2['pos_max'] = config['constraints']['z_range']['max']
+        axis2['pos_min'] = config['z']['constraints']['pos_min']
+        axis2['pos_max'] = config['z']['constraints']['pos_max']
 
         # assign the parameter container for x to a name which will identify it
         constraints[axis0['label']] = axis0
