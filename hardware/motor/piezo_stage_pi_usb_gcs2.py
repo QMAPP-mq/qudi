@@ -233,6 +233,7 @@ class PiezoStagePI(Base, MotorInterface):
 
         @return int: error code (0:OK, -1:error)
         """
+        self.log.info('Function not yet implemented')
 
         return 0
 
@@ -283,10 +284,10 @@ class PiezoStagePI(Base, MotorInterface):
             Bit 0: Ready Bit 1: On target Bit 2: Reference drive active Bit 3: Joystick ON
             Bit 4: Macro running Bit 5: Motor OFF Bit 6: Brake ON Bit 7: Drive current active
         """
-        self.log.warning('Not yet implemented for this hardware')
+        self.log.info('Not yet implemented for this hardware')
 
     def calibrate(self, param_list=None):
-        """ Calibrates the stage.
+        """ Calibrate the stage.
 
             @param dict param_list : param_list: optional, if a specific calibration
                                      of an axis is desired, then the labels of the
@@ -299,14 +300,14 @@ class PiezoStagePI(Base, MotorInterface):
 
             @return dict pos : dictionary with the current position of the axis
         """
-        self.log.warning('Not yet implemented for this hardware')
+        self.log.info('Not yet implemented for this hardware')
 
         pos = {}
 
         return pos
 
     def get_velocity(self, param_list=None):
-        """ Gets the current velocity for all connected axes in m/s.
+        """ Get the current velocity for all connected axes in m/s.
 
             @param list param_list : optional, if a specific velocity of an axis
                                      is desired, then the labels of the needed
@@ -315,7 +316,8 @@ class PiezoStagePI(Base, MotorInterface):
                                      velocity is asked.
 
             @return dict : with the axis label as key and the velocity as item.
-            """
+        """
+        self.log.info('Function not yet implemented for this stage')
 
     def set_velocity(self, param_dict):
         """ Write new value for velocity in m/s.
@@ -328,7 +330,7 @@ class PiezoStagePI(Base, MotorInterface):
 
         @return dict param_dict2 : dictionary with the updated axis velocity
         """
-        self.log.warning('Not yet implemented for this hardware')
+        self.log.info('Not yet implemented for this hardware')
 
 ########################## internal methods ##################################
 
