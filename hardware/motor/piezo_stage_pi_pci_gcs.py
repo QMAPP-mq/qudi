@@ -62,6 +62,7 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
     #             pos_max: 300e-6
     ```
     """
+
     _modclass = 'PiezoStagePI_GCS1'
     _modtype = 'hardware'
 
@@ -194,30 +195,6 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
                 elif axis == 'z':
                     to_position = param_dict['z']
                     self._do_move_abs(axis, to_position)
-
-        # # Move in x:
-        # newpos = self._double1d(param_dict['x'] * 1e6)
-        # ax = ctypes.c_char_p('x'.encode())
-        # self._pidll.E7XX_MOV(self._devID, ax, newpos)
-        # onT = self._bool1d(0)
-        # while not onT[0]:
-        #     self._pidll.E7XX_qONT(self._devID, ax, onT)
-
-        # # Move in y:
-        # newpos = self._double1d(param_dict['y'] * 1e6)
-        # ax = ctypes.c_char_p('y'.encode())
-        # self._pidll.E7XX_MOV(self._devID, ax, newpos)
-        # onT = self._bool1d(0)
-        # while not onT[0]:
-        #     self._pidll.E7XX_qONT(self._devID, ax, onT)
-
-        # # Move in z:
-        # newpos = self._double1d(param_dict['z'] * 1e6)
-        # ax = ctypes.c_char_p('z'.encode())
-        # self._pidll.E7XX_MOV(self._devID, ax, newpos)
-        # onT = self._bool1d(0)
-        # while not onT[0]:
-        #     self._pidll.E7XX_qONT(self._devID, ax, onT)
 
         param_dict = self.get_pos()
         return param_dict
@@ -359,5 +336,3 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
                 self._pidll.E7XX_SVO(self._devID, axis, self._bool1d(1))
             elif (servo_state[0] is True) and (to_state is False):
                 self._pidll.E7XX_SVO(self._devID, axis, self._bool1d(0))
-
-#########################################################################################
