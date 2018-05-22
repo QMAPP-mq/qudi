@@ -44,16 +44,25 @@ class PiezoStagePI(Base, MotorInterface):
     ```
     # piezo_pi:
     #     module.Class: 'motor.piezo_stage_pi_usb_gcs2.PiezoStagePI'
-    #     constraints:
-    #         x_range:
-    #             min: 0e-6
-    #             max: 300e-6
-    #         y_range:
-    #             min: 0e-6
-    #             max: 300e-6
-    #         z_range:
-    #             min: 0e-6
-    #             max: 300e-6
+    #     axis_labels:
+    #         - x
+    #         - y
+    #         - z
+    #     x:
+    #         channel: 0
+    #         constraints:
+    #             pos_min: 0e-6
+    #             pos_max: 300e-6
+    #     y:
+    #         channel: 1
+    #         constraints:
+    #             pos_min: 0e-6
+    #             pos_max: 300e-6
+    #     z:
+    #         channel: 2
+    #         constraints:
+    #             pos_min: 0e-6
+    #             pos_max: 300e-6
     ```
     """
     _modclass = 'PiezoStagePI'
@@ -61,14 +70,9 @@ class PiezoStagePI(Base, MotorInterface):
 
     _devID = ctypes.c_int()
 
-    # This is creating a 3D double array object.
-    _double3d = ctypes.c_double * 3
-
-    # This is creating a 1D double object
-    _double1d = ctypes.c_double * 1
-
-    # This is creating a 1D bool object
-    _bool1d = ctypes.c_bool * 1
+    _double3d = ctypes.c_double * 3  # This is creating a 3D double array object
+    _double1d = ctypes.c_double * 1  # This is creating a 1D double object
+    _bool1d = ctypes.c_bool * 1  # This is creating a 1D bool object
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -112,7 +116,7 @@ class PiezoStagePI(Base, MotorInterface):
             return 1
         else:
             self._set_servo_state(True)
-            self._constraints = self.get_constraints()
+            self._configured_constraints = self.get_constraints()
             return 0
 
     def on_deactivate(self):
@@ -139,18 +143,21 @@ class PiezoStagePI(Base, MotorInterface):
 
         axis0 = {}
         axis0['label'] = 'x'
-        axis0['pos_min'] = config['constraints']['x_range']['min']
-        axis0['pos_max'] = config['constraints']['x_range']['max']
+        axis0['channel'] = config['x']['channel']
+        axis0['pos_min'] = config['x']['constraints']['pos_min']
+        axis0['pos_max'] = config['x']['constraints']['pos_max']
 
         axis1 = {}
         axis1['label'] = 'y'
-        axis1['pos_min'] = config['constraints']['y_range']['min']
-        axis1['pos_max'] = config['constraints']['y_range']['max']
+        axis1['channel'] = config['y']['channel']
+        axis1['pos_min'] = config['y']['constraints']['pos_min']
+        axis1['pos_max'] = config['y']['constraints']['pos_max']
 
         axis2 = {}
         axis2['label'] = 'z'
-        axis2['pos_min'] = config['constraints']['z_range']['min']
-        axis2['pos_max'] = config['constraints']['z_range']['max']
+        axis2['channel'] = config['z']['channel']
+        axis2['pos_min'] = config['z']['constraints']['pos_min']
+        axis2['pos_max'] = config['z']['constraints']['pos_max']
 
         # assign the parameter container for x to a name which will identify it
         constraints[axis0['label']] = axis0
@@ -199,15 +206,15 @@ class PiezoStagePI(Base, MotorInterface):
 
             if axis in param_dict.keys():
                 if axis == 'x':
-                    channel = 1
+                    channel = self._configured_constraints[axis]['channel']
                     to_position = param_dict['x']
                     self._do_move_abs(axis, channel, to_position)
                 elif axis == 'y':
-                    channel = 2
+                    channel = self._configured_constraints[axis]['channel']
                     to_position = param_dict['y']
                     self._do_move_abs(axis, channel, to_position)
                 elif axis == 'z':
-                    channel = 3
+                    channel = self._configured_constraints[axis]['channel']
                     to_position = param_dict['z']
                     self._do_move_abs(axis, channel, to_position)
 
@@ -269,7 +276,13 @@ class PiezoStagePI(Base, MotorInterface):
         param_dict['y'] = posBuffer[1] / 1e6  # unit conversion from communication
         param_dict['z'] = posBuffer[2] / 1e6  # unit conversion from communication
 
-        return param_dict
+        if param_list:
+            param_list = [x.lower() for x in param_list]  # make all param_list elements lower case
+            for axis in list(set(param_dict.keys()) - set(param_list)):  # axes not in param_list
+                del param_dict[axis]
+            return param_dict
+        else:
+            return param_dict
 
     def get_status(self, param_list=None):
         """ Get the status of the position
@@ -337,10 +350,10 @@ class PiezoStagePI(Base, MotorInterface):
         @param int channel: channel of the axis to be moved 
         @param float to_pos: desired position in meters
         """
-        if not(self._constraints[axis]['pos_min'] <= to_pos <= self._constraints[axis]['pos_max']):
+        if not(self._configured_constraints[axis]['pos_min'] <= to_pos <= self._configured_constraints[axis]['pos_max']):
             self.log.warning('Cannot make the movement of the axis "{axis}"'
                              'since the border [{min},{max}] would be crossed! Ignore command!'
-                             ''.format(axis=axis, min=self._constraints[axis]['pos_min'], max=self._constraints[axis]['pos_max']))
+                             ''.format(axis=axis, min=self._configured_constraints[axis]['pos_min'], max=self._configured_constraints[axis]['pos_max']))
         else:
             self._write_axis_move(axis, channel, to_pos)
 
