@@ -78,9 +78,11 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
 
     # Open connection with the PCI board and get ID 
     def on_activate(self):
-        """ Initialisation performed during activation of the module.
-        @return: error code
+        """ Initialise and activate the hardware module.
+
+            @return: error code (0:OK, -1:error)
         """
+
         path_dll = os.path.join(self.get_main_dir(),
                                 'thirdparty',
                                 'physik_instrumente',
@@ -104,9 +106,11 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
                 return 0
 
     def on_deactivate(self):
-        """ Deinitialisation performed during deactivation of the module.
-        @return: error code
+        """ Deinitialise and deactivate the hardware module.
+
+            @return: error code (0:OK, -1:error)
         """
+
         self._set_servo_state(False)
         self._pidll.E7XX_CloseConnection(self._devID)
         return 0
@@ -114,13 +118,14 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
     def get_constraints(self):
         """ Retrieve the hardware constrains from the motor device.
 
-        @return dict: dict with constraints for the sequence generation and GUI
-
         Provides all the constraints for the xyz stage  and rot stage (like total
         movement, velocity, ...)
         Each constraint is a tuple of the form
             (min_value, max_value, stepsize)
+
+            @return dict constraints : dict with constraints for the device
         """
+
         constraints = OrderedDict()
 
         config = self.getConfiguration()
@@ -148,32 +153,33 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
         return constraints
 
     def move_rel(self, param_dict):
-        """Moves stage in given direction (relative movement)
+        """ Move stage relatively in given direction
 
-        @param dict param_dict: dictionary, which passes all the relevant
-                                parameters, which should be changed. Usage:
-                                 {'axis_label': <the-abs-pos-value>}.
-                                 'axis_label' must correspond to a label given
-                                 to one of the axis.
+            @param dict param_dict : dictionary, which passes all the relevant
+                                     parameters, which should be changed. Usage:
+                                     {'axis_label': <the-abs-pos-value>}.
+                                     'axis_label' must correspond to a label given
+                                     to one of the axis.
 
 
-        @return dict pos: dictionary with the current magnet position
+            @return dict param_dict : dictionary with the current magnet position
         """
+        self.log.info('Function not yet implemented')
 
         return param_dict
 
     def move_abs(self, param_dict):
-        """Moves stage to absolute position
+        """ Move the stage to an absolute position
 
-        @param dict param_dict: dictionary, which passes all the relevant
-                                parameters, which should be changed. Usage:
+        @param dict param_dict : dictionary, which passes all the relevant
+                                 parameters, which should be changed. Usage:
                                  {'axis_label': <the-abs-pos-value>}.
                                  'axis_label' must correspond to a label given
                                  to one of the axis.
-                                The values for the axes are in meter,
-                                the value for the rotation is in degrees.
+                                 The values for the axes are in meter,
+                                 the value for the rotation is in degrees.
 
-        @return dict pos: dictionary with the current axis position
+        @return dict param_dict : dictionary with the current axis position
         """
 
         invalid_axis = set(param_dict)-set(['x', 'y', 'z'])
@@ -200,23 +206,25 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
         return param_dict
 
     def abort(self):
-        """Stops movement of the stage
+        """ Stop movement of the stage
 
         @return int: error code (0:OK, -1:error)
         """
+        self.log.info('Function not yet implemented')
+
         return 0
 
     def get_pos(self, param_list=None):
-        """ Gets current position of the stage arms
+        """ Get the current position of the stage axis
 
-        @param list param_list: optional, if a specific position of an axis
-                                is desired, then the labels of the needed
-                                axis should be passed in the param_list.
-                                If nothing is passed, then the positions of
-                                all axes are returned.
+        @param list param_list : optional, if a specific position of an axis
+                                 is desired, then the labels of the needed
+                                 axis should be passed in the param_list.
+                                 If nothing is passed, then the positions of
+                                 all axes are returned.
 
-        @return dict: with keys being the axis labels and item the current
-                      position.
+        @return dict param_dict : with keys being the axis labels and item the current
+                                  position.
         """
 
         # Now we create an instance of that object
@@ -235,68 +243,74 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
     def get_status(self, param_list=None):
         """ Get the status of the position
 
-        @param list param_list: optional, if a specific status of an axis
-                                is desired, then the labels of the needed
-                                axis should be passed in the param_list.
-                                If nothing is passed, then from each axis the
-                                status is asked.
+        @param list param_list : optional, if a specific status of an axis
+                                 is desired, then the labels of the needed
+                                 axis should be passed in the param_list.
+                                 If nothing is passed, then from each axis the
+                                 status is asked.
 
-        @return dict: with the axis label as key and the status number as item.
-        The meaning of the return value is:
-        Bit 0: Ready Bit 1: On target Bit 2: Reference drive active Bit 3: Joystick ON
-        Bit 4: Macro running Bit 5: Motor OFF Bit 6: Brake ON Bit 7: Drive current active
+        @return dict : with the axis label as key and the status number as item.
+            The meaning of the return value is:
+            Bit 0: Ready Bit 1: On target Bit 2: Reference drive active Bit 3: Joystick ON
+            Bit 4: Macro running Bit 5: Motor OFF Bit 6: Brake ON Bit 7: Drive current active
         """
+        self.log.info('Not yet implemented for this hardware')
 
     def calibrate(self, param_list=None):
-        """ Calibrates the stage.
+        """ Calibrate the stage.
 
-        @param dict param_list: param_list: optional, if a specific calibration
-                                of an axis is desired, then the labels of the
-                                needed axis should be passed in the param_list.
-                                If nothing is passed, then all connected axis
-                                will be calibrated.
+        @param dict param_list : param_list: optional, if a specific calibration
+                                 of an axis is desired, then the labels of the
+                                 needed axis should be passed in the param_list.
+                                 If nothing is passed, then all connected axis
+                                 will be calibrated.
 
         After calibration the stage moves to home position which will be the
         zero point for the passed axis.
 
-        @return dict pos: dictionary with the current position of the ac#xis
+        @return dict pos : dictionary with the current position of the ac#xis
         """
+        self.log.info('Not yet implemented for this hardware')
+
         pos = {}
 
         return pos
 
     def get_velocity(self, param_list=None):
-        """ Gets the current velocity for all connected axes in m/s.
+        """ Get the current velocity for all connected axes in m/s.
 
-        @param list param_list: optional, if a specific velocity of an axis
-                                    is desired, then the labels of the needed
-                                    axis should be passed as the param_list.
-                                    If nothing is passed, then from each axis the
-                                    velocity is asked.
+            @param list param_list : optional, if a specific velocity of an axis
+                                     is desired, then the labels of the needed
+                                     axis should be passed as the param_list.
+                                     If nothing is passed, then from each axis the
+                                     velocity is asked.
 
-        @return dict : with the axis label as key and the velocity as item.
-            """
+            @return dict : with the axis label as key and the velocity as item.
+        """
+        self.log.info('Function not yet implemented for this stage')
 
     def set_velocity(self, param_dict):
         """ Write new value for velocity in m/s.
 
-        @param dict param_dict: dictionary, which passes all the relevant
-                                    parameters, which should be changed. Usage:
-                                     {'axis_label': <the-velocity-value>}.
-                                     'axis_label' must correspond to a label given
-                                     to one of the axis.
+        @param dict param_dict : dictionary, which passes all the relevant
+                                 parameters, which should be changed. Usage:
+                                 {'axis_label': <the-velocity-value>}.
+                                 'axis_label' must correspond to a label given
+                                 to one of the axis.
 
-        @return dict param_dict2: dictionary with the updated axis velocity
+        @return dict param_dict2 : dictionary with the updated axis velocity
         """
+        self.log.info('Not yet implemented for this hardware')
 
 ########################## internal methods ##################################
 
     def _do_move_abs(self, axis, to_pos):
-        """ Internal method for absolute axis move in meters
+        """ Make absolute axis move in meters (internal method)
 
-        @param axis string: name of the axis that should be moved
-        @param float to_pos: desired position in meters
+        @param axis string  : name of the axis that should be moved
+               float to_pos : desired position in meters
         """
+
         if not(self._configured_constraints[axis]['pos_min'] <= to_pos <= self._configured_constraints[axis]['pos_max']):
             self.log.warning('Cannot make the movement of the axis "{axis}"'
                              'since the border [{min},{max}] would be crossed! Ignore command!'
@@ -305,11 +319,12 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
             self._write_axis_move(axis, to_pos)
 
     def _write_axis_move(self, axis, to_pos):
-        """ Internal method to move a specified axis
+        """ Move a specified axis (internal method)
 
-        @param axis string: name of the axis that should be moved
-        @param float to_pos: desired position in meters
+            @param set axis     : name of the axis that should be moved
+                   float to_pos : desired position in meters
         """
+
         newpos = self._double1d(to_pos * 1e6)  # unit conversion for communication
         ax = ctypes.c_char_p(axis.encode())
         self._pidll.E7XX_MOV(self._devID, ax, newpos)
@@ -318,9 +333,9 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
             self._pidll.E7XX_qONT(self._devID, ax, onT)
 
     def _set_servo_state(self, to_state):
-        """internal method enabling / disabling the servos
+        """ Set the servo state (internal method)
 
-        @param bool to_state: desired state of the servos
+        @param bool to_state : desired state of the servos
         """
 
         servo_state = self._bool1d()
