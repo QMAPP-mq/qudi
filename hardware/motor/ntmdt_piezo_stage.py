@@ -230,7 +230,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         @return dict pos: dictionary with the current magnet position
         """
-        self.log.info('I cannot do this, use the absolute movement function')
+        self.log.warning('I cannot do this, use the absolute movement function')
         return param_dict
 
     def move_abs(self, param_dict=None):
@@ -390,6 +390,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         Bit 0: Ready Bit 1: On target Bit 2: Reference drive active Bit 3: Joystick ON
         Bit 4: Macro running Bit 5: Motor OFF Bit 6: Brake ON Bit 7: Drive current active
         """
+        self.log.warning('This operation is not yet supported')
 
     def calibrate(self, param_list=None):
         """ Calibrates the stage.
@@ -405,6 +406,8 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         @return dict pos: dictionary with the current position of the ac#xis
         """
+        self.log.warning('This operation is not yet supported')
+
         pos = {}
 
         return pos
@@ -419,7 +422,8 @@ class PiezoStageNTMDT(Base, MotorInterface):
                                     velocity is asked.
 
         @return dict : with the axis label as key and the velocity as item.
-            """
+        """
+        self.log.warning('This operation is not yet supported')
 
     def set_velocity(self, param_dict):
         """ Write new value for velocity in m/s.
@@ -432,6 +436,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         @return dict param_dict2: dictionary with the updated axis velocity
         """
+        self.log.warning('This operation is not yet supported')
 
 ########################## internal methods ####################################
 
