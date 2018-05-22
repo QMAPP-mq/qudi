@@ -66,7 +66,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
     _modclass = 'msquaredlaser'
     _modtype = 'hardware'
 
-    _ipaddr = ConfigOption('laser_ip', missing='error')
+    _ipaddy = ConfigOption('laser_ip', missing='error')
     _port = ConfigOption('laser_port', missing='error')
 
     _beam_align_x = None
@@ -95,7 +95,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         """ Activate module.
         """
         try:
-            err = self._connect(self._ipaddr, self._port)
+            err = self._connect(self._ipaddy, self._port)
             if err == 0:
                 self.log.info('Connected to M-Squared hardware')
                 self.wavelength = self.get_wavelength()
@@ -307,7 +307,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return str: much laser, very useful
         """
-        return "SolsTiS 3 TCP/IP Protocol Version 21 or similar."
+        return "much laser, very useful"
 
     def get_wavelength(self):
         """ Get the current laser wavelength
@@ -318,6 +318,8 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
     def set_wavelength(self, target_wavelength):
         """ Set the wavelength of the laser
+
+            @param float target_wavelength : target wavelength to set the laser
 
             @return int: -1 if error (else no return)
         """
@@ -352,6 +354,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return various
         """
+
         message = {'transmission_id': [5],
                    'op': 'get_status'
                   }
@@ -362,8 +365,9 @@ class MSquaredLaser(Base, SimpleLaserInterface):
     def _get_tuning_status(self):
         """ Check the tuning status of the laser
 
-            @return bool True if still tuning, False if complete
+            @return bool : True if still tuning, False if complete
         """
+
         message = {'transmission_id': [2],
                    'op': 'poll_move_wave_t'
                    }
@@ -376,11 +380,12 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         else:
             return False
 
-    def _get_wavelength_lock(self, target_state):
+    def _get_wavelength_lock(self):
         """ Get the wavelength lock status
 
-            @return bool status of the wavelength lock
+            @return bool : status of the wavelength lock
         """
+
         message = {'transmission_id':[7], 'op':'poll_wave_m'}
 
         self._send_command(message)
@@ -395,7 +400,9 @@ class MSquaredLaser(Base, SimpleLaserInterface):
     def _set_wavelength_lock(self, target_state):
         """ Set the wavelength lock either `on' or `off'
 
-            @return bool status of the wavelength lock
+            @param bool targer_state : desired lock state of the laser
+
+            @return bool state : status of the wavelength lock
         """
 
         message = {'transmission_id':[6], 'op':'lock_wave_m',
@@ -425,8 +432,9 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         """ Get the Beam X and Beam Y alignment variables
 
             @return: float : the Beam X alignment parameter
-                     float : the Beam X alignment parameter
+                     float : the Beam Y alignment parameter
         """
+
         message = {'transmission_id':[8], 'op':'get_alignment_status'}
 
         self._send_command(message)
@@ -438,9 +446,13 @@ class MSquaredLaser(Base, SimpleLaserInterface):
     def _set_beam_align(self, beam_x, beam_y):
         """ Set the beam alignment
 
+            @param  float beam_x : the Beam X alignment parameter
+                    float beam_y : the Beam Y alignment parameter
+
             @return: float : the Beam X alignment parameter
-                        float : the Beam X alignment parameter
+                     float : the Beam Y alignment parameter
         """
+
         self._set_beam_align_x(beam_x)
         self._set_beam_align_y(beam_y)
 
@@ -448,6 +460,8 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
     def _set_beam_align_x(self, beam_x):
         """ Set the beam x alignment parameter
+
+            @param beam_x float : new beam x alignment param
         """
 
         message = {'transmission_id': [9],
@@ -469,6 +483,8 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
     def _set_beam_align_y(self, beam_y):
         """ Set the beam y alignment parameter
+
+            @param beam_y float : new beam y alignment param
         """
 
         message = {'transmission_id': [10],
@@ -505,10 +521,10 @@ class MSquaredLaser(Base, SimpleLaserInterface):
     def _set_beam_align_mode(self, mode):
         """ Set the beam alignment mode
 
-            @params mode str: 'manual'
-                              'automatic'
-                              'hold' (stop and hold current values)
-                              'one shot'
+            @params mode str : 'manual'
+                               'automatic'
+                               'hold' (stop and hold current values)
+                               'one shot'
 
             @return mode str : the new alignment mode
                     err  int : -1 if error
@@ -544,14 +560,18 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
 ########################## instrument communication methods ###################
 
-    def _connect(self, ipaddr, port):
+    def _connect(self, ipaddy, port):
         """ Establish a connection to the laser
+
+            @param ipaddy str : laser ip address
+                   port int   : laser port
 
             @return int: 0 if ok, -1 if error
         """
+
         try:
             self.s.settimeout(5)
-            self.s.connect((ipaddr, port))
+            self.s.connect((ipaddy, port))
             myIP = self.s.getsockname()[0]
             message = {"transmission_id": [3],
                        "op": "start_link",
@@ -575,6 +595,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             @return int: 0 if ok, -1 if error
         """
+
         try:
             message = {'transmission_id' : [4], 'op':'ping',
                    'parameters':{'text_in':'TESTING'}}
@@ -593,12 +614,20 @@ class MSquaredLaser(Base, SimpleLaserInterface):
     def _send_command(self, message):
         """ Send a command to the laser
 
-        @return json: message + params
+        @param message str : command string to be delivered to the laser
+
+        @return int: 0 if ok, -1 if error
         """
+
         self.s.sendall(json.dumps({"message": message}).encode())
         return 0
 
     def _read_response(self):
+        """ Read the response of a query sent to the laser.
+
+        @return response str : query response
+        """
+
         response = self.s.recv(1024)
         response = json.loads(response)
         return response["message"]["parameters"]
