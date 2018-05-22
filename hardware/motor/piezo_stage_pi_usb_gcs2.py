@@ -116,7 +116,7 @@ class PiezoStagePI(Base, MotorInterface):
             return 1
         else:
             self._set_servo_state(True)
-            self._configuration = self.get_constraints()
+            self._configured_constraints = self.get_constraints()
             return 0
 
     def on_deactivate(self):
@@ -206,15 +206,15 @@ class PiezoStagePI(Base, MotorInterface):
 
             if axis in param_dict.keys():
                 if axis == 'x':
-                    channel = self._configuration[axis]['channel']
+                    channel = self._configured_constraints[axis]['channel']
                     to_position = param_dict['x']
                     self._do_move_abs(axis, channel, to_position)
                 elif axis == 'y':
-                    channel = self._configuration[axis]['channel']
+                    channel = self._configured_constraints[axis]['channel']
                     to_position = param_dict['y']
                     self._do_move_abs(axis, channel, to_position)
                 elif axis == 'z':
-                    channel = self._configuration[axis]['channel']
+                    channel = self._configured_constraints[axis]['channel']
                     to_position = param_dict['z']
                     self._do_move_abs(axis, channel, to_position)
 
@@ -350,10 +350,10 @@ class PiezoStagePI(Base, MotorInterface):
         @param int channel: channel of the axis to be moved 
         @param float to_pos: desired position in meters
         """
-        if not(self._configuration[axis]['pos_min'] <= to_pos <= self._configuration[axis]['pos_max']):
+        if not(self._configured_constraints[axis]['pos_min'] <= to_pos <= self._configured_constraints[axis]['pos_max']):
             self.log.warning('Cannot make the movement of the axis "{axis}"'
                              'since the border [{min},{max}] would be crossed! Ignore command!'
-                             ''.format(axis=axis, min=self._configuration[axis]['pos_min'], max=self._configuration[axis]['pos_max']))
+                             ''.format(axis=axis, min=self._configured_constraints[axis]['pos_min'], max=self._configured_constraints[axis]['pos_max']))
         else:
             self._write_axis_move(axis, channel, to_pos)
 
