@@ -41,7 +41,7 @@ class ThorlabsPM(Base, PowermeterInterface):
     This is the hardware module for communicating with a Thorlabs power meter
     (PM100x) over USB. It uses the Thorlabs PM100 python module.
 
-    Example configuration"
+    Example configuration
     ```
         pm100a:
             module.Class: 'powermeter.powermeter_thorlabs_pm100.ThorlabsPM'
@@ -70,10 +70,11 @@ class ThorlabsPM(Base, PowermeterInterface):
         super().__init__(config=config, **kwargs)
 
     def on_activate(self):
-        """ Initialisation performed during activation of the module.
+        """ Initialise the hardware module.
 
-        @return error code
+        @return int error code
         """
+
         # search and connect
         device_list = visa.ResourceManager()
 
@@ -111,12 +112,13 @@ class ThorlabsPM(Base, PowermeterInterface):
                 return 1
 
     def _connect(self, device_list, device_name):
-        """ Do the actual connection to a powermeter device
+        """ Connection to a powermeter device.
 
         @param object device_list: visa.ResourceManager() object
 
-        @param string device_name: name of the device to connect
+        @param str device_name : name of the device to connect
         """
+
         instance = device_list.open_resource(device_name)
         self.ThorlabsPM = ThorlabsPM100(inst=instance)
         self.constraints = self.get_constraints()  # read the contraints directly from the hardware
@@ -133,7 +135,11 @@ class ThorlabsPM(Base, PowermeterInterface):
         return 0
 
     def get_constraints(self):
-        """ Return a constraints class for the powermeter."""
+        """ Return a constraints class for the powermeter.
+
+            @return dict constraints : contains PM constraints
+        """
+
         constraints = {}
         constraints['min_wavelength'] = self.ThorlabsPM.sense.correction.minimum_wavelength * 1e-9
         constraints['max_wavelength'] = self.ThorlabsPM.sense.correction.maximum_wavelength * 1e-9
@@ -144,10 +150,10 @@ class ThorlabsPM(Base, PowermeterInterface):
     def set_averaging_window(self, target_averaging_window=300e-3):
         """ Set the averaging window of the powermeter.
 
-        @param int target_averaging_window: if defined, time over which to average (in seconds)
-        (For the PM100x: 1 sample takes approx. 3ms)
+        @param int target_averaging_window : if defined, time over which to average (in seconds)
+                                             (for the PM100x: 1 sample takes approx. 3ms)
 
-        @return int: the averaging window in seconds
+        @return int : the averaging window in seconds
         """
 
         self.ThorlabsPM.sense.average.count = target_averaging_window / self._sampling_time
@@ -159,7 +165,7 @@ class ThorlabsPM(Base, PowermeterInterface):
     def get_averaging_window(self):
         """ Get the averaging window of the powermeter.
 
-        @return int: the averaging window in seconds
+        @return int : the averaging window in seconds
         """
 
         self._averaging_window = self.ThorlabsPM.sense.average.count * self._sampling_time
@@ -167,12 +173,12 @@ class ThorlabsPM(Base, PowermeterInterface):
         return self._averaging_window
 
     def get_power(self, _averaging_window=100):
-        """ Returns the current power of the powermeter.
+        """ Return the current power of the powermeter.
 
-        @param int averaging_window: if defined, number of samples over which to average
-        (1 sample takes approx. 3ms)
+        @param int averaging_window : if defined, number of samples over which to average
+                                      (1 sample takes approx. 3ms)
 
-        @return float: the power in Watts
+        @return float : the power in Watts
         """
 
         # TODO: Check if this following line is related to issue #8
@@ -189,20 +195,21 @@ class ThorlabsPM(Base, PowermeterInterface):
         return self.ThorlabsPM.read
 
     def get_wavelength(self):
-        """ Returns the current wavelength setting of the powermeter.
+        """ Return the current wavelength setting of the powermeter.
 
-        @return int: the wavelength in meters
+        @return float : the wavelength in meters
         """
+
         self._wavelength = self.ThorlabsPM.sense.correction.wavelength * 1e-9
 
         return self._wavelength
 
     def set_wavelength(self, _target_wavelength):
-        """ Sets the wavelength setting of the powermeter.
+        """ Set the wavelength setting of the powermeter.
 
-        @param int _target_wavelength: wavelength to set the powermeter to (in meters)
+        @param int _target_wavelength : wavelength to set the powermeter to (in meters)
 
-        @return int: the wavelength in meters
+        @return float : the wavelength in meters
         """
 
         if (_target_wavelength > self.constraints['max_wavelength']) or (_target_wavelength < self.constraints['min_wavelength']):
