@@ -31,7 +31,6 @@ from collections import OrderedDict
 from core.module import Base, ConfigOption
 from interface.motor_interface import MotorInterface
 
-
 class PiezoScrewsNF(Base, MotorInterface):
 
     """unstable: Matt van Breugel, Lachlan Rogers
@@ -46,6 +45,16 @@ class PiezoScrewsNF(Base, MotorInterface):
 
     eol_write = b"\r"
     eol_read = b"\r\n"
+
+    # x_axis_channel = 1
+    # y_axis_channel = 2
+    z_axis_channel = 3
+    # x_axis_min = 0
+    # x_axis_max = 26e-3
+    # y_axis_min = 0
+    # y_axis_max = 26e-3
+    z_axis_min = 0
+    z_axis_max = 26e-3
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -98,6 +107,25 @@ class PiezoScrewsNF(Base, MotorInterface):
         assert self.ep_in is not None
         assert self.ep_in.wMaxPacketSize == 64
 
+        # get the config for this device. #need to figure out how to call nested config
+        config = self.getConfiguration()
+
+        for axis_label in config['axis_labels']:
+            if axis_label == 'x':
+                self.x_axis_channel = config[axis_label]['channel']
+                self.x_axis_min = config[axis_label]['constraints']['pos_min']
+                self.x_axis_max = config[axis_label]['constraints']['pos_max']
+            if axis_label == 'y':
+                self.y_axis_channel = config[axis_label]['channel']
+                self.y_axis_min = config[axis_label]['constraints']['pos_min']
+                self.y_axis_max = config[axis_label]['constraints']['pos_max']
+            if axis_label == 'z':
+                self.z_axis_channel = config[axis_label]['channel']
+                self.z_axis_min = config[axis_label]['constraints']['pos_min']
+                self.z_axis_max = config[axis_label]['constraints']['pos_max']
+
+        self._go_to_original_home()
+
         return 0
 
 
@@ -136,18 +164,18 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         axis0 = {}
         axis0['label'] = 'x'
-        axis0['pos_min'] = 0.0
-        axis0['pos_max'] = 300.0
+        axis0['pos_min'] = self.x_axis_min
+        axis0['pos_max'] = self.x_axis_max
 
         axis1 = {}
         axis1['label'] = 'y'
-        axis1['pos_min'] = 0.0
-        axis1['pos_max'] = 300.0
+        axis1['pos_min'] = self.y_axis_min
+        axis1['pos_max'] = self.y_axis_max
 
         axis2 = {}
         axis2['label'] = 'z'
-        axis2['pos_min'] = 0.0
-        axis2['pos_max'] = 300.0
+        axis2['pos_min'] = self.z_axis_min
+        axis2['pos_max'] = self.z_axis_max
 
         # assign the parameter container for x to a name which will identify it
         constraints[axis0['label']] = axis0
@@ -177,21 +205,21 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         for axis_label in param_dict:
             if 'x' in axis_label:
-                axis_numbers.append(1)
+                axis_numbers.append(self.x_axis_channel)
             if 'y' in axis_label:
-                axis_numbers.append(2)
+                axis_numbers.append(self.y_axis_channel)
             if 'z' in axis_label:
-                axis_numbers.append(3)
+                axis_numbers.append(self.z_axis_channel)
 
         for axis in axis_numbers:
-            if axis == 1:
-                self._move_rel_axis(axis, int(param_dict['x']))
-            elif axis == 2:
-                self._move_rel_axis(axis, int(param_dict['y']))
-            elif axis == 3:
-                self._move_rel_axis(axis, int(param_dict['z']))
+            if axis == self.x_axis_channel:
+                self._move_rel_axis(axis, param_dict['x'])
+            elif axis == self.y_axis_channel:
+                self._move_rel_axis(axis, param_dict['y'])
+            elif axis == self.z_axis_channel:
+                self._move_rel_axis(axis, param_dict['z'])
 
-        return self.get_pos()
+        # return self.get_pos()
 
     def move_abs(self, param_dict):
         """ Move stage to absolute position
@@ -212,21 +240,26 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         for axis_label in param_dict:
             if 'x' in axis_label:
-                axis_numbers.append(1)
+                axis_numbers.append(self.x_axis_channel)
             if 'y' in axis_label:
-                axis_numbers.append(2)
+                axis_numbers.append(self.y_axis_channel)
             if 'z' in axis_label:
-                axis_numbers.append(3)
+                axis_numbers.append(self.z_axis_channel)
 
         for axis in axis_numbers:
-            if axis == 1:
-                self._move_abs_axis(axis, int(param_dict['x']))
-            elif axis == 2:
-                self._move_abs_axis(axis, int(param_dict['y']))
-            elif axis == 3:
-                self._move_abs_axis(axis, int(param_dict['z']))
+            if axis == self.x_axis_channel:
+                self._move_abs_axis(axis, param_dict['x'])
+            elif axis == self.y_axis_channel:
+                self._move_abs_axis(axis, param_dict['y'])
+            elif axis == self.z_axis_channel:
+                self._move_abs_axis(axis, param_dict['z'])
 
-        return #self.get_pos()
+        log_file = open("hardware/motor/newfocusdatalog.txt", "w")
+        log_file.write(str(param_dict))
+        log_file.close()
+
+        # return move_pos_dict
+
 
     def abort(self):
         """Stop movement of the stage with no deceleration
@@ -258,38 +291,32 @@ class PiezoScrewsNF(Base, MotorInterface):
         if param_dict is not None:
             for axis_label in param_dict:
                 if 'x' in axis_label:
-                    axis_numbers.append(1)
+                    axis_numbers.append(self.x_axis_channel)
                 if 'y' in axis_label:
-                    axis_numbers.append(2)
+                    axis_numbers.append(self.y_axis_channel)
                 if 'z' in axis_label:
-                    axis_numbers.append(3)
+                    axis_numbers.append(self.z_axis_channel)
         else:
             axis_numbers = [1, 2, 3]
 
         for axis in axis_numbers:
-            if axis == 1:
+            if axis == self.x_axis_channel:
                 value = int(self._ask('MD?', xx= axis))
-                # value = self._on_target(axis)
                 while value == 0:
                     time.sleep(0.0005)
                     value = int(self._ask('MD?', xx= axis))
-                    # value = self._on_target(axis)
                 pos_dict['x'] = self._get_pos_axis(axis)
-            elif axis == 2:
+            elif axis == self.y_axis_channel:
                 value = int(self._ask('MD?', xx= axis))
-                # value = self._on_target(axis)
                 while value == 0:
                     time.sleep(0.0005)
                     value = int(self._ask('MD?', xx= axis))
-                    # value = self._on_target(axis)
                 pos_dict['y'] = self._get_pos_axis(axis)
-            elif axis == 3:
+            elif axis == self.z_axis_channel:
                 value = int(self._ask('MD?', xx= axis))
-                # value = self._on_target(axis)
                 while value == 0:
                     time.sleep(0.0005)
                     value = int(self._ask('MD?', xx= axis))
-                    # value = self._on_target(axis)
                 pos_dict['z'] = self._get_pos_axis(axis)
 
         return pos_dict
@@ -315,20 +342,20 @@ class PiezoScrewsNF(Base, MotorInterface):
         if param_dict is not None:
             for axis_label in param_dict:
                 if 'x' in axis_label:
-                    axis_numbers.append(1)
+                    axis_numbers.append(self.x_axis_channel)
                 if 'y' in axis_label:
-                    axis_numbers.append(2)
+                    axis_numbers.append(self.y_axis_channel)
                 if 'z' in axis_label:
-                    axis_numbers.append(3)
+                    axis_numbers.append(self.z_axis_channel)
         else:
-            axis_numbers = [1, 2, 3]
+            axis_numbers = [self.x_axis_channel, self.y_axis_channel, self.z_axis_channel]
 
         for axis in axis_numbers:
-            if axis == 1:
+            if axis == self.x_axis_channel:
                 status_dict['x'] = self._done(axis)
-            elif axis == 2:
+            elif axis == self.y_axis_channel:
                 status_dict['y'] = self._done(axis)
-            elif axis == 3:
+            elif axis == self.z_axis_channel:
                 status_dict['z'] = self._done(axis)
 
         return status_dict
@@ -371,20 +398,20 @@ class PiezoScrewsNF(Base, MotorInterface):
         if param_dict is not None:
             for axis_label in param_dict:
                 if 'x' in axis_label:
-                    axis_numbers.append(1)
+                    axis_numbers.append(self.x_axis_channel)
                 if 'y' in axis_label:
-                    axis_numbers.append(2)
+                    axis_numbers.append(self.y_axis_channel)
                 if 'z' in axis_label:
-                    axis_numbers.append(3)
+                    axis_numbers.append(self.z_axis_channel)
         else:
-            axis_numbers = [1, 2, 3]
+            axis_numbers = [self.x_axis_channel, self.y_axis_channel, self.z_axis_channel]
 
         for axis in axis_numbers:
-            if axis == 1:
+            if axis == self.x_axis_channel:
                 velocity_dict['x'] = self._ask_velocity(axis)
-            elif axis == 2:
+            elif axis == self.y_axis_channel:
                 velocity_dict['y'] = self._ask_velocity(axis)
-            elif axis == 3:
+            elif axis == self.z_axis_channel:
                 velocity_dict['z'] = self._ask_velocity(axis)
 
         return velocity_dict
@@ -407,18 +434,18 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         for axis_label in param_dict:
             if 'x' in axis_label:
-                axis_numbers.append(1)
+                axis_numbers.append(self.x_axis_channel)
             if 'y' in axis_label:
-                axis_numbers.append(2)
+                axis_numbers.append(self.y_axis_channel)
             if 'z' in axis_label:
-                axis_numbers.append(3)
+                axis_numbers.append(self.z_axis_channel)
 
         for axis in axis_numbers:
-            if axis == 0:
+            if axis == self.x_axis_channel:
                 param_dict['x'] = self._set_velocity_axis(axis, param_dict['x'])
-            elif axis == 1:
+            elif axis == self.y_axis_channel:
                 param_dict['y'] = self._set_velocity_axis(axis, param_dict['y'])
-            elif axis == 2:
+            elif axis == self.z_axis_channel:
                 param_dict['z'] = self._set_velocity_axis(axis, param_dict['z'])
 
         return self.get_velocity()
@@ -535,9 +562,8 @@ class PiezoScrewsNF(Base, MotorInterface):
             @param int axis       : axis to be acted upon
                    float distance : distance to be moved
         """
-
-        # TODO can we convert distance to steps
-        steps = distance
+        
+        steps = int(float(distance)/float(0.00000003))
         self._do('PR', axis, steps)
 
         # while not self._on_target(axis):
@@ -557,9 +583,8 @@ class PiezoScrewsNF(Base, MotorInterface):
             @param int axis       : axis to be acted upon
                    float distance : distance to be moved
         """
-
-        # TODO can we convert distance to steps
-        steps = distance
+        
+        steps = int(float(distance)/float(0.00000003))
         self._do('PA', axis, steps)
 
         # while not self._on_target():
@@ -582,14 +607,12 @@ class PiezoScrewsNF(Base, MotorInterface):
         """
         # target_position = self._ask('PA?',axis)
         # relative_position = self._ask('PR?',axis)
-        actual_position = int(self._ask('TP?',axis))
+        actual_position_in_steps = float(self._ask('TP?',axis))
+        actual_position_in_SI = (actual_position_in_steps*30)*1e-9
         # print ('Get destination position (abs)', axis, target_position)  # debugging
         # print ('Get destination position (rel)', axis, relative_position)  # debugging
         # print ('Get position', axis, actual_position)  # debugging
-        return actual_position
-        log_file = open("hardware/motor/newfocusdatalog.txt", "r+")
-        log_file.write(pos_dict)
-        log_file.close()
+        return actual_position_in_SI
 
     def _set_velocity_axis(self, axis, velocity):
         """ Set the velovity of an axis
@@ -651,7 +674,7 @@ class PiezoScrewsNF(Base, MotorInterface):
                    float pos : desired home position
         """
 
-        self._do('DH', axis, position)
+        self._do('DH', axis, pos)
     
     def _check_home(self):
         """ Get the home position ('ET phone home..')
@@ -663,16 +686,35 @@ class PiezoScrewsNF(Base, MotorInterface):
         home_dict = eval(open("hardware/motor/newfocusdatalog.txt").read())
         # read_log.close
 
-        #home_dict = self.get_pos({'x','y','z'})
-        home_dict['x'] = 0 - int(home_dict['x'])
-        home_dict['y'] = 0 - int(home_dict['y'])
-        home_dict['z'] = 0 - int(home_dict['z'])
+        # home_dict = self.get_pos({'x','y','z'})
+        home_dict['x'] = 0 - float(home_dict['x'])
+        home_dict['y'] = 0 - float(home_dict['y'])
+        home_dict['z'] = 0 - float(home_dict['z'])
         return home_dict
 
+    def _home_dictionary(self):
+        """ TODO What is this?
+        """
+        self._check_home()
+
     def _print_to_log(self):
-        """ Print the position to a log file
+        """ Print positional information to a log file
         """
 
         log_file = open("hardware/motor/newfocusdatalog.txt", "w")
         log_file.write(str(self.get_pos({'x','y','z'})))
         log_file.close()
+
+        self._check_home()
+        self.move_rel(self._check_home())
+        self._set_home(self.x_axis_channel, 0)
+        self._set_home(self.y_axis_channel, 0)
+        self._set_home(self.z_axis_channel, 0)
+        self.get_pos({'x','y','z'})
+        self._print_to_log()
+
+    def _on_scan_done(self):
+        """ Query if the scan is complete
+        """
+        if scan_done == True: # TODO scan_don is undefined
+            self._print_to_log()

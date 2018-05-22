@@ -82,6 +82,7 @@ dependencies:
   - pydaqmx==1.3.2
   - pyflowgraph-qo==0.0.3.1
   - pyqtgraph==0.10.0
+  - pyusb==1.0.2
   - pyvisa==1.8
   - pyvisa-py==0.2
   - rpyc==3.3.0
