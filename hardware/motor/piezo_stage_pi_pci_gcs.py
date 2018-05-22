@@ -42,18 +42,24 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
 
     Example configuration:
     ```
-    # piezo_pi:
-    #     module.Class: 'motor.piezo_stage_pi_usb_gcs2.PiezoStagePI'
-    #     constraints:
-    #         x_range:
-    #             min: 0e-6
-    #             max: 300e-6
-    #         y_range:
-    #             min: 0e-6
-    #             max: 300e-6
-    #         z_range:
-    #             min: 0e-6
-    #             max: 300e-6
+    # pi_piezo:
+    #     module.Class: 'motor.piezo_stage_pi_pci_gcs.PiezoStagePI'
+    #     axis_labels:
+    #         - x
+    #         - y
+    #         - z
+    #     x:
+    #         constraints:
+    #             pos_min: 0e-6
+    #             pos_max: 300e-6
+    #     y:
+    #         constraints:
+    #             pos_min: 0e-6
+    #             pos_max: 300e-6
+    #     z:
+    #         constraints:
+    #             pos_min: 0e-6
+    #             pos_max: 300e-6
     ```
     """
     _modclass = 'PiezoStagePI_GCS1'
@@ -93,7 +99,7 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
                 return 1
             else:
                 self._set_servo_state(True)
-                self._constraints = self.get_constraints()
+                self._configured_constraints = self.get_constraints()
                 return 0
 
     def on_deactivate(self):
@@ -120,18 +126,18 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
 
         axis0 = {}
         axis0['label'] = 'x'
-        axis0['pos_min'] = config['constraints']['x_range']['min']
-        axis0['pos_max'] = config['constraints']['x_range']['max']
+        axis0['pos_min'] = config['x']['constraints']['pos_min']
+        axis0['pos_max'] = config['x']['constraints']['pos_max']
 
         axis1 = {}
         axis1['label'] = 'y'
-        axis1['pos_min'] = config['constraints']['y_range']['min']
-        axis1['pos_max'] = config['constraints']['y_range']['max']
+        axis1['pos_min'] = config['y']['constraints']['pos_min']
+        axis1['pos_max'] = config['y']['constraints']['pos_max']
 
         axis2 = {}
         axis2['label'] = 'z'
-        axis2['pos_min'] = config['constraints']['z_range']['min']
-        axis2['pos_max'] = config['constraints']['z_range']['max']
+        axis2['pos_min'] = config['z']['constraints']['pos_min']
+        axis2['pos_max'] = config['z']['constraints']['pos_max']
 
         # assign the parameter container for x to a name which will identify it
         constraints[axis0['label']] = axis0
@@ -314,10 +320,10 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
         @param axis string: name of the axis that should be moved
         @param float to_pos: desired position in meters
         """
-        if not(self._constraints[axis]['pos_min'] <= to_pos <= self._constraints[axis]['pos_max']):
+        if not(self._configured_constraints[axis]['pos_min'] <= to_pos <= self._configured_constraints[axis]['pos_max']):
             self.log.warning('Cannot make the movement of the axis "{axis}"'
                              'since the border [{min},{max}] would be crossed! Ignore command!'
-                             ''.format(axis=axis, min=self._constraints[axis]['pos_min'], max=self._constraints[axis]['pos_max']))
+                             ''.format(axis=axis, min=self._configured_constraints[axis]['pos_min'], max=self._configured_constraints[axis]['pos_max']))
         else:
             self._write_axis_move(axis, to_pos)
 
