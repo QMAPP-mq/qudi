@@ -184,6 +184,7 @@ class PiezoStagePI(Base, MotorInterface):
 
             @return dict param_dict : dictionary with the current stage positions
         """
+        self.log.info('Function not yet implemented')
 
         return param_dict
 
