@@ -62,6 +62,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         default_y_alignment_param: 62.80
     ```
     """
+
     _modclass = 'msquaredlaser'
     _modtype = 'hardware'
 
@@ -344,7 +345,21 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         # self.wavelength_lock = self._set_wavelength_lock('on') # For use with attached wavelength meter
         self.wavelength = self.get_wavelength()
 
-    def _tuning_status(self):
+########################## internal methods ###################################
+
+    def _get_status(self, param):
+        """ Querey the status of the status of the laser and return the requested parameter
+
+            @return various
+        """
+        message = {'transmission_id': [5],
+                   'op': 'get_status'
+                  }
+        self._send_command(message)
+        response = self._read_response()
+        return response[param]
+
+    def _get_tuning_status(self):
         """ Check the tuning status of the laser
 
             @return bool True if still tuning, False if complete
@@ -361,76 +376,21 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         else:
             return False
 
-    def _connect(self, ipaddr, port):
-        """ Establish a connection to the laser
+    def _get_wavelength_lock(self, target_state):
+        """ Get the wavelength lock status
 
-            @return int: 0 if ok, -1 if error
+            @return bool status of the wavelength lock
         """
-        try:
-            self.s.settimeout(5)
-            self.s.connect((ipaddr, port))
-            myIP = self.s.getsockname()[0]
-            message = {"transmission_id": [3],
-                       "op": "start_link",
-                       "parameters": {"ip_address": myIP}
-                       }
-            self._send_command(message)
-            response = self._read_response()
-            if response['status'] == 'ok':
-                return 0
-            else:
-                self.log.error('I cannot connect to the M Squared laser - check config ip and port')
-                # these can be found in the SolsTiS config web interface
-                return -1
-        except:
-            return -2
-        # TODO: if the laser is connected, check for a protocol error:
-        # print('protocol error: ', response['protocol_error'])
+        message = {'transmission_id':[7], 'op':'poll_wave_m'}
 
-    def _send_command(self, message):
-        """ Send a command to the laser
-
-        @return json: message + params
-        """
-        self.s.sendall(json.dumps({"message": message}).encode())
-        return 0
-
-    def _read_response(self):
-        response = self.s.recv(1024)
-        response = json.loads(response)
-        return response["message"]["parameters"]
-
-    def _ping(self):
-        """ Ping the laser
-
-            @return int: 0 if ok, -1 if error
-        """
-        try:
-            message = {'transmission_id' : [4], 'op':'ping',
-                   'parameters':{'text_in':'TESTING'}}
-
-            self._send_command(message)
-            time.sleep(0.1)
-            response = self._read_response()
-
-            if response['text_out'] == 'testing':
-                return 0
-            else:
-                return -1
-        except:
-            return -1
-
-    def _get_status(self, param):
-        """ Querey the status of the status of the laser and return the requested parameter
-
-            @return various
-        """
-        message = {'transmission_id': [5],
-                   'op': 'get_status'
-                  }
         self._send_command(message)
+        time.sleep(0.1)
         response = self._read_response()
-        return response[param]
+
+        if response['lock_status'][0] == 3:
+            return True
+        else:
+            return False
 
     def _set_wavelength_lock(self, target_state):
         """ Set the wavelength lock either `on' or `off'
@@ -460,22 +420,6 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
             self.log.error('Unable to {} wavelength lock!'.format(verb))
             return state
-
-    def _get_wavelength_lock(self, target_state):
-        """ Get the wavelength lock status
-
-            @return bool status of the wavelength lock
-        """
-        message = {'transmission_id':[7], 'op':'poll_wave_m'}
-
-        self._send_command(message)
-        time.sleep(0.1)
-        response = self._read_response()
-
-        if response['lock_status'][0] == 3:
-            return True
-        else:
-            return False
 
     def _get_beam_align(self):
         """ Get the Beam X and Beam Y alignment variables
@@ -544,6 +488,20 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         else:
             self._beam_align_y = beam_y  # only update if operation completed
 
+    def _get_beam_align_mode(self):
+        """ Get the beam alignment mode
+
+            @return str mode : the beam alignment mode
+        """
+
+        message = {'transmission_id':[12], 'op':'get_alignment_status'}
+
+        self._send_command(message)
+        time.sleep(0.1)
+        response = self._read_response()
+
+        return response['condition']
+
     def _set_beam_align_mode(self, mode):
         """ Set the beam alignment mode
 
@@ -584,16 +542,63 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
         return self._get_beam_align_mode()
 
-    def _get_beam_align_mode(self):
-        """ Get the beam alignment mode
+########################## instrument communication methods ###################
 
-            @return str mode : the beam alignment mode
+    def _connect(self, ipaddr, port):
+        """ Establish a connection to the laser
+
+            @return int: 0 if ok, -1 if error
         """
+        try:
+            self.s.settimeout(5)
+            self.s.connect((ipaddr, port))
+            myIP = self.s.getsockname()[0]
+            message = {"transmission_id": [3],
+                       "op": "start_link",
+                       "parameters": {"ip_address": myIP}
+                       }
+            self._send_command(message)
+            response = self._read_response()
+            if response['status'] == 'ok':
+                return 0
+            else:
+                self.log.error('I cannot connect to the M Squared laser - check config ip and port')
+                # these can be found in the SolsTiS config web interface
+                return -1
+        except:
+            return -2
+        # TODO: if the laser is connected, check for a protocol error:
+        # print('protocol error: ', response['protocol_error'])
 
-        message = {'transmission_id':[12], 'op':'get_alignment_status'}
+    def _ping(self):
+        """ Ping the laser
 
-        self._send_command(message)
-        time.sleep(0.1)
-        response = self._read_response()
+            @return int: 0 if ok, -1 if error
+        """
+        try:
+            message = {'transmission_id' : [4], 'op':'ping',
+                   'parameters':{'text_in':'TESTING'}}
 
-        return response['condition']
+            self._send_command(message)
+            time.sleep(0.1)
+            response = self._read_response()
+
+            if response['text_out'] == 'testing':
+                return 0
+            else:
+                return -1
+        except:
+            return -1
+
+    def _send_command(self, message):
+        """ Send a command to the laser
+
+        @return json: message + params
+        """
+        self.s.sendall(json.dumps({"message": message}).encode())
+        return 0
+
+    def _read_response(self):
+        response = self.s.recv(1024)
+        response = json.loads(response)
+        return response["message"]["parameters"]
