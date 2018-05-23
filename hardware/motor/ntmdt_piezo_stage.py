@@ -231,7 +231,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         @return dict pos: dictionary with the current magnet position
         """
-        self.log.info('I cannot do this, use the absolute movement function')
+        self.log.warning('I cannot do this, use the absolute movement function')
         return param_dict
 
     def move_abs(self, param_dict=None):
@@ -391,6 +391,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         Bit 0: Ready Bit 1: On target Bit 2: Reference drive active Bit 3: Joystick ON
         Bit 4: Macro running Bit 5: Motor OFF Bit 6: Brake ON Bit 7: Drive current active
         """
+        self.log.warning('This operation is not yet supported')
 
     def calibrate(self, param_list=None):
         """ Calibrates the stage.
@@ -406,6 +407,8 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         @return dict pos: dictionary with the current position of the ac#xis
         """
+        self.log.warning('This operation is not yet supported')
+
         pos = {}
 
         return pos
@@ -420,7 +423,8 @@ class PiezoStageNTMDT(Base, MotorInterface):
                                     velocity is asked.
 
         @return dict : with the axis label as key and the velocity as item.
-            """
+        """
+        self.log.warning('This operation is not yet supported')
 
     def set_velocity(self, param_dict):
         """ Write new value for velocity in m/s.
@@ -433,15 +437,16 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         @return dict param_dict2: dictionary with the updated axis velocity
         """
+        self.log.warning('This operation is not yet supported')
 
 ########################## internal methods ####################################
 
     def _do_move_abs(self, axis, scanner, channel, to_pos):
         """ Internal method for absolute axis move in meters
 
-        @param string axis: name of the axis to be moved
-        @param int channel: channel of the axis to be moved 
-        @param float to_pos: desired position in meters
+        @param string axis  : name of the axis to be moved
+               int channel  : channel of the axis to be moved 
+               float to_pos : desired position in meters
         """
 
         if not(self._configured_constraints[axis]['pos_min'] <= to_pos <= self._configured_constraints[axis]['pos_max']):
@@ -454,9 +459,9 @@ class PiezoStageNTMDT(Base, MotorInterface):
     def _write_axis_move(self, axis, scanner, channel, to_pos):
         """ Internal method to move a specified axis
 
-        @param string axis: name of the axis to be moved
-        @param int channel: channel of the axis to be moved 
-        @param float to_pos: desired position in meters
+        @param string axis  : name of the axis to be moved
+               int channel  : channel of the axis to be moved 
+               float to_pos : desired position in meters
         """
 
         to_pos = to_pos /1e-6  # NT-MDT scanner communication in microns
@@ -475,8 +480,9 @@ class PiezoStageNTMDT(Base, MotorInterface):
     def _set_servo_state(self, to_state):
         """ Internal method enabling / disabling the stage feedback
 
-        @param bool to_state: desired state of the feedback servos
+        @param bool to_state : desired state of the feedback servos
         """
+
         self._set_servo_state_xy(self._configured_constraints['x']['scanner'], to_state)
         time.sleep(0.5)
         self._update_gui()
@@ -509,8 +515,10 @@ class PiezoStageNTMDT(Base, MotorInterface):
     def _set_servo_state_xy(self, scanner, to_state):
         """ Internal method to enable/disable XY closed loop feedback
 
-        @param bool to_state: the desired state of the feedback loop
+        @param int scanner   : the scanner number
+               bool to_state : the desired state of the feedback loop
         """
+
         command =   ('SetParam tScanner, cParam, {scanner}, XYCLState, {to_state}'
                     .format(scanner=scanner, to_state=int(to_state)))  # bool to int
         self._run_script_text(command)
@@ -518,8 +526,10 @@ class PiezoStageNTMDT(Base, MotorInterface):
     def _set_servo_state_z(self, scanner, to_state):
         """ Internal method to enable/disable Z closed loop feedback
 
-        @param bool to_state: the desired state of the feedback loop
+        @param int scanner   : the scanner number
+               bool to_state : the desired state of the feedback loop
         """
+
         command =   ('SetParam tScanner, cParam, {scanner}, ZCLState, {to_state}'
                     .format(scanner=scanner, to_state=int(to_state)))  # bool to int
         self._run_script_text(command)
@@ -529,8 +539,9 @@ class PiezoStageNTMDT(Base, MotorInterface):
     def _run_script_text(self, command):
         """ Execute a command in Nova Px
 
-        @param string command: VBScript code to be executed
+        @param string command : VBScript code to be executed
         """
+
         self._novadll.RunScriptText(command.encode())
 
     def _run_script_text_thread(self, command):
@@ -539,17 +550,19 @@ class PiezoStageNTMDT(Base, MotorInterface):
         This function can be used to interrupt a running process. Nova Px 
         software must be revision 18659 or newer for this function.
 
-        @param string command: VBScript code to be executed
+        @param string command : VBScript code to be executed
         """
+
         self._novadll.RunScriptTextThread(command.encode())
 
     def _get_shared_float(self, variable):
         """ Retreive a shared data variable of type float from Nova Px
 
-        @param string variable: The variable must have already been created
+        @param string variable : The variable must have already been created
 
-        @returns float value: The value of variable
+        @returns float value : The value of variable
         """
+
         outbuf = ctypes.c_double()
         buflen = ctypes.c_int()
 
@@ -561,8 +574,9 @@ class PiezoStageNTMDT(Base, MotorInterface):
     def _reset_shared_data(self, variable):
         """ Reset a shared data variable
 
-        @param string variable: The variable must have already been created
+        @param string variable : The variable must have already been created
         """
+
         self._novadll.ResetSharedData(variable.encode())
 
     def _update_gui(self):
@@ -570,14 +584,16 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         this operation is noted to be "not threadsafe" in the original documentation
         """
+
         command = 'Perform tGlobal, gGUIUpdate'
         self._run_script_text(command)
 
     def _check_connection(self):
         """ Set and get a shared variable to check the connection with Nova Px
 
-        @returns bool success: True if values match
+        @returns bool success : True if values match
         """
+
         command = 'SetSharedDataVal "test_connection", 1.61803398875, "F64", 8'
         self._run_script_text(command)
         if self._get_shared_float('test_connection') == 1.61803398875:
@@ -591,8 +607,9 @@ class PiezoStageNTMDT(Base, MotorInterface):
     def _make_message(self, message):
         """ Make a message box appear in Noxa Px. Use for debugging.
 
-        @param string message: Message to be displayed.
+        @param string message : Message to be displayed in a box.
         """
+
         command = 'msgbox "{message}"'.format(message=message)
         self._novadll.RunScriptText(command.encode())
 
@@ -601,8 +618,9 @@ class PiezoStageNTMDT(Base, MotorInterface):
     def _toggle_heating(self, to_state):
         """ Enable or disable the stage heater
 
-        @param bool to_state: The desired state of the heater
+        @param bool to_state : The desired state of the heater
         """
+
         command =   ('SetParam tThermoController, thHeatingEnabled, {state}'
                     .format(to_state=int(to_state)))  # 0 - off, 1 - on
         self._run_script_text(command)
@@ -610,8 +628,9 @@ class PiezoStageNTMDT(Base, MotorInterface):
     def _set_temperature_setpoint(self, setpoint):
         """ Set the temperature setpoint of the heater
 
-        @param float setpoint: The desired temperature setpoint
+        @param float setpoint : The desired temperature setpoint
         """
+
         command =   ('SetParam tThermoController, thSetPoint, {temp}'
                     .format(temp=setpoint))
         self._run_script_text(command)
@@ -619,7 +638,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
     def _get_heater_power(self):
         """ Get the current heater power in %
 
-        @returns float power: The current heater power in %
+        @returns float power : The current heater power in %
         """
 
         command = ('ThPower = GetParam(tThermoController, thPower)\n\n'
@@ -640,14 +659,14 @@ class PiezoStageNTMDT(Base, MotorInterface):
     def _get_temperature(self, channel_list=None):
         """ Get the current temperature value
 
-        @param list channel_list: optional, if a specific temperature of a channel
-                                is desired, then the labels of the needed
-                                channel should be passed in the channel_list.
-                                If nothing is passed, then the temperatures of
-                                all channels are returned.
+        @param list channel_list : optional, if a specific temperature of a channel
+                                   is desired, then the labels of the needed
+                                   channel should be passed in the channel_list.
+                                   If nothing is passed, then the temperatures of
+                                   all channels are returned.
 
-        @return dict: with keys being the channel labels and item the current
-                      temperature.
+        @return dict : with keys being the channel labels and item the current
+                       temperature.
         """
 
         for channel in channel_list:
@@ -686,8 +705,9 @@ class PiezoStageNTMDT(Base, MotorInterface):
         To abort the movement of a scanner in motion, the command must be 
         called in a separate thread. See self._run_script_text_thread.
 
-        @param int scanner: The scanner to be stopped
+        @param int scanner : The scanner to be stopped
         """
+
         self.log.warning('Aborting the motion of NT-MDT scanner {scanner}'.format(scanner=scanner))
 
         command = ('Perform tScanner, scStop, {scanner}'
