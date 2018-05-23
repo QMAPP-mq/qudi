@@ -445,27 +445,20 @@ class PowermeterLogic(GenericLogic):
                     self.sigCounterUpdated.emit()
                     return
 
-                # read the current counter value
-                self.rawdata = self._powermeter_device.get_counter(samples=self._counting_samples)
+                # read the current power value
+                self.rawdata = self._powermeter_device.get_power(self._counting_samples)
                 if self.rawdata[0, 0] < 0:
-                    self.log.error('The counting went wrong, killing the counter.')
+                    self.log.error('The counting went wrong, killing the powermeter.')
                     self.stopRequested = True
                 else:
-                    if self._counting_mode == CountingMode['CONTINUOUS']:
-                        self._process_data_continous()
-                    elif self._counting_mode == CountingMode['GATED']:
-                        self._process_data_gated()
-                    elif self._counting_mode == CountingMode['FINITE_GATED']:
-                        self._process_data_finite_gated()
-                    else:
-                        self.log.error('No valid counting mode set! Can not process counter data.')
+                    self._process_data()
 
             # call this again from event loop
             self.sigCounterUpdated.emit()
             self.sigpowerdataNext.emit()
         return
 
-    def _process_data_continous(self):
+    def _process_data(self):
         """
         Processes the raw data from the powermeter device
 
@@ -514,9 +507,9 @@ class PowermeterLogic(GenericLogic):
             @param timeout: float, the max. time in seconds how long the method
                             should wait for the process to stop.
 
-            @return: error code
+            @return: error code (0:OK, -1:error)
         """
-        
+
         self.stopCount()
         start_time = time.time()
         while self.getState() == 'locked':
