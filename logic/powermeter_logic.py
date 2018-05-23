@@ -143,13 +143,7 @@ class PowermeterLogic(GenericLogic):
         self.sigpowerdataNext.disconnect()
         return
 
-    def get_hardware_constraints(self):
-        """
-        Retrieve the hardware constrains from the counter device.
-
-        @return SlowCounterConstraints: object with constraints for the counter
-        """
-        return self._powermeter_device.get_constraints()
+########################## property declarations ##############################
 
     @property
     def trace_length(self):
@@ -222,6 +216,93 @@ class PowermeterLogic(GenericLogic):
         self.sigCountFrequencyChanged.emit(self._count_frequency)
         # return self._count_frequency
 
+########################## ############## #####################################
+
+    def get_hardware_constraints(self):
+        """
+        Retrieve the hardware constrains from the counter device.
+
+        @return SlowCounterConstraints: object with constraints for the counter
+        """
+        return self._powermeter_device.get_constraints()
+
+    def get_channels(self):
+        """ Shortcut for hardware get_counter_channels.
+
+            @return list(str): return list of active counter channel names
+        """
+        return self._powermeter_device.get_counter_channels()
+
+    def draw_figure(self, data):
+        """ Draw figure to save with data file.
+
+        @param: nparray data: a numpy array containing counts vs time for all detectors
+
+        @return: fig fig: a matplotlib figure object to be saved to file.
+        """
+        count_data = data[:, 1:len(self.get_channels())+1]
+        time_data = data[:, 0]
+
+        # Scale count values using SI prefix
+        prefix = ['', 'k', 'M', 'G']
+        prefix_index = 0
+        while np.max(count_data) > 1000:
+            count_data = count_data / 1000
+            prefix_index = prefix_index + 1
+        counts_prefix = prefix[prefix_index]
+
+        # Use qudi style
+        plt.style.use(self._save_logic.mpl_qd_style)
+
+        # Create figure
+        fig, ax = plt.subplots()
+        ax.plot(time_data, count_data, linestyle=':', linewidth=0.5)
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel('Fluorescence (' + counts_prefix + 'c/s)')
+        return fig
+
+    # FIXME: Not implemented for self._counting_mode == 'gated'
+    def start_trace(self):
+        """ This is called externally, and is basically a wrapper that
+            redirects to the chosen counting mode start function.
+
+            @return error: 0 is OK, -1 is error
+        """
+        # Sanity checks
+        constraints = self.get_hardware_constraints()
+
+        with self.threadlock:
+            # Lock module
+            if self.getState() != 'locked':
+                self.lock()
+            else:
+                self.log.warning('Trace already running. Method call ignored.')
+                return 0
+
+            # initialising the data arrays
+            self.rawdata = np.zeros([len(self.get_channels()), self._counting_samples])
+            self.powerdata = np.zeros([len(self.get_channels()), self._count_length])
+            self.powerdata_smoothed = np.zeros([len(self.get_channels()), self._count_length])
+            self._sampling_data = np.empty([len(self.get_channels()), self._counting_samples])
+
+            # the sample index for gated counting
+            self._already_counted_samples = 0
+
+            # Start data reader loop
+            self.sigCountStatusChanged.emit(True)
+            self.sigpowerdataNext.emit()
+            return
+
+    def stopCount(self):
+        """ Set a flag to request stopping counting.
+        """
+        if self.getState() == 'locked':
+            with self.threadlock:
+                self.stopRequested = True
+        return
+
+########################## saving methods #####################################
+
     def get_saving_state(self):
         """ Returns if the data is saved in the moment.
 
@@ -292,73 +373,7 @@ class PowermeterLogic(GenericLogic):
         self.sigSavingStatusChanged.emit(self._saving)
         return self._data_to_save, parameters
 
-    def draw_figure(self, data):
-        """ Draw figure to save with data file.
-
-        @param: nparray data: a numpy array containing counts vs time for all detectors
-
-        @return: fig fig: a matplotlib figure object to be saved to file.
-        """
-        count_data = data[:, 1:len(self.get_channels())+1]
-        time_data = data[:, 0]
-
-        # Scale count values using SI prefix
-        prefix = ['', 'k', 'M', 'G']
-        prefix_index = 0
-        while np.max(count_data) > 1000:
-            count_data = count_data / 1000
-            prefix_index = prefix_index + 1
-        counts_prefix = prefix[prefix_index]
-
-        # Use qudi style
-        plt.style.use(self._save_logic.mpl_qd_style)
-
-        # Create figure
-        fig, ax = plt.subplots()
-        ax.plot(time_data, count_data, linestyle=':', linewidth=0.5)
-        ax.set_xlabel('Time (s)')
-        ax.set_ylabel('Fluorescence (' + counts_prefix + 'c/s)')
-        return fig
-
-    # FIXME: Not implemented for self._counting_mode == 'gated'
-    def start_trace(self):
-        """ This is called externally, and is basically a wrapper that
-            redirects to the chosen counting mode start function.
-
-            @return error: 0 is OK, -1 is error
-        """
-        # Sanity checks
-        constraints = self.get_hardware_constraints()
-
-        with self.threadlock:
-            # Lock module
-            if self.getState() != 'locked':
-                self.lock()
-            else:
-                self.log.warning('Trace already running. Method call ignored.')
-                return 0
-
-            # initialising the data arrays
-            self.rawdata = np.zeros([len(self.get_channels()), self._counting_samples])
-            self.powerdata = np.zeros([len(self.get_channels()), self._count_length])
-            self.powerdata_smoothed = np.zeros([len(self.get_channels()), self._count_length])
-            self._sampling_data = np.empty([len(self.get_channels()), self._counting_samples])
-
-            # the sample index for gated counting
-            self._already_counted_samples = 0
-
-            # Start data reader loop
-            self.sigCountStatusChanged.emit(True)
-            self.sigpowerdataNext.emit()
-            return
-
-    def stopCount(self):
-        """ Set a flag to request stopping counting.
-        """
-        if self.getState() == 'locked':
-            with self.threadlock:
-                self.stopRequested = True
-        return
+########################## internal methods ###################################
 
     def _count_loop_body(self):
         """ This method gets the count data from the hardware for the continuous counting mode (default).
@@ -400,14 +415,6 @@ class PowermeterLogic(GenericLogic):
             self.sigCounterUpdated.emit()
             self.sigpowerdataNext.emit()
         return
-
-
-    def get_channels(self):
-        """ Shortcut for hardware get_counter_channels.
-
-            @return list(str): return list of active counter channel names
-        """
-        return self._powermeter_device.get_counter_channels()
 
     def _process_data_continous(self):
         """
