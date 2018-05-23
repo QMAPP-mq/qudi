@@ -434,11 +434,6 @@ class PowermeterLogic(GenericLogic):
             with self.threadlock:
                 # check for aborts of the thread in break if necessary
                 if self.stopRequested:
-                    # close off the actual counter
-                    cnt_err = self._powermeter_device.close_counter()
-                    clk_err = self._powermeter_device.close_clock()
-                    if cnt_err < 0 or clk_err < 0:
-                        self.log.error('Could not even close the hardware, giving up.')
                     # switch the state variable off again
                     self.stopRequested = False
                     self.unlock()
