@@ -153,13 +153,17 @@ class PowermeterLogic(GenericLogic):
 
     @property
     def trace_length(self):
-        """ Get trace length 
+        """ Get trace length
+
+            @return int : the trace length
         """
         return self._trace_length
     
     @trace_length.setter
     def trace_length(self, new_length):
-        """ Set the trace length.
+        """ Set the trace length
+
+            @param int new_length : desired trace length
         """
         if not isinstance(new_length, int):
             self.log.warning("trace_length must be integer."
@@ -185,15 +189,21 @@ class PowermeterLogic(GenericLogic):
         self.sigCountingSamplesChanged.emit(self._trace_length)
         # return self._counting_samples
 
-    def set_count_frequency(self, frequency=50):
-        """ Sets the frequency with which the data is acquired.
+    @property
+    def sampling_frequency(self):
+        """ Get the currently set trace sampling frequency (resolution)
 
-        @param float frequency: the desired frequency of counting in Hz
-
-        @return float: the actual frequency of counting in Hz
-
-        This makes sure, the counter is stopped first and restarted afterwards.
+            @return float : the sampling frequency in Hz
         """
+        return self._sampling_frequency
+
+    @sampling_frequency.setter
+    def sampling_frequency(self, new_frequency=50):
+        """ Set the sampling frequency with which the data is acquired
+
+            @param float frequency : desired sampling frequency in Hz
+        """
+
         constraints = self.get_hardware_constraints()
 
         if self.getState() == 'locked':
@@ -201,24 +211,16 @@ class PowermeterLogic(GenericLogic):
         else:
             restart = False
 
-        if constraints.min_count_frequency <= frequency <= constraints.max_count_frequency:
+        if constraints.min_count_frequency <= new_frequency <= constraints.max_count_frequency:
             self._stopCount_wait()
-            self._count_frequency = frequency
+            self._count_frequency = new_frequency
             # if the counter was running, restart it
             if restart:
                 self.start_trace()
         else:
-            self.log.warning('count_frequency not in range! Command ignored!')
+            self.log.warning('sampling_frequency not in range! Command ignored!')
         self.sigCountFrequencyChanged.emit(self._count_frequency)
-        return self._count_frequency
-
-    #FIXME: get from hardware
-    def get_count_frequency(self):
-        """ Returns the currently set frequency of counting (resolution).
-
-        @return float: count_frequency
-        """
-        return self._count_frequency
+        # return self._count_frequency
 
     def get_counting_samples(self):
         """ Returns the currently set number of samples counted per readout.
