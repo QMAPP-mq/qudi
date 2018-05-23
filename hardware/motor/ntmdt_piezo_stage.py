@@ -101,7 +101,8 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
     def on_activate(self):
         """ Initialisation performed during activation of the module.
-        @return: error code
+
+            @return: error code (0:OK, -1:error)
         """
         if platform.architecture()[0] == '64bit':
             path_dll = os.path.join(os.path.abspath(''),
@@ -134,7 +135,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
-        @return: error code
+            @return: error code (0:OK, -1:error)
         """
         self._set_servo_state(False)
         return 0
