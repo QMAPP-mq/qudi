@@ -182,7 +182,12 @@ class PowermeterLogic(GenericLogic):
         else:
             self.log.warning('trace_length has to be larger than 0! Command ignored!')
         self.sigCountingSamplesChanged.emit(self._trace_length)
-        # return self._counting_samples
+        
+        if self._trace_length == new_length:
+            return 0
+        else:
+            self.log.warning('An error occured setting the trace length')
+            return -1
 
     @property
     def sampling_frequency(self):
@@ -197,6 +202,8 @@ class PowermeterLogic(GenericLogic):
         """ Set the sampling frequency with which the data is acquired
 
             @param float frequency : desired sampling frequency in Hz
+
+            @return error code (0:OK, -1:error)
         """
 
         constraints = self.get_hardware_constraints()
@@ -215,7 +222,12 @@ class PowermeterLogic(GenericLogic):
         else:
             self.log.warning('sampling_frequency not in range! Command ignored!')
         self.sigCountFrequencyChanged.emit(self._count_frequency)
-        # return self._count_frequency
+        
+        if self._count_frequency == new_frequency:
+            return 0
+        else:
+            self.log.warning('An error occured setting the sampling frequency')
+            return -1
 
     @property
     def wavelength(self):
@@ -233,14 +245,16 @@ class PowermeterLogic(GenericLogic):
             @param new_wavelength float : desired detection wavelength in meters
 
             @return error code (0:OK, -1:error)
-        """ 
+        """
+        # to avoid interfacing with the hardware twice
         x = self._powermeter_device.set_wavelength(new_wavelength)
 
-        if x == self.wavelength:
-            return -1
-        else:
+        if x == new_wavelength:
             self.wavelength = x
             return 0
+        else:
+            self.log.warning('An error occured setting the detection wavlength')
+            return -1
 
 ########################## ############## #####################################
 
