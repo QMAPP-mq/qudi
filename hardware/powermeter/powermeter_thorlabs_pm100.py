@@ -72,7 +72,7 @@ class ThorlabsPM(Base, PowermeterInterface):
     def on_activate(self):
         """ Initialise the hardware module.
 
-        @return int error code
+            @return int error code (0:OK, -1:error)
         """
 
         # search and connect
