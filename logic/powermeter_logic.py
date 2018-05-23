@@ -54,7 +54,6 @@ class PowermeterLogic(GenericLogic):
     sigCountStatusChanged = QtCore.Signal(bool)
     sigCountingModeChanged = QtCore.Signal(CountingMode)
 
-
     _modclass = 'PowermeterLogic'
     _modtype = 'logic'
 
@@ -69,14 +68,15 @@ class PowermeterLogic(GenericLogic):
     _count_frequency = StatusVar('count_frequency', 50)
     _saving = StatusVar('saving', False)
 
-    _wavelength = StatusVar('wavelength', 532)
+    _wavelength = StatusVar('wavelength', 532e-9)
 
     def __init__(self, config, **kwargs):
         """ Create CounterLogic object with connectors.
 
-        @param dict config: module configuration
-        @param dict kwargs: optional parameters
+            @param dict config: module configuration
+            @param dict kwargs: optional parameters
         """
+
         super().__init__(config=config, **kwargs)
 
         #locking for thread safety
@@ -96,14 +96,14 @@ class PowermeterLogic(GenericLogic):
         self._count_frequency = 50
 
         # self._binned_counting = True  # UNUSED?
-        self._counting_mode = CountingMode['CONTINUOUS']
 
         self._saving = False
         return
 
     def on_activate(self):
-        """ Initialisation performed during activation of the module.
+        """ Initialise and activate the logic module.
         """
+
         # Connect to hardware and save logic
         self._powermeter_device = self.get_connector('pm1')
         self._save_logic = self.get_connector('savelogic')
@@ -132,8 +132,9 @@ class PowermeterLogic(GenericLogic):
         return
 
     def on_deactivate(self):
-        """ Deinitialisation performed during deactivation of the module.
+        """ Deinitialise and deactivate the logic module.
         """
+
         # Save parameters to disk
         self._statusVariables['counting_mode'] = self._counting_mode.name
 
@@ -159,6 +160,8 @@ class PowermeterLogic(GenericLogic):
         """ Set the trace length
 
             @param int new_length : desired trace length
+            
+            @return error code (0:OK, -1:error)
         """
         if not isinstance(new_length, int):
             self.log.warning("trace_length must be integer."
@@ -262,7 +265,7 @@ class PowermeterLogic(GenericLogic):
         """
         Retrieve the hardware constrains from the counter device.
 
-        @return SlowCounterConstraints: object with constraints for the counter
+            @return SlowCounterConstraints: object with constraints for the powermeter
         """
         return self._powermeter_device.get_constraints()
 
@@ -276,10 +279,11 @@ class PowermeterLogic(GenericLogic):
     def draw_figure(self, data):
         """ Draw figure to save with data file.
 
-        @param: nparray data: a numpy array containing counts vs time for all detectors
+            @param: nparray data: a numpy array containing counts vs time for all detectors
 
-        @return: fig fig: a matplotlib figure object to be saved to file.
+            @return: fig fig: a matplotlib figure object to be saved to file.
         """
+        
         count_data = data[:, 1:len(self.get_channels())+1]
         time_data = data[:, 0]
 
@@ -308,6 +312,7 @@ class PowermeterLogic(GenericLogic):
 
             @return error: 0 is OK, -1 is error
         """
+
         # Sanity checks
         constraints = self.get_hardware_constraints()
 
@@ -336,6 +341,7 @@ class PowermeterLogic(GenericLogic):
     def stopCount(self):
         """ Set a flag to request stopping counting.
         """
+
         if self.getState() == 'locked':
             with self.threadlock:
                 self.stopRequested = True
@@ -353,17 +359,18 @@ class PowermeterLogic(GenericLogic):
     def start_saving(self, resume=False):
         """
         Sets up start-time and initializes data array, if not resuming, and changes saving state.
-        If the counter is not running it will be started in order to have data to save.
+        If the powermeter is not running it will be started in order to have data to save.
 
-        @return bool: saving state
+            @return bool: saving state
         """
+
         if not resume:
             self._data_to_save = []
             self._saving_start_time = time.time()
 
         self._saving = True
 
-        # If the counter is not running, then it should start running so there is data to save
+        # If the powermeter is not running, then it should start running so there is data to save
         if self.getState() != 'locked':
             self.start_trace()
 
@@ -371,13 +378,14 @@ class PowermeterLogic(GenericLogic):
         return self._saving
 
     def save_data(self, to_file=True, postfix=''):
-        """ Save the counter trace data and writes it to a file.
+        """ Save the power trace data and writes it to a file.
 
-        @param bool to_file: indicate, whether data have to be saved to file
-        @param str postfix: an additional tag, which will be added to the filename upon save
+            @param bool to_file: indicate, whether data have to be saved to file
+            @param str postfix: an additional tag, which will be added to the filename upon save
 
-        @return dict parameters: Dictionary which contains the saving parameters
+            @return dict parameters: Dictionary which contains the saving parameters
         """
+
         # stop saving thus saving state has to be set to False
         self._saving = False
         self._saving_stop_time = time.time()
@@ -393,9 +401,9 @@ class PowermeterLogic(GenericLogic):
         if to_file:
             # If there is a postfix then add separating underscore
             if postfix == '':
-                filelabel = 'count_trace'
+                filelabel = 'power_trace'
             else:
-                filelabel = 'count_trace_' + postfix
+                filelabel = 'power_trace_' + postfix
 
             # prepare the data in a dict or in an OrderedDict:
             header = 'Time (s)'
@@ -403,12 +411,12 @@ class PowermeterLogic(GenericLogic):
                 header = header + ',Signal{0} (counts/s)'.format(i)
 
             data = {header: self._data_to_save}
-            filepath = self._save_logic.get_path_for_module(module_name='Counter')
+            filepath = self._save_logic.get_path_for_module(module_name='Powermeter')
 
             fig = self.draw_figure(data=np.array(self._data_to_save))
             self._save_logic.save_data(data, filepath=filepath, parameters=parameters,
                                        filelabel=filelabel, plotfig=fig, delimiter='\t')
-            self.log.info('Counter Trace saved to:\n{0}'.format(filepath))
+            self.log.info('Power Trace saved to:\n{0}'.format(filepath))
 
         self.sigSavingStatusChanged.emit(self._saving)
         return self._data_to_save, parameters
@@ -416,11 +424,12 @@ class PowermeterLogic(GenericLogic):
 ########################## internal methods ###################################
 
     def _count_loop_body(self):
-        """ This method gets the count data from the hardware for the continuous counting mode (default).
+        """ This method gets the count data from the hardware for the continuous measurement.
 
         It runs repeatedly in the logic module event loop by being connected
         to sigCountContinuousNext and emitting sigCountContinuousNext through a queued connection.
         """
+
         if self.getState() == 'locked':
             with self.threadlock:
                 # check for aborts of the thread in break if necessary
@@ -458,9 +467,11 @@ class PowermeterLogic(GenericLogic):
 
     def _process_data_continous(self):
         """
-        Processes the raw data from the counting device
-        @return:
+        Processes the raw data from the powermeter device
+
+            @return:
         """
+
         for i, ch in enumerate(self.get_channels()):
             # remember the new count data in circular array
             self.powerdata[i, 0] = np.average(self.rawdata[i])
@@ -498,18 +509,19 @@ class PowermeterLogic(GenericLogic):
 
     def _stopCount_wait(self, timeout=5.0):
         """
-        Stops the counter and waits until it actually has stopped.
+        Stops the powermeter and waits until it actually has stopped.
 
-        @param timeout: float, the max. time in seconds how long the method should wait for the
-                        process to stop.
+            @param timeout: float, the max. time in seconds how long the method
+                            should wait for the process to stop.
 
-        @return: error code
+            @return: error code
         """
+        
         self.stopCount()
         start_time = time.time()
         while self.getState() == 'locked':
             time.sleep(0.1)
             if time.time() - start_time >= timeout:
-                self.log.error('Stopping the counter timed out after {0}s'.format(timeout))
+                self.log.error('Stopping the powermeter timed out after {0}s'.format(timeout))
                 return -1
         return 0
