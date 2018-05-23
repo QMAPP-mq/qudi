@@ -69,6 +69,7 @@ class PowermeterLogic(GenericLogic):
     _count_frequency = StatusVar('count_frequency', 50)
     _saving = StatusVar('saving', False)
 
+    _wavelength = StatusVar('wavelength', 532)
 
     def __init__(self, config, **kwargs):
         """ Create CounterLogic object with connectors.
@@ -215,6 +216,31 @@ class PowermeterLogic(GenericLogic):
             self.log.warning('sampling_frequency not in range! Command ignored!')
         self.sigCountFrequencyChanged.emit(self._count_frequency)
         # return self._count_frequency
+
+    @property
+    def wavelength(self):
+        """ Get the powermeter's detection wavelength
+
+            @return float : the detection wavelength in meters
+        """
+        self.wavelength = self._powermeter_device.get_wavelength()
+        return self._wavelength
+
+    @wavelength.setter
+    def wavelength(self, new_wavelength=532):
+        """ Set the powermeter's detection wavelength
+
+            @param new_wavelength float : desired detection wavelength in meters
+
+            @return error code (0:OK, -1:error)
+        """ 
+        x = self._powermeter_device.set_wavelength(new_wavelength)
+
+        if x == self.wavelength:
+            return -1
+        else:
+            self.wavelength = x
+            return 0
 
 ########################## ############## #####################################
 
