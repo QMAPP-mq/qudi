@@ -31,7 +31,7 @@ from logic.generic_logic import GenericLogic
 from core.util.mutex import Mutex
 
 
-class CounterLogic(GenericLogic):
+class PowermeterLogic(GenericLogic):
     """ This logic module gathers data from a hardware powermeter device.
 
     @signal sigCounterUpdate: there is new counting data available
@@ -43,7 +43,7 @@ class CounterLogic(GenericLogic):
     """
     sigCounterUpdated = QtCore.Signal()
 
-    sigCountDataNext = QtCore.Signal()
+    sigpowerdataNext = QtCore.Signal()
 
     sigGatedCounterFinished = QtCore.Signal()
     sigGatedCounterContinue = QtCore.Signal(bool)
@@ -59,7 +59,7 @@ class CounterLogic(GenericLogic):
     _modtype = 'logic'
 
     ## declare connectors
-    counter1 = Connector(interface='SlowCounterInterface') # TODO make an interface
+    pm1 = Connector(interface='SlowCounterInterface') # TODO make an interface
     savelogic = Connector(interface='SaveLogic')
 
     # status vars
@@ -104,7 +104,7 @@ class CounterLogic(GenericLogic):
         """ Initialisation performed during activation of the module.
         """
         # Connect to hardware and save logic
-        self._counting_device = self.get_connector('counter1')
+        self._powermeter_device = self.get_connector('pm1')
         self._save_logic = self.get_connector('savelogic')
 
         # Recall saved app-parameters
@@ -115,8 +115,8 @@ class CounterLogic(GenericLogic):
         number_of_detectors = constraints.max_detectors
 
         # initialize data arrays
-        self.countdata = np.zeros([len(self.get_channels()), self._count_length])
-        self.countdata_smoothed = np.zeros([len(self.get_channels()), self._count_length])
+        self.powerdata = np.zeros([len(self.get_channels()), self._count_length])
+        self.powerdata_smoothed = np.zeros([len(self.get_channels()), self._count_length])
         self.rawdata = np.zeros([len(self.get_channels()), self._counting_samples])
         self._already_counted_samples = 0  # For gated counting
         self._data_to_save = []
@@ -127,7 +127,7 @@ class CounterLogic(GenericLogic):
         self._saving_start_time = time.time()
 
         # connect signals
-        self.sigCountDataNext.connect(self.count_loop_body, QtCore.Qt.QueuedConnection)
+        self.sigpowerdataNext.connect(self._count_loop_body, QtCore.Qt.QueuedConnection)
         return
 
     def on_deactivate(self):
@@ -140,7 +140,7 @@ class CounterLogic(GenericLogic):
         if self.getState() == 'locked':
             self._stopCount_wait()
 
-        self.sigCountDataNext.disconnect()
+        self.sigpowerdataNext.disconnect()
         return
 
     def get_hardware_constraints(self):
@@ -149,58 +149,41 @@ class CounterLogic(GenericLogic):
 
         @return SlowCounterConstraints: object with constraints for the counter
         """
-        return self._counting_device.get_constraints()
+        return self._powermeter_device.get_constraints()
 
-    def set_counting_samples(self, samples=1):
+    @property
+    def trace_length(self):
+        """ Get trace length 
         """
-        Sets the length of the counted bins.
-        The counter is stopped first and restarted afterwards.
-
-        @param int samples: oversampling in units of bins (positive int ).
-
-        @return int: oversampling in units of bins.
+        return self._trace_length
+    
+    @trace_length.setter
+    def trace_length(self, new_length):
+        """ Set the trace length.
         """
+        if not isinstance(new_length, int):
+            self.log.warning("trace_length must be integer."
+                             "I have used {} instead of the requested {}."
+                             .format(int(new_length), new_length)
+                            )
+            new_length = int(new_length)
+
         # Determine if the counter has to be restarted after setting the parameter
         if self.getState() == 'locked':
             restart = True
         else:
             restart = False
 
-        if samples > 0:
+        if new_length > 0:
             self._stopCount_wait()
-            self._counting_samples = int(samples)
+            self._trace_length = new_length
             # if the counter was running, restart it
             if restart:
-                self.startCount()
+                self.start_trace()
         else:
-            self.log.warning('counting_samples has to be larger than 0! Command ignored!')
-        self.sigCountingSamplesChanged.emit(self._counting_samples)
-        return self._counting_samples
-
-    def set_count_length(self, length=300):
-        """ Sets the time trace in units of bins.
-
-        @param int length: time trace in units of bins (positive int).
-
-        @return int: length of time trace in units of bins
-
-        This makes sure, the counter is stopped first and restarted afterwards.
-        """
-        if self.getState() == 'locked':
-            restart = True
-        else:
-            restart = False
-
-        if length > 0:
-            self._stopCount_wait()
-            self._count_length = int(length)
-            # if the counter was running, restart it
-            if restart:
-                self.startCount()
-        else:
-            self.log.warning('count_length has to be larger than 0! Command ignored!')
-        self.sigCountLengthChanged.emit(self._count_length)
-        return self._count_length
+            self.log.warning('trace_length has to be larger than 0! Command ignored!')
+        self.sigCountingSamplesChanged.emit(self._trace_length)
+        # return self._counting_samples
 
     def set_count_frequency(self, frequency=50):
         """ Sets the frequency with which the data is acquired.
@@ -223,18 +206,11 @@ class CounterLogic(GenericLogic):
             self._count_frequency = frequency
             # if the counter was running, restart it
             if restart:
-                self.startCount()
+                self.start_trace()
         else:
             self.log.warning('count_frequency not in range! Command ignored!')
         self.sigCountFrequencyChanged.emit(self._count_frequency)
         return self._count_frequency
-
-    def get_count_length(self):
-        """ Returns the currently set length of the counting array.
-
-        @return int: count_length
-        """
-        return self._count_length
 
     #FIXME: get from hardware
     def get_count_frequency(self):
@@ -273,7 +249,7 @@ class CounterLogic(GenericLogic):
 
         # If the counter is not running, then it should start running so there is data to save
         if self.getState() != 'locked':
-            self.startCount()
+            self.start_trace()
 
         self.sigSavingStatusChanged.emit(self._saving)
         return self._saving
@@ -349,39 +325,8 @@ class CounterLogic(GenericLogic):
         ax.set_ylabel('Fluorescence (' + counts_prefix + 'c/s)')
         return fig
 
-    def set_counting_mode(self, mode='CONTINUOUS'):
-        """Set the counting mode, to change between continuous and gated counting.
-        Possible options are:
-            'CONTINUOUS'    = counts continuously
-            'GATED'         = bins the counts according to a gate signal
-            'FINITE_GATED'  = finite measurement with predefined number of samples
-
-        @return str: counting mode
-        """
-        constraints = self.get_hardware_constraints()
-        if self.getState() != 'locked':
-            if CountingMode[mode] in constraints.counting_mode:
-                self._counting_mode = CountingMode[mode]
-                self.log.debug('New counting mode: {}'.format(self._counting_mode))
-            else:
-                self.log.warning('Counting mode not supported from hardware. Command ignored!')
-            self.sigCountingModeChanged.emit(self._counting_mode)
-        else:
-            self.log.error('Cannot change counting mode while counter is still running.')
-        return self._counting_mode
-
-    def get_counting_mode(self):
-        """ Retrieve the current counting mode.
-
-        @return str: one of the possible counting options:
-                'CONTINUOUS'    = counts continuously
-                'GATED'         = bins the counts according to a gate signal
-                'FINITE_GATED'  = finite measurement with predefined number of samples
-        """
-        return self._counting_mode
-
     # FIXME: Not implemented for self._counting_mode == 'gated'
-    def startCount(self):
+    def start_trace(self):
         """ This is called externally, and is basically a wrapper that
             redirects to the chosen counting mode start function.
 
@@ -389,44 +334,19 @@ class CounterLogic(GenericLogic):
         """
         # Sanity checks
         constraints = self.get_hardware_constraints()
-        if self._counting_mode not in constraints.counting_mode:
-            self.log.error('Unknown counting mode "{0}". Cannot start the counter.'
-                           ''.format(self._counting_mode))
-            self.sigCountStatusChanged.emit(False)
-            return -1
 
         with self.threadlock:
             # Lock module
             if self.getState() != 'locked':
                 self.lock()
             else:
-                self.log.warning('Counter already running. Method call ignored.')
+                self.log.warning('Trace already running. Method call ignored.')
                 return 0
-
-            # Set up clock
-            clock_status = self._counting_device.set_up_clock(clock_frequency=self._count_frequency)
-            if clock_status < 0:
-                self.unlock()
-                self.sigCountStatusChanged.emit(False)
-                return -1
-
-            # Set up counter
-            if self._counting_mode == CountingMode['FINITE_GATED']:
-                counter_status = self._counting_device.set_up_counter(counter_buffer=self._count_length)
-            # elif self._counting_mode == CountingMode['GATED']:
-            #
-            else:
-                counter_status = self._counting_device.set_up_counter()
-            if counter_status < 0:
-                self._counting_device.close_clock()
-                self.unlock()
-                self.sigCountStatusChanged.emit(False)
-                return -1
 
             # initialising the data arrays
             self.rawdata = np.zeros([len(self.get_channels()), self._counting_samples])
-            self.countdata = np.zeros([len(self.get_channels()), self._count_length])
-            self.countdata_smoothed = np.zeros([len(self.get_channels()), self._count_length])
+            self.powerdata = np.zeros([len(self.get_channels()), self._count_length])
+            self.powerdata_smoothed = np.zeros([len(self.get_channels()), self._count_length])
             self._sampling_data = np.empty([len(self.get_channels()), self._counting_samples])
 
             # the sample index for gated counting
@@ -434,7 +354,7 @@ class CounterLogic(GenericLogic):
 
             # Start data reader loop
             self.sigCountStatusChanged.emit(True)
-            self.sigCountDataNext.emit()
+            self.sigpowerdataNext.emit()
             return
 
     def stopCount(self):
@@ -445,7 +365,7 @@ class CounterLogic(GenericLogic):
                 self.stopRequested = True
         return
 
-    def count_loop_body(self):
+    def _count_loop_body(self):
         """ This method gets the count data from the hardware for the continuous counting mode (default).
 
         It runs repeatedly in the logic module event loop by being connected
@@ -456,8 +376,8 @@ class CounterLogic(GenericLogic):
                 # check for aborts of the thread in break if necessary
                 if self.stopRequested:
                     # close off the actual counter
-                    cnt_err = self._counting_device.close_counter()
-                    clk_err = self._counting_device.close_clock()
+                    cnt_err = self._powermeter_device.close_counter()
+                    clk_err = self._powermeter_device.close_clock()
                     if cnt_err < 0 or clk_err < 0:
                         self.log.error('Could not even close the hardware, giving up.')
                     # switch the state variable off again
@@ -467,7 +387,7 @@ class CounterLogic(GenericLogic):
                     return
 
                 # read the current counter value
-                self.rawdata = self._counting_device.get_counter(samples=self._counting_samples)
+                self.rawdata = self._powermeter_device.get_counter(samples=self._counting_samples)
                 if self.rawdata[0, 0] < 0:
                     self.log.error('The counting went wrong, killing the counter.')
                     self.stopRequested = True
@@ -483,69 +403,16 @@ class CounterLogic(GenericLogic):
 
             # call this again from event loop
             self.sigCounterUpdated.emit()
-            self.sigCountDataNext.emit()
+            self.sigpowerdataNext.emit()
         return
 
-    def save_current_count_trace(self, name_tag=''):
-        """ The currently displayed counttrace will be saved.
-
-        @param str name_tag: optional, personal description that will be
-                             appended to the file name
-
-        @return: dict data: Data which was saved
-                 str filepath: Filepath
-                 dict parameters: Experiment parameters
-                 str filelabel: Filelabel
-
-        This method saves the already displayed counts to file and does not
-        accumulate them. The counttrace variable will be saved to file with the
-        provided name!
-        """
-
-        # If there is a postfix then add separating underscore
-        if name_tag == '':
-            filelabel = 'snapshot_count_trace'
-        else:
-            filelabel = 'snapshot_count_trace_' + name_tag
-
-        stop_time = self._count_length / self._count_frequency
-        time_step_size = stop_time / len(self.countdata)
-        x_axis = np.arange(0, stop_time, time_step_size)
-
-        # prepare the data in a dict or in an OrderedDict:
-        data = OrderedDict()
-        chans = self.get_channels()
-        savearr = np.empty((len(chans) + 1, len(x_axis)))
-        savearr[0] = x_axis
-        datastr = 'Time (s)'
-
-        for i, ch in enumerate(chans):
-            savearr[i+1] = self.countdata[i]
-            datastr += ',Signal {0} (counts/s)'.format(i)
-
-        data[datastr] = savearr.transpose()
-
-        # write the parameters:
-        parameters = OrderedDict()
-        timestr = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss', time.localtime(time.time()))
-        parameters['Saved at time'] = timestr
-        parameters['Count frequency (Hz)'] = self._count_frequency
-        parameters['Oversampling (Samples)'] = self._counting_samples
-        parameters['Smooth Window Length (# of events)'] = self._smooth_window_length
-
-        filepath = self._save_logic.get_path_for_module(module_name='Counter')
-        self._save_logic.save_data(data, filepath=filepath, parameters=parameters,
-                                   filelabel=filelabel, delimiter='\t')
-
-        self.log.debug('Current Counter Trace saved to: {0}'.format(filepath))
-        return data, filepath, parameters, filelabel
 
     def get_channels(self):
         """ Shortcut for hardware get_counter_channels.
 
             @return list(str): return list of active counter channel names
         """
-        return self._counting_device.get_counter_channels()
+        return self._powermeter_device.get_counter_channels()
 
     def _process_data_continous(self):
         """
@@ -554,15 +421,15 @@ class CounterLogic(GenericLogic):
         """
         for i, ch in enumerate(self.get_channels()):
             # remember the new count data in circular array
-            self.countdata[i, 0] = np.average(self.rawdata[i])
+            self.powerdata[i, 0] = np.average(self.rawdata[i])
         # move the array to the left to make space for the new data
-        self.countdata = np.roll(self.countdata, -1, axis=1)
+        self.powerdata = np.roll(self.powerdata, -1, axis=1)
         # also move the smoothing array
-        self.countdata_smoothed = np.roll(self.countdata_smoothed, -1, axis=1)
+        self.powerdata_smoothed = np.roll(self.powerdata_smoothed, -1, axis=1)
         # calculate the median and save it
         window = -int(self._smooth_window_length / 2) - 1
         for i, ch in enumerate(self.get_channels()):
-            self.countdata_smoothed[i, window:] = np.median(self.countdata[i,
+            self.powerdata_smoothed[i, window:] = np.median(self.powerdata[i,
                                                             -self._smooth_window_length:])
 
         # save the data if necessary
@@ -583,58 +450,8 @@ class CounterLogic(GenericLogic):
                 newdata = np.empty((len(chans) + 1, ))
                 newdata[0] = time.time() - self._saving_start_time
                 for i, ch in enumerate(chans):
-                    newdata[i+1] = self.countdata[i, -1]
+                    newdata[i+1] = self.powerdata[i, -1]
                 self._data_to_save.append(newdata)
-        return
-
-    def _process_data_gated(self):
-        """
-        Processes the raw data from the counting device
-        @return:
-        """
-        # remember the new count data in circular array
-        self.countdata[0] = np.average(self.rawdata[0])
-        # move the array to the left to make space for the new data
-        self.countdata = np.roll(self.countdata, -1)
-        # also move the smoothing array
-        self.countdata_smoothed = np.roll(self.countdata_smoothed, -1)
-        # calculate the median and save it
-        self.countdata_smoothed[-int(self._smooth_window_length / 2) - 1:] = np.median(
-            self.countdata[-self._smooth_window_length:])
-
-        # save the data if necessary
-        if self._saving:
-            # if oversampling is necessary
-            if self._counting_samples > 1:
-                self._sampling_data = np.empty((self._counting_samples, 2))
-                self._sampling_data[:, 0] = time.time() - self._saving_start_time
-                self._sampling_data[:, 1] = self.rawdata[0]
-                self._data_to_save.extend(list(self._sampling_data))
-            # if we don't want to use oversampling
-            else:
-                # append tuple to data stream (timestamp, average counts)
-                self._data_to_save.append(np.array((time.time() - self._saving_start_time,
-                                                    self.countdata[-1])))
-        return
-
-    def _process_data_finite_gated(self):
-        """
-        Processes the raw data from the counting device
-        @return:
-        """
-        if self._already_counted_samples+len(self.rawdata[0]) >= len(self.countdata):
-            needed_counts = len(self.countdata) - self._already_counted_samples
-            self.countdata[0:needed_counts] = self.rawdata[0][0:needed_counts]
-            self.countdata = np.roll(self.countdata, -needed_counts)
-            self._already_counted_samples = 0
-            self.stopRequested = True
-        else:
-            # replace the first part of the array with the new data:
-            self.countdata[0:len(self.rawdata[0])] = self.rawdata[0]
-            # roll the array by the amount of data it had been inserted:
-            self.countdata = np.roll(self.countdata, -len(self.rawdata[0]))
-            # increment the index counter:
-            self._already_counted_samples += len(self.rawdata[0])
         return
 
     def _stopCount_wait(self, timeout=5.0):
