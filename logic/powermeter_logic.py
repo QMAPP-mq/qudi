@@ -222,13 +222,6 @@ class PowermeterLogic(GenericLogic):
         self.sigCountFrequencyChanged.emit(self._count_frequency)
         # return self._count_frequency
 
-    def get_counting_samples(self):
-        """ Returns the currently set number of samples counted per readout.
-
-        @return int: counting_samples
-        """
-        return self._counting_samples
-
     def get_saving_state(self):
         """ Returns if the data is saved in the moment.
 
