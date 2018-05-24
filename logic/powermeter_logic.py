@@ -153,6 +153,10 @@ class PowermeterLogic(GenericLogic):
 
             @return int : the trace length
         """
+
+        # TODO check access to _powermeter_device._sampling_time
+        self.trace_length = (self._powermeter_device.get_averaging_window()
+                                * self._powermeter_device._sampling_time)
         return self._trace_length
     
     @trace_length.setter
@@ -163,6 +167,7 @@ class PowermeterLogic(GenericLogic):
             
             @return error code (0:OK, -1:error)
         """
+
         if not isinstance(new_length, int):
             self.log.warning("trace_length must be integer."
                              "I have used {} instead of the requested {}."
@@ -184,6 +189,11 @@ class PowermeterLogic(GenericLogic):
                 self.start_trace()
         else:
             self.log.warning('trace_length has to be larger than 0! Command ignored!')
+
+        # TODO check access to _powermeter_device._sampling_time
+        self._powermeter_device.set_averaging_window(self._trace_length /
+                self._powermeter_device._sampling_time)
+
         self.sigCountingSamplesChanged.emit(self._trace_length)
         
         if self._trace_length == new_length:
@@ -193,6 +203,7 @@ class PowermeterLogic(GenericLogic):
             return -1
 
     @property
+    # TODO how to connect this to the hardware?
     def sampling_frequency(self):
         """ Get the currently set trace sampling frequency (resolution)
 
