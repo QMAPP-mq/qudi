@@ -209,6 +209,7 @@ class PowermeterLogic(GenericLogic):
 
             @return float : the sampling frequency in Hz
         """
+        self._sampling_frequency = 1 / self._powermeter_device.get_averaging_window()
         return self._sampling_frequency
 
     @sampling_frequency.setter
@@ -235,6 +236,9 @@ class PowermeterLogic(GenericLogic):
                 self.start_trace()
         else:
             self.log.warning('sampling_frequency not in range! Command ignored!')
+
+        self._powermeter_device.set_averaging_window(1 / self._count_frequency)
+
         self.sigCountFrequencyChanged.emit(self._count_frequency)
         
         if self._count_frequency == new_frequency:
