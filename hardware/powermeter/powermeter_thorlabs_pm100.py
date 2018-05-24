@@ -143,6 +143,8 @@ class ThorlabsPM(Base, PowermeterInterface):
         constraints = {}
         constraints['min_wavelength'] = self.ThorlabsPM.sense.correction.minimum_wavelength * 1e-9
         constraints['max_wavelength'] = self.ThorlabsPM.sense.correction.maximum_wavelength * 1e-9
+        constraints['max_sampling_frequency'] = 1 / self._sampling_time
+        constraints['min_sampling_frequency'] = 0
         # constraints.threshold = self.ThorlabsPM.sense.peakdetector.maximum_threshold # not working, unsure of usage
 
         return constraints
