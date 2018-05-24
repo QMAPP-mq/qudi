@@ -77,7 +77,7 @@ class RedPitaya(Base, GenScannerInterface):
         self.rp_s.tx_txt('ACQ:BUF:SIZE?')
         self._buffer_size = int(self.rp_s.rx_txt())
 
-        self.x_path_volt = 0
+        self.x_path_volt = [0,0]
         self._scan_state = None
 
         # handle all the parameters given by the config
@@ -170,7 +170,7 @@ class RedPitaya(Base, GenScannerInterface):
         try:
             if self._scan_state != '_set_pos':
 
-                self._red_pitaya_setpos(x_volt, y_volt)            
+                self._red_pitaya_setpos(x=x_volt, y=y_volt)            
                 self._scan_state = '_set_pos'
 
             else:
@@ -212,10 +212,12 @@ class RedPitaya(Base, GenScannerInterface):
         if not isinstance(line_path, (frozenset, list, set, tuple, np.ndarray, ) ):
             self.log.error('Given line_path list is not array type.')
             return np.array([[-1.]])
-
-        if self.x_path_volt[0] != line_path[0][0] and self.x_path_volt[len(x_path_volt)-1] != line_path[0][len(x_path_volt)-1]:
+        print(line_path)#debug testing
+        if self.x_path_volt[0] != line_path[0][0] or self.x_path_volt[len(self.x_path_volt)-1] != line_path[0][len(line_path)-1]:
             self._set_up_line(line_path=line_path)
-
+            self.log.info('New line required') #debug testing
+        else:
+            self.log.info('No new line required') #debug testing
         try:
             #turn digital output on
             self.rp_s.tx_txt('DIG:PIN'+ self._trigger_out_channel+', 1')  
@@ -224,7 +226,7 @@ class RedPitaya(Base, GenScannerInterface):
             self.rp_s.tx_txt('DIG:PIN'+ self._trigger_out_channel+', 0')    
 
             # update the scanner position instance variable
-            self._current_position = np.array(line_path[:, -1])
+            self._current_position[0] = np.array(line_path[0][len(line_path)-1])
         except:
             self.log.exception('Error while scanning line.')
             return -1
@@ -258,8 +260,8 @@ class RedPitaya(Base, GenScannerInterface):
 
         #if the scan path varies in y, set the y position to the final value, don't touch x
         #dirty hack to prevent delays from writing positions to RP
-        if line_path[1][0] != line_path[1][len(line_path)-1]:
-            self.set_position(y=line_path[1][len(line_path)-1])
+        if line_path[1][0] != line_path[1][len(line_path[1])-1]:
+            self.set_position(y=line_path[1][len(line_path[1])-1])
             return 0
 
         self._is_x_line = 1
@@ -267,7 +269,7 @@ class RedPitaya(Base, GenScannerInterface):
         #Red Pitaya does not like having a line path less than its buffer size
         self.x_path_volt = np.linspace(line_path[0][0], line_path[0][len(line_path[0])-1], self._buffer_size)
 
-        x_path = _scanner_position_to_volt(positions = x_path_volt,is_x_line=_is_x_line)
+        x_path = self._scanner_position_to_volt(positions = self.x_path_volt, is_x_check=self._is_x_line)
         
         try:
             self.x_line = ''
@@ -277,7 +279,7 @@ class RedPitaya(Base, GenScannerInterface):
                 
             self.x_line = self.x_line[:len(self.x_line)-2]   
 
-            if _scan_state != '_scanner':
+            if self._scan_state != '_scanner':
 
                 self._red_pitaya_scanline_setup()
 
@@ -371,16 +373,16 @@ class RedPitaya(Base, GenScannerInterface):
         #set the scanner frequencies from the config file
         self.rp_s.tx_txt('SOUR1:FREQ:FIX ' + str(self._scanner_frequency))
         self.rp_s.tx_txt('SOUR2:FREQ:FIX ' + str(self._scanner_frequency))
-
+        
         #set source 1,2 waveform to our scan values
         if x is not None:
-            self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + str(x))
+            self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + x)
         if y is not None:
-            self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + str(y))  
+            self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y)  
         self.rp_s.tx_txt('OUTPUT1:STATE ON')
         self.rp_s.tx_txt('OUTPUT2:STATE ON')
         #set the x,y outputs to trigger internally and simultaneously 
-        self.rp_s.tx_txt('TRIG:IMM') 
+        self.rp_s.tx_txt('TRIG:IMM')
         
 
     # ================ End ConfocalScannerInterface Commands ===================
