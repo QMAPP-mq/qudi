@@ -472,6 +472,8 @@ class PowermeterLogic(GenericLogic):
                 else:
                     self._process_data()
 
+            # wait the sampling period
+            time.sleep(1 / self._sampling_frequency)
             # call this again from event loop
             self.sigCounterUpdated.emit()
             self.sigpowerdataNext.emit()
