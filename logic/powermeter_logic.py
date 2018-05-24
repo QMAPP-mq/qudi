@@ -168,37 +168,38 @@ class PowermeterLogic(GenericLogic):
             @return error code (0:OK, -1:error)
         """
 
-        if not isinstance(new_length, int):
-            self.log.warning("trace_length must be integer."
-                             "I have used {} instead of the requested {}."
-                             .format(int(new_length), new_length)
-                            )
-            new_length = int(new_length)
+        try:
+            if not isinstance(new_length, int):
+                self.log.warning("trace_length must be integer."
+                                "I have used {} instead of the requested {}."
+                                .format(int(new_length), new_length)
+                                )
+                new_length = int(new_length)
 
-        # Determine if the counter has to be restarted after setting the parameter
-        if self.getState() == 'locked':
-            restart = True
-        else:
-            restart = False
+            # Determine if the counter has to be restarted after setting the parameter
+            if self.getState() == 'locked':
+                restart = True
+            else:
+                restart = False
 
-        if new_length > 0:
-            self._stopCount_wait()
-            self._trace_length = new_length
-            # if the counter was running, restart it
-            if restart:
-                self.start_trace()
-        else:
-            self.log.warning('trace_length has to be larger than 0! Command ignored!')
+            if new_length > 0:
+                self._stopCount_wait()
+                self._trace_length = new_length
+                # if the counter was running, restart it
+                if restart:
+                    self.start_trace()
+            else:
+                self.log.warning('trace_length has to be larger than 0! Command ignored!')
 
-        # TODO check access to _powermeter_device._sampling_time
-        self._powermeter_device.set_averaging_window(self._trace_length /
-                self._powermeter_device._sampling_time)
+            # TODO check access to _powermeter_device._sampling_time
+            self._powermeter_device.set_averaging_window(self._trace_length /
+                    self._powermeter_device._sampling_time)
 
-        self.sigCountingSamplesChanged.emit(self._trace_length)
+            self.sigCountingSamplesChanged.emit(self._trace_length)
         
-        if self._trace_length == new_length:
             return 0
-        else:
+        
+        except:
             self.log.warning('An error occured setting the trace length')
             return -1
 
@@ -209,7 +210,6 @@ class PowermeterLogic(GenericLogic):
 
             @return float : the sampling frequency in Hz
         """
-        self._sampling_frequency = 1 / self._powermeter_device.get_averaging_window()
         return self._sampling_frequency
 
     @sampling_frequency.setter
@@ -223,27 +223,31 @@ class PowermeterLogic(GenericLogic):
 
         constraints = self.get_hardware_constraints()
 
-        if self.getState() == 'locked':
-            restart = True
-        else:
-            restart = False
+        try:
+            if self.getState() == 'locked':
+                restart = True
+            else:
+                restart = False
 
-        if constraints.min_count_frequency <= new_frequency <= constraints.max_count_frequency:
-            self._stopCount_wait()
-            self._count_frequency = new_frequency
-            # if the counter was running, restart it
-            if restart:
-                self.start_trace()
-        else:
-            self.log.warning('sampling_frequency not in range! Command ignored!')
+            if constraints.min_sampling_frequency <= new_frequency <= constraints.max_sampling_frequency:
+                self._stopCount_wait()
+                self._sampling_frequency = new_frequency
+                # if the counter was running, restart it
+                if restart:
+                    self.start_trace()
+            else:
+                self.log.warning('sampling_frequency not in range! Command ignored!')
 
-        self._powermeter_device.set_averaging_window(1 / self._count_frequency)
+            hw_averaging_window = self._powermeter_device.set_averaging_window(1 / self._sampling_frequency)
 
-        self.sigCountFrequencyChanged.emit(self._count_frequency)
-        
-        if self._count_frequency == new_frequency:
+            # TODO: logic can always run at any sampling_frequency, but HW may only have
+            # discrete sampling rates.
+
+            self.sigCountFrequencyChanged.emit(self._sampling_frequency)
+
             return 0
-        else:
+
+        except:
             self.log.warning('An error occured setting the sampling frequency')
             return -1
 
