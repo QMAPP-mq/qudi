@@ -130,7 +130,7 @@ class PowermeterLogic(GenericLogic):
         """
 
         # Stop measurement
-        if self.getState() == 'locked':
+        if self.module_state() == 'locked':
             self._stopCount_wait()
 
         self.sigpowerdataNext.disconnect()
@@ -168,7 +168,7 @@ class PowermeterLogic(GenericLogic):
                 new_length = int(new_length)
 
             # Determine if the counter has to be restarted after setting the parameter
-            if self.getState() == 'locked':
+            if self.module_state() == 'locked':
                 restart = True
             else:
                 restart = False
@@ -215,7 +215,7 @@ class PowermeterLogic(GenericLogic):
         constraints = self.get_hardware_constraints()
 
         try:
-            if self.getState() == 'locked':
+            if self.module_state() == 'locked':
                 restart = True
             else:
                 restart = False
@@ -321,8 +321,8 @@ class PowermeterLogic(GenericLogic):
 
         with self.threadlock:
             # Lock module
-            if self.getState() != 'locked':
-                self.lock()
+            if self.module_state() != 'locked':
+                self.module_state.lock()
             else:
                 self.log.warning('Trace already running. Method call ignored.')
                 return 0
@@ -345,7 +345,7 @@ class PowermeterLogic(GenericLogic):
         """ Set a flag to request stopping counting.
         """
 
-        if self.getState() == 'locked':
+        if self.module_state() == 'locked':
             with self.threadlock:
                 self.stopRequested = True
         return
@@ -374,7 +374,7 @@ class PowermeterLogic(GenericLogic):
         self._saving = True
 
         # If the powermeter is not running, then it should start running so there is data to save
-        if self.getState() != 'locked':
+        if self.module_state() != 'locked':
             self.start_trace()
 
         self.sigSavingStatusChanged.emit(self._saving)
@@ -431,13 +431,13 @@ class PowermeterLogic(GenericLogic):
         to sigCountContinuousNext and emitting sigCountContinuousNext through a queued connection.
         """
 
-        if self.getState() == 'locked':
+        if self.module_state() == 'locked':
             with self.threadlock:
                 # check for aborts of the thread in break if necessary
                 if self.stopRequested:
                     # switch the state variable off again
                     self.stopRequested = False
-                    self.unlock()
+                    self.module_state.unlock()
                     self.sigCounterUpdated.emit()
                     return
 
@@ -504,7 +504,7 @@ class PowermeterLogic(GenericLogic):
 
         self.stopCount()
         start_time = time.time()
-        while self.getState() == 'locked':
+        while self.module_state() == 'locked':
             time.sleep(0.1)
             if time.time() - start_time >= timeout:
                 self.log.error('Stopping the powermeter timed out after {0}s'.format(timeout))
