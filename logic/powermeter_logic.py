@@ -129,9 +129,6 @@ class PowermeterLogic(GenericLogic):
         """ Deinitialise and deactivate the logic module.
         """
 
-        # Save parameters to disk
-        self._statusVariables['counting_mode'] = self._counting_mode.name
-
         # Stop measurement
         if self.getState() == 'locked':
             self._stopCount_wait()
