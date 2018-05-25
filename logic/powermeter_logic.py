@@ -108,7 +108,6 @@ class PowermeterLogic(GenericLogic):
         self._save_logic = self.get_connector('savelogic')
 
         constraints = self.get_hardware_constraints()
-        number_of_detectors = constraints.max_detectors
 
         # initialize data arrays
         self.powerdata = np.zeros(self._count_length)
