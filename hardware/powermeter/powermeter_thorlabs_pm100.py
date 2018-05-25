@@ -3,7 +3,7 @@
 This file contains the Qudi hardware for the Thorlabs PM100x powermeter series.
 
 NOTE: To find your Thorlabs PM100x serial number: On the device go to:
-System Menue > Consol Info > S/N
+System Menu > Consol Info > S/N
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -128,7 +128,7 @@ class ThorlabsPM(Base, PowermeterInterface):
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
 
-        @return error code
+        @return error code (0:OK, -1:error)
         """
         self.ThorlabsPM.display.brightness = 1  # restore display brightness to full
         self.ThorlabsPM.abort()
@@ -143,8 +143,8 @@ class ThorlabsPM(Base, PowermeterInterface):
         constraints = {}
         constraints['min_wavelength'] = self.ThorlabsPM.sense.correction.minimum_wavelength * 1e-9
         constraints['max_wavelength'] = self.ThorlabsPM.sense.correction.maximum_wavelength * 1e-9
-        constraints['max_sampling_frequency'] = 1 / self._sampling_time
         constraints['min_sampling_frequency'] = 0
+        constraints['max_sampling_frequency'] = 1 / self._sampling_time
         # constraints.threshold = self.ThorlabsPM.sense.peakdetector.maximum_threshold # not working, unsure of usage
 
         return constraints
