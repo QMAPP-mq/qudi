@@ -52,7 +52,6 @@ class PowermeterLogic(GenericLogic):
     sigCountFrequencyChanged = QtCore.Signal(float)
     sigSavingStatusChanged = QtCore.Signal(bool)
     sigCountStatusChanged = QtCore.Signal(bool)
-    sigCountingModeChanged = QtCore.Signal(CountingMode)
 
     _modclass = 'PowermeterLogic'
     _modtype = 'logic'
@@ -108,17 +107,13 @@ class PowermeterLogic(GenericLogic):
         self._powermeter_device = self.get_connector('pm1')
         self._save_logic = self.get_connector('savelogic')
 
-        # Recall saved app-parameters
-        if 'counting_mode' in self._statusVariables:
-            self._counting_mode = CountingMode[self._statusVariables['counting_mode']]
-
         constraints = self.get_hardware_constraints()
         number_of_detectors = constraints.max_detectors
 
         # initialize data arrays
-        self.powerdata = np.zeros([len(self.get_channels()), self._count_length])
-        self.powerdata_smoothed = np.zeros([len(self.get_channels()), self._count_length])
-        self.rawdata = np.zeros([len(self.get_channels()), self._counting_samples])
+        self.powerdata = np.zeros(self._count_length)
+        self.powerdata_smoothed = np.zeros(self._count_length)
+        self.rawdata = np.zeros(self._counting_samples)
         self._already_counted_samples = 0  # For gated counting
         self._data_to_save = []
 
@@ -288,13 +283,6 @@ class PowermeterLogic(GenericLogic):
         """
         return self._powermeter_device.get_constraints()
 
-    def get_channels(self):
-        """ Shortcut for hardware get_counter_channels.
-
-            @return list(str): return list of active counter channel names
-        """
-        return self._powermeter_device.get_counter_channels()
-
     def draw_figure(self, data):
         """ Draw figure to save with data file.
 
@@ -303,7 +291,7 @@ class PowermeterLogic(GenericLogic):
             @return: fig fig: a matplotlib figure object to be saved to file.
         """
         
-        count_data = data[:, 1:len(self.get_channels())+1]
+        count_data = data[:, 1:len(1)+1]
         time_data = data[:, 0]
 
         # Scale count values using SI prefix
@@ -344,10 +332,10 @@ class PowermeterLogic(GenericLogic):
                 return 0
 
             # initialising the data arrays
-            self.rawdata = np.zeros([len(self.get_channels()), self._counting_samples])
-            self.powerdata = np.zeros([len(self.get_channels()), self._count_length])
-            self.powerdata_smoothed = np.zeros([len(self.get_channels()), self._count_length])
-            self._sampling_data = np.empty([len(self.get_channels()), self._counting_samples])
+            self.rawdata = np.zeros(self._counting_samples)
+            self.powerdata = np.zeros(self._count_length)
+            self.powerdata_smoothed = np.zeros(self._count_length)
+            self._sampling_data = np.empty(self._counting_samples)
 
             # the sample index for gated counting
             self._already_counted_samples = 0
@@ -425,9 +413,7 @@ class PowermeterLogic(GenericLogic):
                 filelabel = 'power_trace_' + postfix
 
             # prepare the data in a dict or in an OrderedDict:
-            header = 'Time (s)'
-            for i, detector in enumerate(self.get_channels()):
-                header = header + ',Signal{0} (counts/s)'.format(i)
+            header = 'Time (s)' + ', Signal (counts/s)'
 
             data = {header: self._data_to_save}
             filepath = self._save_logic.get_path_for_module(module_name='Powermeter')
@@ -481,38 +467,32 @@ class PowermeterLogic(GenericLogic):
             @return:
         """
 
-        for i, ch in enumerate(self.get_channels()):
-            # remember the new count data in circular array
-            self.powerdata[i, 0] = np.average(self.rawdata[i])
+        # remember the new count data in circular array
+        self.powerdata[0] = np.average(self.rawdata[0])
         # move the array to the left to make space for the new data
         self.powerdata = np.roll(self.powerdata, -1, axis=1)
         # also move the smoothing array
         self.powerdata_smoothed = np.roll(self.powerdata_smoothed, -1, axis=1)
         # calculate the median and save it
         window = -int(self._smooth_window_length / 2) - 1
-        for i, ch in enumerate(self.get_channels()):
-            self.powerdata_smoothed[i, window:] = np.median(self.powerdata[i,
+        self.powerdata_smoothed[0, window:] = np.median(self.powerdata[0,
                                                             -self._smooth_window_length:])
 
         # save the data if necessary
         if self._saving:
              # if oversampling is necessary
             if self._counting_samples > 1:
-                chans = self.get_channels()
-                self._sampling_data = np.empty([len(chans) + 1, self._counting_samples])
+                self._sampling_data = np.empty([1 + 1, self._counting_samples])
                 self._sampling_data[0, :] = time.time() - self._saving_start_time
-                for i, ch in enumerate(chans):
-                    self._sampling_data[i+1, 0] = self.rawdata[i]
+                self._sampling_data[0+1, 0] = self.rawdata[0]
 
                 self._data_to_save.extend(list(self._sampling_data))
             # if we don't want to use oversampling
             else:
                 # append tuple to data stream (timestamp, average counts)
-                chans = self.get_channels()
-                newdata = np.empty((len(chans) + 1, ))
+                newdata = np.empty((1 + 1, ))
                 newdata[0] = time.time() - self._saving_start_time
-                for i, ch in enumerate(chans):
-                    newdata[i+1] = self.powerdata[i, -1]
+                newdata[0+1] = self.powerdata[0, -1]
                 self._data_to_save.append(newdata)
         return
 
