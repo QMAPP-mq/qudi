@@ -64,7 +64,7 @@ class PowermeterLogic(GenericLogic):
     _count_length = StatusVar('count_length', 300)
     _smooth_window_length = StatusVar('smooth_window_length', 10)
     _counting_samples = StatusVar('counting_samples', 1)
-    _count_frequency = StatusVar('count_frequency', 50)
+    _sampling_frequency = StatusVar('count_frequency', 50)
     _saving = StatusVar('saving', False)
 
     _wavelength = StatusVar('wavelength', 532e-9)
@@ -92,7 +92,7 @@ class PowermeterLogic(GenericLogic):
         self._smooth_window_length = 10
         self._counting_samples = 1      # oversampling
         # in hertz
-        self._count_frequency = 50
+        self._sampling_frequency = 50
 
         # self._binned_counting = True  # UNUSED?
 
@@ -397,7 +397,7 @@ class PowermeterLogic(GenericLogic):
         parameters = OrderedDict()
         parameters['Start counting time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss', time.localtime(self._saving_start_time))
         parameters['Stop counting time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss', time.localtime(self._saving_stop_time))
-        parameters['Count frequency (Hz)'] = self._count_frequency
+        parameters['Count frequency (Hz)'] = self._sampling_frequency
         parameters['Oversampling (Samples)'] = self._counting_samples
         parameters['Smooth Window Length (# of events)'] = self._smooth_window_length
 
@@ -442,8 +442,8 @@ class PowermeterLogic(GenericLogic):
                     return
 
                 # read the current power value
-                self.rawdata = self._powermeter_device.get_power(self._counting_samples)
-                if self.rawdata[0, 0] < 0:
+                self.rawdata[0] = self._powermeter_device.get_power(self._counting_samples)
+                if self.rawdata[0] < 0:
                     self.log.error('The counting went wrong, killing the powermeter.')
                     self.stopRequested = True
                 else:
@@ -466,13 +466,12 @@ class PowermeterLogic(GenericLogic):
         # remember the new count data in circular array
         self.powerdata[0] = np.average(self.rawdata[0])
         # move the array to the left to make space for the new data
-        self.powerdata = np.roll(self.powerdata, -1, axis=1)
+        self.powerdata = np.roll(self.powerdata, -1) #, axis=1)
         # also move the smoothing array
-        self.powerdata_smoothed = np.roll(self.powerdata_smoothed, -1, axis=1)
+        self.powerdata_smoothed = np.roll(self.powerdata_smoothed, -1) #, axis=1)
         # calculate the median and save it
         window = -int(self._smooth_window_length / 2) - 1
-        self.powerdata_smoothed[0, window:] = np.median(self.powerdata[0,
-                                                            -self._smooth_window_length:])
+        self.powerdata_smoothed[window:] = np.median(self.powerdata[-self._smooth_window_length:])
 
         # save the data if necessary
         if self._saving:
