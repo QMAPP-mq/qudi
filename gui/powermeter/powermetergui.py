@@ -94,10 +94,10 @@ class PowermeterGui(GUIBase):
         # Smoothed curve
         self.curves.append(
             pg.PlotDataItem(
-                pen=pg.mkPen(palette.c3, style=QtCore.Qt.DotLine),
+                pen=pg.mkPen(palette.c2, style=QtCore.Qt.DotLine),
                 symbol='s',
-                symbolPen=palette.c3,
-                symbolBrush=palette.c3,
+                symbolPen=palette.c2,
+                symbolBrush=palette.c2,
                 symbolSize=5))
         self._pw.addItem(self.curves[-1])
 
