@@ -245,7 +245,7 @@ class PowermeterLogic(GenericLogic):
 
             @return float : the detection wavelength in meters
         """
-        self.wavelength = self._powermeter_device.get_wavelength()
+        self._wavelength = self._powermeter_device.get_wavelength()
         return self._wavelength
 
     @wavelength.setter
@@ -260,7 +260,7 @@ class PowermeterLogic(GenericLogic):
         x = self._powermeter_device.set_wavelength(new_wavelength)
 
         if x == new_wavelength:
-            self.wavelength = x
+            self._wavelength = x
             return 0
         else:
             self.log.warning('An error occured setting the detection wavlength')
