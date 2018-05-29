@@ -111,7 +111,7 @@ class PowermeterGui(GUIBase):
         # Setting default parameters
         self._mw.count_length_SpinBox.setValue(self._powermeter_logic.trace_length)
         self._mw.sampling_freq_SpinBox.setValue(self._powermeter_logic.sampling_frequency)
-        #TODO wavelength
+        self._mw.wavelength_SpinBox.setValue(self._powermeter_logic.wavelength)
 
         #####################
         # Connecting user interactions
@@ -120,6 +120,7 @@ class PowermeterGui(GUIBase):
 
         self._mw.count_length_SpinBox.valueChanged.connect(self.count_length_changed)
         self._mw.sampling_freq_SpinBox.valueChanged.connect(self.count_frequency_changed)
+        self._mw.wavelength_SpinBox.valueChanged.connect(self.wavelength_changed)
 
         # Connect the default view action
         self._mw.restore_default_view_Action.triggered.connect(self.restore_default_view)
@@ -259,6 +260,16 @@ class PowermeterGui(GUIBase):
         )
         return self._mw.sampling_freq_SpinBox.value()
 
+    def wavelength_changed(self):
+        """ Handling the change of the wavelength and sending it to the measurement.
+        """
+        self._powermeter_logic.wavelength = self._mw.wavelength_SpinBox.value()
+        # self._pw.setXRange(
+        #     0,
+        #     self._powermeter_logic.trace_length / self._powermeter_logic.sampling_frequency
+        # )
+        return self._mw.wavelength_SpinBox.value()
+
     ########
     # Restore default values
 
@@ -313,6 +324,18 @@ class PowermeterGui(GUIBase):
         self._pw.setXRange(0, count_length / self._powermeter_logic.sampling_frequency)
         self._mw.count_length_SpinBox.blockSignals(False)
         return count_length
+
+    def update_wavelength_SpinBox(self, wavelength):
+        """Function to ensure that the GUI displays the current value of the logic
+
+        @param float wavelength: adjusted wavelength in nm
+        @return int wavelength: see above
+        """
+        self._mw.wavelength_SpinBox.blockSignals(True)
+        self._mw.wavelength.setValue(wavelength)
+        # self._pw.setXRange(0, count_length / self._powermeter_logic.sampling_frequency)
+        self._mw.wavelength.blockSignals(False)
+        return wavelength
 
     def update_saving_Action(self, start):
         """Function to ensure that the GUI-save_action displays the current status
