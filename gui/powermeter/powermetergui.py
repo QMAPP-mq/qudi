@@ -132,19 +132,19 @@ class PowermeterGui(GUIBase):
         ##################
         # Handling signals from the logic
 
-        self._powermeter_logic.sigCounterUpdated.connect(self.updateData)
+        self._powermeter_logic.sigTracerUpdated.connect(self.updateData)
 
         # TODO:
         # self._powermeter_logic.sigCountContinuousNext.connect()
         # self._powermeter_logic.sigCountGatedNext.connect()
         # self._powermeter_logic.sigCountFiniteGatedNext.connect()
-        # self._powermeter_logic.sigGatedCounterFinished.connect()
-        # self._powermeter_logic.sigGatedCounterContinue.connect()
+        # self._powermeter_logic.sigGatedTracerFinished.connect()
+        # self._powermeter_logic.sigGatedTracerContinue.connect()
 
-        self._powermeter_logic.sigCountLengthChanged.connect(self.update_count_length_SpinBox)
-        self._powermeter_logic.sigCountFrequencyChanged.connect(self.update_sampling_freq_SpinBox)
+        self._powermeter_logic.sigTraceLengthChanged.connect(self.update_count_length_SpinBox)
+        self._powermeter_logic.sigSamplingFrequencyChanged.connect(self.update_sampling_freq_SpinBox)
         self._powermeter_logic.sigSavingStatusChanged.connect(self.update_saving_Action)
-        self._powermeter_logic.sigCountStatusChanged.connect(self.update_count_status_Action)
+        self._powermeter_logic.sigTraceStatusChanged.connect(self.update_count_status_Action)
 
         return 0
 
@@ -168,13 +168,13 @@ class PowermeterGui(GUIBase):
         self._mw.restore_default_view_Action.triggered.disconnect()
         self.sigStartCounter.disconnect()
         self.sigStopCounter.disconnect()
-        self._powermeter_logic.sigCounterUpdated.disconnect()
-        self._powermeter_logic.sigCountingSamplesChanged.disconnect()
-        self._powermeter_logic.sigCountLengthChanged.disconnect()
-        self._powermeter_logic.sigCountFrequencyChanged.disconnect()
+        self._powermeter_logic.sigTracerUpdated.disconnect()
+        self._powermeter_logic.sigPowerSamplesChanged.disconnect()
+        self._powermeter_logic.sigTraceLengthChanged.disconnect()
+        self._powermeter_logic.sigSamplingFrequencyChanged.disconnect()
         self._powermeter_logic.sigSavingStatusChanged.disconnect()
         self._powermeter_logic.sigCountingModeChanged.disconnect()
-        self._powermeter_logic.sigCountStatusChanged.disconnect()
+        self._powermeter_logic.sigTraceStatusChanged.disconnect()
 
         self._mw.close()
         return

@@ -40,17 +40,17 @@ class PowermeterLogic(GenericLogic):
 
     @return error: 0 is OK, -1 is error
     """
-    sigCounterUpdated = QtCore.Signal()
+    sigTracerUpdated = QtCore.Signal()
 
-    sigpowerdataNext = QtCore.Signal()
+    sigPowerdataNext = QtCore.Signal()
 
-    sigGatedCounterFinished = QtCore.Signal()
-    sigGatedCounterContinue = QtCore.Signal(bool)
-    sigCountingSamplesChanged = QtCore.Signal(int)
-    sigCountLengthChanged = QtCore.Signal(int)
-    sigCountFrequencyChanged = QtCore.Signal(float)
+    sigGatedTracerFinished = QtCore.Signal()
+    sigGatedTracerContinue = QtCore.Signal(bool)
+    sigPowerSamplesChanged = QtCore.Signal(int)
+    sigTraceLengthChanged = QtCore.Signal(int)
+    sigSamplingFrequencyChanged = QtCore.Signal(float)
     sigSavingStatusChanged = QtCore.Signal(bool)
-    sigCountStatusChanged = QtCore.Signal(bool)
+    sigTraceStatusChanged = QtCore.Signal(bool)
 
     _modclass = 'PowermeterLogic'
     _modtype = 'logic'
@@ -119,7 +119,7 @@ class PowermeterLogic(GenericLogic):
         self._saving_start_time = time.time()
 
         # connect signals
-        self.sigpowerdataNext.connect(self._trace_loop_body, QtCore.Qt.QueuedConnection)
+        self.sigPowerdataNext.connect(self._trace_loop_body, QtCore.Qt.QueuedConnection)
         return
 
     def on_deactivate(self):
@@ -130,7 +130,7 @@ class PowermeterLogic(GenericLogic):
         if self.module_state() == 'locked':
             self._stopTrace_wait()
 
-        self.sigpowerdataNext.disconnect()
+        self.sigPowerdataNext.disconnect()
         return
 
 ########################## property declarations ##############################
@@ -183,7 +183,7 @@ class PowermeterLogic(GenericLogic):
             self._powermeter_device.set_averaging_window(self._trace_length /
                     self._powermeter_device._sampling_time)
 
-            self.sigCountingSamplesChanged.emit(self._trace_length)
+            self.sigPowerSamplesChanged.emit(self._trace_length)
         
             return 0
         
@@ -231,7 +231,7 @@ class PowermeterLogic(GenericLogic):
             # TODO: logic can always run at any sampling_frequency, but HW may only have
             # discrete sampling rates.
 
-            self.sigCountFrequencyChanged.emit(self._sampling_frequency)
+            self.sigSamplingFrequencyChanged.emit(self._sampling_frequency)
 
             return 0
 
@@ -333,8 +333,8 @@ class PowermeterLogic(GenericLogic):
             self._already_counted_samples = 0
 
             # Start data reader loop
-            self.sigCountStatusChanged.emit(True)
-            self.sigpowerdataNext.emit()
+            self.sigTraceStatusChanged.emit(True)
+            self.sigPowerdataNext.emit()
             return
 
     def stopTrace(self):
@@ -434,7 +434,7 @@ class PowermeterLogic(GenericLogic):
                     # switch the state variable off again
                     self.stopRequested = False
                     self.module_state.unlock()
-                    self.sigCounterUpdated.emit()
+                    self.sigTracerUpdated.emit()
                     return
 
                 # read the current power value
@@ -448,8 +448,8 @@ class PowermeterLogic(GenericLogic):
             # wait the sampling period
             time.sleep(1 / self._sampling_frequency)
             # call this again from event loop
-            self.sigCounterUpdated.emit()
-            self.sigpowerdataNext.emit()
+            self.sigTracerUpdated.emit()
+            self.sigPowerdataNext.emit()
         return
 
     def _process_data(self):
