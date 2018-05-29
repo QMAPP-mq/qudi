@@ -58,8 +58,8 @@ class PowermeterGui(GUIBase):
     # declare connectors
     powerlogic1 = Connector(interface='PowermeterLogic')
 
-    sigStartCounter = QtCore.Signal()
-    sigStopCounter = QtCore.Signal()
+    sigStartTrace = QtCore.Signal()
+    sigStopTrace = QtCore.Signal()
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -109,7 +109,7 @@ class PowermeterGui(GUIBase):
 
         #####################
         # Setting default parameters
-        self._mw.count_length_SpinBox.setValue(self._powermeter_logic.trace_length)
+        self._mw.trace_length_SpinBox.setValue(self._powermeter_logic.trace_length)
         self._mw.sampling_freq_SpinBox.setValue(self._powermeter_logic.sampling_frequency)
         self._mw.wavelength_SpinBox.setValue(self._powermeter_logic.wavelength)
 
@@ -118,8 +118,8 @@ class PowermeterGui(GUIBase):
         self._mw.start_power_Action.triggered.connect(self.start_clicked)
         self._mw.record_counts_Action.triggered.connect(self.save_clicked)
 
-        self._mw.count_length_SpinBox.valueChanged.connect(self.count_length_changed)
-        self._mw.sampling_freq_SpinBox.valueChanged.connect(self.count_frequency_changed)
+        self._mw.trace_length_SpinBox.valueChanged.connect(self.trace_length_changed)
+        self._mw.sampling_freq_SpinBox.valueChanged.connect(self.sampling_frequency_changed)
         self._mw.wavelength_SpinBox.valueChanged.connect(self.wavelength_changed)
 
         # Connect the default view action
@@ -127,8 +127,8 @@ class PowermeterGui(GUIBase):
 
         #####################
         # starting the physical measurement
-        self.sigStartCounter.connect(self._powermeter_logic.start_trace)
-        self.sigStopCounter.connect(self._powermeter_logic.stopTrace)
+        self.sigStartTrace.connect(self._powermeter_logic.start_trace)
+        self.sigStopTrace.connect(self._powermeter_logic.stopTrace)
 
         ##################
         # Handling signals from the logic
@@ -142,7 +142,7 @@ class PowermeterGui(GUIBase):
         # self._powermeter_logic.sigGatedTracerFinished.connect()
         # self._powermeter_logic.sigGatedTracerContinue.connect()
 
-        self._powermeter_logic.sigTraceLengthChanged.connect(self.update_count_length_SpinBox)
+        self._powermeter_logic.sigTraceLengthChanged.connect(self.update_trace_length_SpinBox)
         self._powermeter_logic.sigSamplingFrequencyChanged.connect(self.update_sampling_freq_SpinBox)
         self._powermeter_logic.sigSavingStatusChanged.connect(self.update_saving_Action)
         self._powermeter_logic.sigTraceStatusChanged.connect(self.update_count_status_Action)
@@ -164,11 +164,11 @@ class PowermeterGui(GUIBase):
         # disconnect signals
         self._mw.start_power_Action.triggered.disconnect()
         self._mw.record_counts_Action.triggered.disconnect()
-        self._mw.count_length_SpinBox.valueChanged.disconnect()
+        self._mw.trace_length_SpinBox.valueChanged.disconnect()
         self._mw.sampling_freq_SpinBox.valueChanged.disconnect()
         self._mw.restore_default_view_Action.triggered.disconnect()
-        self.sigStartCounter.disconnect()
-        self.sigStopCounter.disconnect()
+        self.sigStartTrace.disconnect()
+        self.sigStopTrace.disconnect()
         self._powermeter_logic.sigTracerUpdated.disconnect()
         self._powermeter_logic.sigPowerSamplesChanged.disconnect()
         self._powermeter_logic.sigTraceLengthChanged.disconnect()
@@ -218,10 +218,10 @@ class PowermeterGui(GUIBase):
         """
         if self._powermeter_logic.module_state() == 'locked':
             self._mw.start_power_Action.setText('Start powermeter')
-            self.sigStopCounter.emit()
+            self.sigStopTrace.emit()
         else:
             self._mw.start_power_Action.setText('Stop powermeter')
-            self.sigStartCounter.emit()
+            self.sigStartTrace.emit()
         return self._powermeter_logic.module_state()
 
     def save_clicked(self):
@@ -240,20 +240,20 @@ class PowermeterGui(GUIBase):
     ########
     # Input parameters changed via GUI
 
-    def count_length_changed(self):
+    def trace_length_changed(self):
         """ Handling the change of the count_length and sending it to the measurement.
         """
-        self._powermeter_logic.set_count_length(int(self._mw.count_length_SpinBox.value()))  # TODO: fix properly
+        self._powermeter_logic.trace_length = int(self._mw.trace_length_SpinBox.value())
         self._pw.setXRange(
             0,
             self._powermeter_logic.trace_length / self._powermeter_logic.sampling_frequency
         )
-        return self._mw.count_length_SpinBox.value()
+        return self._mw.trace_length_SpinBox.value()
 
-    def count_frequency_changed(self):
+    def sampling_frequency_changed(self):
         """ Handling the change of the count_frequency and sending it to the measurement.
         """
-        self._powermeter_logic.set_count_frequency(self._mw.sampling_freq_SpinBox.value())
+        self._powermeter_logic.sampling_frequency = self._mw.sampling_freq_SpinBox.value()
         self._pw.setXRange(
             0,
             self._powermeter_logic.trace_length / self._powermeter_logic.sampling_frequency
@@ -313,16 +313,16 @@ class PowermeterGui(GUIBase):
         self._mw.sampling_freq_SpinBox.blockSignals(False)
         return count_freq
 
-    def update_count_length_SpinBox(self, count_length):
+    def update_trace_length_SpinBox(self, count_length):
         """Function to ensure that the GUI displays the current value of the logic
 
         @param int count_length: adjusted count length in bins
         @return int count_length: see above
         """
-        self._mw.count_length_SpinBox.blockSignals(True)
-        self._mw.count_length_SpinBox.setValue(count_length)
+        self._mw.trace_length_SpinBox.blockSignals(True)
+        self._mw.trace_length_SpinBox.setValue(count_length)
         self._pw.setXRange(0, count_length / self._powermeter_logic.sampling_frequency)
-        self._mw.count_length_SpinBox.blockSignals(False)
+        self._mw.trace_length_SpinBox.blockSignals(False)
         return count_length
 
     def update_wavelength_SpinBox(self, wavelength):
