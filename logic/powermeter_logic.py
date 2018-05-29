@@ -27,14 +27,13 @@ import matplotlib.pyplot as plt
 
 from core.module import Connector, StatusVar
 from logic.generic_logic import GenericLogic
-# from interface.slow_counter_interface import CountingMode  # required?
 from core.util.mutex import Mutex
 
 
 class PowermeterLogic(GenericLogic):
     """ This logic module gathers data from a hardware powermeter device.
 
-    @signal sigCounterUpdate: there is new counting data available
+    @signal sigCounterUpdate: there is new power data available
     @signal sigCountContinuousNext: used to simulate a loop in which the data
                                     acquisition runs.
     @sigmal sigCountGatedNext: ???
@@ -61,16 +60,16 @@ class PowermeterLogic(GenericLogic):
     savelogic = Connector(interface='SaveLogic')
 
     # status vars
-    _count_length = StatusVar('count_length', 300)
+    _trace_length = StatusVar('trace_length', 300)
     _smooth_window_length = StatusVar('smooth_window_length', 10)
-    _counting_samples = StatusVar('counting_samples', 1)
-    _sampling_frequency = StatusVar('count_frequency', 50)
+    _trace_samples = StatusVar('trace_samples', 1)
+    _sampling_frequency = StatusVar('trace_frequency', 50)
     _saving = StatusVar('saving', False)
 
     _wavelength = StatusVar('wavelength', 532e-9)
 
     def __init__(self, config, **kwargs):
-        """ Create CounterLogic object with connectors.
+        """ Create PowermeterLogic object with connectors.
 
             @param dict config: module configuration
             @param dict kwargs: optional parameters
@@ -88,13 +87,11 @@ class PowermeterLogic(GenericLogic):
             self.log.debug('{0}: {1}'.format(key, config[key]))
 
         # in bins
-        self._count_length = 300
+        self._trace_length = 300
         self._smooth_window_length = 10
-        self._counting_samples = 1      # oversampling
+        self._trace_samples = 1      # oversampling
         # in hertz
         self._sampling_frequency = 50
-
-        # self._binned_counting = True  # UNUSED?
 
         self._saving = False
         return
@@ -110,9 +107,9 @@ class PowermeterLogic(GenericLogic):
         constraints = self.get_hardware_constraints()
 
         # initialize data arrays
-        self.powerdata = np.zeros(self._count_length)
-        self.powerdata_smoothed = np.zeros(self._count_length)
-        self.rawdata = np.zeros(self._counting_samples)
+        self.powerdata = np.zeros(self._trace_length)
+        self.powerdata_smoothed = np.zeros(self._trace_length)
+        self.rawdata = np.zeros(self._trace_samples)
         self._already_counted_samples = 0  # For gated counting
         self._data_to_save = []
 
@@ -122,7 +119,7 @@ class PowermeterLogic(GenericLogic):
         self._saving_start_time = time.time()
 
         # connect signals
-        self.sigpowerdataNext.connect(self._count_loop_body, QtCore.Qt.QueuedConnection)
+        self.sigpowerdataNext.connect(self._trace_loop_body, QtCore.Qt.QueuedConnection)
         return
 
     def on_deactivate(self):
@@ -131,7 +128,7 @@ class PowermeterLogic(GenericLogic):
 
         # Stop measurement
         if self.module_state() == 'locked':
-            self._stopCount_wait()
+            self._stopTrace_wait()
 
         self.sigpowerdataNext.disconnect()
         return
@@ -146,8 +143,8 @@ class PowermeterLogic(GenericLogic):
         """
 
         # TODO check access to _powermeter_device._sampling_time
-        self.trace_length = (self._powermeter_device.get_averaging_window()
-                                * self._powermeter_device._sampling_time)
+        # self._trace_length = (self._powermeter_device.get_averaging_window()
+        #                         * self._powermeter_device._sampling_time)
         return self._trace_length
     
     @trace_length.setter
@@ -167,16 +164,16 @@ class PowermeterLogic(GenericLogic):
                                 )
                 new_length = int(new_length)
 
-            # Determine if the counter has to be restarted after setting the parameter
+            # Determine if the powermeter has to be restarted after setting the parameter
             if self.module_state() == 'locked':
                 restart = True
             else:
                 restart = False
 
             if new_length > 0:
-                self._stopCount_wait()
+                self._stopTrace_wait()
                 self._trace_length = new_length
-                # if the counter was running, restart it
+                # if the powermeter was running, restart it
                 if restart:
                     self.start_trace()
             else:
@@ -221,9 +218,9 @@ class PowermeterLogic(GenericLogic):
                 restart = False
 
             if constraints.min_sampling_frequency <= new_frequency <= constraints.max_sampling_frequency:
-                self._stopCount_wait()
+                self._stopTrace_wait()
                 self._sampling_frequency = new_frequency
-                # if the counter was running, restart it
+                # if the powermeter was running, restart it
                 if restart:
                     self.start_trace()
             else:
@@ -273,7 +270,7 @@ class PowermeterLogic(GenericLogic):
 
     def get_hardware_constraints(self):
         """
-        Retrieve the hardware constrains from the counter device.
+        Retrieve the hardware constrains from the powermeter device.
 
             @return SlowCounterConstraints: object with constraints for the powermeter
         """
@@ -282,33 +279,32 @@ class PowermeterLogic(GenericLogic):
     def draw_figure(self, data):
         """ Draw figure to save with data file.
 
-            @param: nparray data: a numpy array containing counts vs time for all detectors
+            @param: nparray data: a numpy array containing power vs time for all detectors
 
             @return: fig fig: a matplotlib figure object to be saved to file.
         """
         
-        count_data = data[:, 1:len(1)+1]
+        power_data = data[:, 1:len(1)+1]
         time_data = data[:, 0]
 
-        # Scale count values using SI prefix
+        # Scale power values using SI prefix
         prefix = ['', 'k', 'M', 'G']
         prefix_index = 0
-        while np.max(count_data) > 1000:
-            count_data = count_data / 1000
+        while np.max(power_data) > 1000:
+            power_data = power_data / 1000
             prefix_index = prefix_index + 1
-        counts_prefix = prefix[prefix_index]
+        power_prefix = prefix[prefix_index]
 
         # Use qudi style
         plt.style.use(self._save_logic.mpl_qd_style)
 
         # Create figure
         fig, ax = plt.subplots()
-        ax.plot(time_data, count_data, linestyle=':', linewidth=0.5)
+        ax.plot(time_data, power_data, linestyle=':', linewidth=0.5)
         ax.set_xlabel('Time (s)')
-        ax.set_ylabel('Fluorescence (' + counts_prefix + 'c/s)')
+        ax.set_ylabel('Fluorescence (' + power_prefix + 'c/s)')
         return fig
 
-    # FIXME: Not implemented for self._counting_mode == 'gated'
     def start_trace(self):
         """ This is called externally, and is basically a wrapper that
             redirects to the chosen counting mode start function.
@@ -328,10 +324,10 @@ class PowermeterLogic(GenericLogic):
                 return 0
 
             # initialising the data arrays
-            self.rawdata = np.zeros(self._counting_samples)
-            self.powerdata = np.zeros(self._count_length)
-            self.powerdata_smoothed = np.zeros(self._count_length)
-            self._sampling_data = np.empty(self._counting_samples)
+            self.rawdata = np.zeros(self._trace_samples)
+            self.powerdata = np.zeros(self._trace_length)
+            self.powerdata_smoothed = np.zeros(self._trace_length)
+            self._sampling_data = np.empty(self._trace_samples)
 
             # the sample index for gated counting
             self._already_counted_samples = 0
@@ -341,8 +337,8 @@ class PowermeterLogic(GenericLogic):
             self.sigpowerdataNext.emit()
             return
 
-    def stopCount(self):
-        """ Set a flag to request stopping counting.
+    def stopTrace(self):
+        """ Set a flag to request stopping tracing.
         """
 
         if self.module_state() == 'locked':
@@ -395,10 +391,10 @@ class PowermeterLogic(GenericLogic):
 
         # write the parameters:
         parameters = OrderedDict()
-        parameters['Start counting time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss', time.localtime(self._saving_start_time))
-        parameters['Stop counting time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss', time.localtime(self._saving_stop_time))
-        parameters['Count frequency (Hz)'] = self._sampling_frequency
-        parameters['Oversampling (Samples)'] = self._counting_samples
+        parameters['Start sampling time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss', time.localtime(self._saving_start_time))
+        parameters['Stop samplinging time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss', time.localtime(self._saving_stop_time))
+        parameters['Sampling frequency (Hz)'] = self._sampling_frequency
+        parameters['Oversampling (Samples)'] = self._trace_samples
         parameters['Smooth Window Length (# of events)'] = self._smooth_window_length
 
         if to_file:
@@ -409,7 +405,7 @@ class PowermeterLogic(GenericLogic):
                 filelabel = 'power_trace_' + postfix
 
             # prepare the data in a dict or in an OrderedDict:
-            header = 'Time (s)' + ', Signal (counts/s)'
+            header = 'Time (s)' + ', Power (W)'
 
             data = {header: self._data_to_save}
             filepath = self._save_logic.get_path_for_module(module_name='Powermeter')
@@ -424,8 +420,8 @@ class PowermeterLogic(GenericLogic):
 
 ########################## internal methods ###################################
 
-    def _count_loop_body(self):
-        """ This method gets the count data from the hardware for the continuous measurement.
+    def _trace_loop_body(self):
+        """ This method gets the power data from the hardware for the continuous measurement.
 
         It runs repeatedly in the logic module event loop by being connected
         to sigCountContinuousNext and emitting sigCountContinuousNext through a queued connection.
@@ -442,9 +438,9 @@ class PowermeterLogic(GenericLogic):
                     return
 
                 # read the current power value
-                self.rawdata[0] = self._powermeter_device.get_power(self._counting_samples)
+                self.rawdata[0] = self._powermeter_device.get_power(self._trace_samples)
                 if self.rawdata[0] < 0:
-                    self.log.error('The counting went wrong, killing the powermeter.')
+                    self.log.error('The trace went wrong, killing the powermeter.')
                     self.stopRequested = True
                 else:
                     self._process_data()
@@ -463,7 +459,7 @@ class PowermeterLogic(GenericLogic):
             @return:
         """
 
-        # remember the new count data in circular array
+        # remember the new power data in circular array
         self.powerdata[0] = np.average(self.rawdata[0])
         # move the array to the left to make space for the new data
         self.powerdata = np.roll(self.powerdata, -1) #, axis=1)
@@ -476,22 +472,22 @@ class PowermeterLogic(GenericLogic):
         # save the data if necessary
         if self._saving:
              # if oversampling is necessary
-            if self._counting_samples > 1:
-                self._sampling_data = np.empty([1 + 1, self._counting_samples])
+            if self._trace_samples > 1:
+                self._sampling_data = np.empty([1 + 1, self._trace_samples])
                 self._sampling_data[0, :] = time.time() - self._saving_start_time
                 self._sampling_data[0+1, 0] = self.rawdata[0]
 
                 self._data_to_save.extend(list(self._sampling_data))
             # if we don't want to use oversampling
             else:
-                # append tuple to data stream (timestamp, average counts)
+                # append tuple to data stream (timestamp, power)
                 newdata = np.empty((1 + 1, ))
                 newdata[0] = time.time() - self._saving_start_time
                 newdata[0+1] = self.powerdata[0, -1]
                 self._data_to_save.append(newdata)
         return
 
-    def _stopCount_wait(self, timeout=5.0):
+    def _stopTrace_wait(self, timeout=5.0):
         """
         Stops the powermeter and waits until it actually has stopped.
 
@@ -501,7 +497,7 @@ class PowermeterLogic(GenericLogic):
             @return: error code (0:OK, -1:error)
         """
 
-        self.stopCount()
+        self.stopTrace()
         start_time = time.time()
         while self.module_state() == 'locked':
             time.sleep(0.1)

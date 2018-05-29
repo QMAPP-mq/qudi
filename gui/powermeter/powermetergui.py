@@ -40,7 +40,7 @@ class CounterMainWindow(QtWidgets.QMainWindow):
     def __init__(self, **kwargs):
         # Get the path to the *.ui file
         this_dir = os.path.dirname(__file__)
-        ui_file = os.path.join(this_dir, 'ui_slow_counter.ui')
+        ui_file = os.path.join(this_dir, 'ui_powermeter.ui')
 
         # Load it
         super().__init__(**kwargs)
@@ -48,15 +48,15 @@ class CounterMainWindow(QtWidgets.QMainWindow):
         self.show()
 
 
-class CounterGui(GUIBase):
+class PowermeterGui(GUIBase):
 
     """ FIXME: Please document
     """
-    _modclass = 'countergui'
+    _modclass = 'powermetergui'
     _modtype = 'gui'
 
     # declare connectors
-    counterlogic1 = Connector(interface='CounterLogic')
+    powerlogic1 = Connector(interface='PowermeterLogic')
 
     sigStartCounter = QtCore.Signal()
     sigStopCounter = QtCore.Signal()
@@ -68,7 +68,7 @@ class CounterGui(GUIBase):
         """ Definition and initialisation of the GUI.
         """
 
-        self._counting_logic = self.get_connector('counterlogic1')
+        self._powermeter_logic = self.get_connector('powerlogic1')
 
         #####################
         # Configuring the dock widgets
@@ -80,82 +80,71 @@ class CounterGui(GUIBase):
         self._mw.setDockNestingEnabled(True)
 
         # Plot labels.
-        self._pw = self._mw.counter_trace_PlotWidget
+        self._pw = self._mw.power_trace_PlotWidget
 
-        self._pw.setLabel('left', 'Fluorescence', units='counts/s')
+        self._pw.setLabel('left', 'Power', units='W')
         self._pw.setLabel('bottom', 'Time', units='s')
 
         self.curves = []
 
-        for i, ch in enumerate(self._counting_logic.get_channels()):
-            if i % 2 == 0:
-                # Create an empty plot curve to be filled later, set its pen
-                self.curves.append(
-                    pg.PlotDataItem(pen=pg.mkPen(palette.c1), symbol=None))
-                self._pw.addItem(self.curves[-1])
-                self.curves.append(
-                    pg.PlotDataItem(pen=pg.mkPen(palette.c2, width=3), symbol=None))
-                self._pw.addItem(self.curves[-1])
-            else:
-                self.curves.append(
-                    pg.PlotDataItem(
-                        pen=pg.mkPen(palette.c3, style=QtCore.Qt.DotLine),
-                        symbol='s',
-                        symbolPen=palette.c3,
-                        symbolBrush=palette.c3,
-                        symbolSize=5))
-                self._pw.addItem(self.curves[-1])
-                self.curves.append(
-                    pg.PlotDataItem(pen=pg.mkPen(palette.c4, width=3), symbol=None))
-                self._pw.addItem(self.curves[-1])
+        # Raw data curve
+        self.curves.append(pg.PlotDataItem(pen=pg.mkPen(palette.c1), symbol=None))
+        self._pw.addItem(self.curves[0])
+
+        # Smoothed curve
+        self.curves.append(
+            pg.PlotDataItem(
+                pen=pg.mkPen(palette.c3, style=QtCore.Qt.DotLine),
+                symbol='s',
+                symbolPen=palette.c3,
+                symbolBrush=palette.c3,
+                symbolSize=5))
+        self._pw.addItem(self.curves[-1])
 
         # setting the x axis length correctly
         self._pw.setXRange(
             0,
-            self._counting_logic.get_count_length() / self._counting_logic.get_count_frequency()
+            self._powermeter_logic.trace_length / self._powermeter_logic.sampling_frequency
         )
 
         #####################
         # Setting default parameters
-        self._mw.count_length_SpinBox.setValue(self._counting_logic.get_count_length())
-        self._mw.count_freq_SpinBox.setValue(self._counting_logic.get_count_frequency())
-        self._mw.oversampling_SpinBox.setValue(self._counting_logic.get_counting_samples())
+        self._mw.count_length_SpinBox.setValue(self._powermeter_logic.trace_length)
+        self._mw.sampling_freq_SpinBox.setValue(self._powermeter_logic.sampling_frequency)
+        #TODO wavelength
 
         #####################
         # Connecting user interactions
-        self._mw.start_counter_Action.triggered.connect(self.start_clicked)
+        self._mw.start_power_Action.triggered.connect(self.start_clicked)
         self._mw.record_counts_Action.triggered.connect(self.save_clicked)
 
         self._mw.count_length_SpinBox.valueChanged.connect(self.count_length_changed)
-        self._mw.count_freq_SpinBox.valueChanged.connect(self.count_frequency_changed)
-        self._mw.oversampling_SpinBox.valueChanged.connect(self.oversampling_changed)
+        self._mw.sampling_freq_SpinBox.valueChanged.connect(self.count_frequency_changed)
 
         # Connect the default view action
         self._mw.restore_default_view_Action.triggered.connect(self.restore_default_view)
 
         #####################
         # starting the physical measurement
-        self.sigStartCounter.connect(self._counting_logic.startCount)
-        self.sigStopCounter.connect(self._counting_logic.stopCount)
+        self.sigStartCounter.connect(self._powermeter_logic.start_trace)
+        self.sigStopCounter.connect(self._powermeter_logic.stopTrace)
 
         ##################
         # Handling signals from the logic
 
-        self._counting_logic.sigCounterUpdated.connect(self.updateData)
+        self._powermeter_logic.sigCounterUpdated.connect(self.updateData)
 
-        # ToDo:
-        # self._counting_logic.sigCountContinuousNext.connect()
-        # self._counting_logic.sigCountGatedNext.connect()
-        # self._counting_logic.sigCountFiniteGatedNext.connect()
-        # self._counting_logic.sigGatedCounterFinished.connect()
-        # self._counting_logic.sigGatedCounterContinue.connect()
+        # TODO:
+        # self._powermeter_logic.sigCountContinuousNext.connect()
+        # self._powermeter_logic.sigCountGatedNext.connect()
+        # self._powermeter_logic.sigCountFiniteGatedNext.connect()
+        # self._powermeter_logic.sigGatedCounterFinished.connect()
+        # self._powermeter_logic.sigGatedCounterContinue.connect()
 
-        self._counting_logic.sigCountingSamplesChanged.connect(self.update_oversampling_SpinBox)
-        self._counting_logic.sigCountLengthChanged.connect(self.update_count_length_SpinBox)
-        self._counting_logic.sigCountFrequencyChanged.connect(self.update_count_freq_SpinBox)
-        self._counting_logic.sigSavingStatusChanged.connect(self.update_saving_Action)
-        self._counting_logic.sigCountingModeChanged.connect(self.update_counting_mode_ComboBox)
-        self._counting_logic.sigCountStatusChanged.connect(self.update_count_status_Action)
+        self._powermeter_logic.sigCountLengthChanged.connect(self.update_count_length_SpinBox)
+        self._powermeter_logic.sigCountFrequencyChanged.connect(self.update_sampling_freq_SpinBox)
+        self._powermeter_logic.sigSavingStatusChanged.connect(self.update_saving_Action)
+        self._powermeter_logic.sigCountStatusChanged.connect(self.update_count_status_Action)
 
         return 0
 
@@ -172,21 +161,20 @@ class CounterGui(GUIBase):
         """ Deactivate the module
         """
         # disconnect signals
-        self._mw.start_counter_Action.triggered.disconnect()
+        self._mw.start_power_Action.triggered.disconnect()
         self._mw.record_counts_Action.triggered.disconnect()
         self._mw.count_length_SpinBox.valueChanged.disconnect()
-        self._mw.count_freq_SpinBox.valueChanged.disconnect()
-        self._mw.oversampling_SpinBox.valueChanged.disconnect()
+        self._mw.sampling_freq_SpinBox.valueChanged.disconnect()
         self._mw.restore_default_view_Action.triggered.disconnect()
         self.sigStartCounter.disconnect()
         self.sigStopCounter.disconnect()
-        self._counting_logic.sigCounterUpdated.disconnect()
-        self._counting_logic.sigCountingSamplesChanged.disconnect()
-        self._counting_logic.sigCountLengthChanged.disconnect()
-        self._counting_logic.sigCountFrequencyChanged.disconnect()
-        self._counting_logic.sigSavingStatusChanged.disconnect()
-        self._counting_logic.sigCountingModeChanged.disconnect()
-        self._counting_logic.sigCountStatusChanged.disconnect()
+        self._powermeter_logic.sigCounterUpdated.disconnect()
+        self._powermeter_logic.sigCountingSamplesChanged.disconnect()
+        self._powermeter_logic.sigCountLengthChanged.disconnect()
+        self._powermeter_logic.sigCountFrequencyChanged.disconnect()
+        self._powermeter_logic.sigSavingStatusChanged.disconnect()
+        self._powermeter_logic.sigCountingModeChanged.disconnect()
+        self._powermeter_logic.sigCountStatusChanged.disconnect()
 
         self._mw.close()
         return
@@ -195,62 +183,58 @@ class CounterGui(GUIBase):
         """ The function that grabs the data and sends it to the plot.
         """
 
-        if self._counting_logic.getState() == 'locked':
-            self._mw.count_value_Label.setText(
-                '{0:,.0f}'.format(self._counting_logic.countdata_smoothed[0, -1]))
+        if self._powermeter_logic.module_state() == 'locked':
+            self._mw.power_value_Label.setText(
+                '{0:,.0f}'.format(self._powermeter_logic.powerdata_smoothed[-1]))
 
             x_vals = (
-                np.arange(0, self._counting_logic.get_count_length())
-                / self._counting_logic.get_count_frequency())
+                np.arange(0, self._powermeter_logic.trace_length)
+                / self._powermeter_logic.sampling_frequency)
 
-            for i, ch in enumerate(self._counting_logic.get_channels()):
-                self.curves[2 * i].setData(y=self._counting_logic.countdata[i], x=x_vals)
-                self.curves[2 * i + 1].setData(y=self._counting_logic.countdata_smoothed[i],
-                                               x=x_vals
-                                               )
+            
+            self.curves[0].setData(y=self._powermeter_logic.powerdata, x=x_vals)
+            self.curves[1].setData(y=self._powermeter_logic.powerdata_smoothed,
+                                   x=x_vals
+                                  )
 
-        if self._counting_logic.get_saving_state():
+        if self._powermeter_logic.get_saving_state():
             self._mw.record_counts_Action.setText('Save')
-            self._mw.count_freq_SpinBox.setEnabled(False)
-            self._mw.oversampling_SpinBox.setEnabled(False)
+            self._mw.sampling_freq_SpinBox.setEnabled(False)
         else:
             self._mw.record_counts_Action.setText('Start Saving Data')
-            self._mw.count_freq_SpinBox.setEnabled(True)
-            self._mw.oversampling_SpinBox.setEnabled(True)
+            self._mw.sampling_freq_SpinBox.setEnabled(True)
 
-        if self._counting_logic.getState() == 'locked':
-            self._mw.start_counter_Action.setText('Stop counter')
-            self._mw.start_counter_Action.setChecked(True)
+        if self._powermeter_logic.module_state() == 'locked':
+            self._mw.start_power_Action.setText('Stop powermeter')
+            self._mw.start_power_Action.setChecked(True)
         else:
-            self._mw.start_counter_Action.setText('Start counter')
-            self._mw.start_counter_Action.setChecked(False)
+            self._mw.start_power_Action.setText('Start powermeter')
+            self._mw.start_power_Action.setChecked(False)
         return 0
 
     def start_clicked(self):
-        """ Handling the Start button to stop and restart the counter.
+        """ Handling the Start button to stop and restart the powermeter.
         """
-        if self._counting_logic.getState() == 'locked':
-            self._mw.start_counter_Action.setText('Start counter')
+        if self._powermeter_logic.module_state() == 'locked':
+            self._mw.start_power_Action.setText('Start powermeter')
             self.sigStopCounter.emit()
         else:
-            self._mw.start_counter_Action.setText('Stop counter')
+            self._mw.start_power_Action.setText('Stop powermeter')
             self.sigStartCounter.emit()
-        return self._counting_logic.getState()
+        return self._powermeter_logic.module_state()
 
     def save_clicked(self):
         """ Handling the save button to save the data into a file.
         """
-        if self._counting_logic.get_saving_state():
+        if self._powermeter_logic.get_saving_state():
             self._mw.record_counts_Action.setText('Start Saving Data')
-            self._mw.count_freq_SpinBox.setEnabled(True)
-            self._mw.oversampling_SpinBox.setEnabled(True)
-            self._counting_logic.save_data()
+            self._mw.sampling_freq_SpinBox.setEnabled(True)
+            self._powermeter_logic.save_data()
         else:
             self._mw.record_counts_Action.setText('Save')
-            self._mw.count_freq_SpinBox.setEnabled(False)
-            self._mw.oversampling_SpinBox.setEnabled(False)
-            self._counting_logic.start_saving()
-        return self._counting_logic.get_saving_state()
+            self._mw.sampling_freq_SpinBox.setEnabled(False)
+            self._powermeter_logic.start_saving()
+        return self._powermeter_logic.get_saving_state()
 
     ########
     # Input parameters changed via GUI
@@ -258,32 +242,22 @@ class CounterGui(GUIBase):
     def count_length_changed(self):
         """ Handling the change of the count_length and sending it to the measurement.
         """
-        self._counting_logic.set_count_length(self._mw.count_length_SpinBox.value())
+        self._powermeter_logic.set_count_length(int(self._mw.count_length_SpinBox.value()))  # TODO: fix properly
         self._pw.setXRange(
             0,
-            self._counting_logic.get_count_length() / self._counting_logic.get_count_frequency()
+            self._powermeter_logic.trace_length / self._powermeter_logic.sampling_frequency
         )
         return self._mw.count_length_SpinBox.value()
 
     def count_frequency_changed(self):
         """ Handling the change of the count_frequency and sending it to the measurement.
         """
-        self._counting_logic.set_count_frequency(self._mw.count_freq_SpinBox.value())
+        self._powermeter_logic.set_count_frequency(self._mw.sampling_freq_SpinBox.value())
         self._pw.setXRange(
             0,
-            self._counting_logic.get_count_length() / self._counting_logic.get_count_frequency()
+            self._powermeter_logic.trace_length / self._powermeter_logic.sampling_frequency
         )
-        return self._mw.count_freq_SpinBox.value()
-
-    def oversampling_changed(self):
-        """ Handling the change of the oversampling and sending it to the measurement.
-        """
-        self._counting_logic.set_counting_samples(samples=self._mw.oversampling_SpinBox.value())
-        self._pw.setXRange(
-            0,
-            self._counting_logic.get_count_length() / self._counting_logic.get_count_frequency()
-        )
-        return self._mw.oversampling_SpinBox.value()
+        return self._mw.sampling_freq_SpinBox.value()
 
     ########
     # Restore default values
@@ -292,20 +266,20 @@ class CounterGui(GUIBase):
         """ Restore the arrangement of DockWidgets to the default
         """
         # Show any hidden dock widgets
-        self._mw.counter_trace_DockWidget.show()
+        self._mw.power_trace_DockWidget.show()
         # self._mw.slow_counter_control_DockWidget.show()
-        self._mw.slow_counter_parameters_DockWidget.show()
+        self._mw.powermeter_parameters_DockWidget.show()
 
         # re-dock any floating dock widgets
-        self._mw.counter_trace_DockWidget.setFloating(False)
-        self._mw.slow_counter_parameters_DockWidget.setFloating(False)
+        self._mw.power_trace_DockWidget.setFloating(False)
+        self._mw.powermeter_parameters_DockWidget.setFloating(False)
 
         # Arrange docks widgets
         self._mw.addDockWidget(QtCore.Qt.DockWidgetArea(1),
-                               self._mw.counter_trace_DockWidget
+                               self._mw.power_trace_DockWidget
                                )
         self._mw.addDockWidget(QtCore.Qt.DockWidgetArea(8),
-                               self._mw.slow_counter_parameters_DockWidget
+                               self._mw.powermeter_parameters_DockWidget
                                )
 
         # Set the toolbar to its initial top area
@@ -316,27 +290,16 @@ class CounterGui(GUIBase):
     ##########
     # Handle signals from logic
 
-    def update_oversampling_SpinBox(self, oversampling):
-        """Function to ensure that the GUI displays the current value of the logic
-
-        @param int oversampling: adjusted oversampling to update in the GUI in bins
-        @return int oversampling: see above
-        """
-        self._mw.oversampling_SpinBox.blockSignals(True)
-        self._mw.oversampling_SpinBox.setValue(oversampling)
-        self._mw.oversampling_SpinBox.blockSignals(False)
-        return oversampling
-
-    def update_count_freq_SpinBox(self, count_freq):
+    def update_sampling_freq_SpinBox(self, count_freq):
         """Function to ensure that the GUI displays the current value of the logic
 
         @param float count_freq: adjusted count frequency in Hz
         @return float count_freq: see above
         """
-        self._mw.count_freq_SpinBox.blockSignals(True)
-        self._mw.count_freq_SpinBox.setValue(count_freq)
-        self._pw.setXRange(0, self._counting_logic.get_count_length() / count_freq)
-        self._mw.count_freq_SpinBox.blockSignals(False)
+        self._mw.sampling_freq_SpinBox.blockSignals(True)
+        self._mw.sampling_freq_SpinBox.setValue(count_freq)
+        self._pw.setXRange(0, self._powermeter_logic.trace_length / count_freq)
+        self._mw.sampling_freq_SpinBox.blockSignals(False)
         return count_freq
 
     def update_count_length_SpinBox(self, count_length):
@@ -347,7 +310,7 @@ class CounterGui(GUIBase):
         """
         self._mw.count_length_SpinBox.blockSignals(True)
         self._mw.count_length_SpinBox.setValue(count_length)
-        self._pw.setXRange(0, count_length / self._counting_logic.get_count_frequency())
+        self._pw.setXRange(0, count_length / self._powermeter_logic.sampling_frequency)
         self._mw.count_length_SpinBox.blockSignals(False)
         return count_length
 
@@ -359,12 +322,10 @@ class CounterGui(GUIBase):
         """
         if start:
             self._mw.record_counts_Action.setText('Save')
-            self._mw.count_freq_SpinBox.setEnabled(False)
-            self._mw.oversampling_SpinBox.setEnabled(False)
+            self._mw.sampling_freq_SpinBox.setEnabled(False)
         else:
             self._mw.record_counts_Action.setText('Start Saving Data')
-            self._mw.count_freq_SpinBox.setEnabled(True)
-            self._mw.oversampling_SpinBox.setEnabled(True)
+            self._mw.sampling_freq_SpinBox.setEnabled(True)
         return start
 
     def update_count_status_Action(self, running):
@@ -374,9 +335,9 @@ class CounterGui(GUIBase):
         @return bool running: see above
         """
         if running:
-            self._mw.start_counter_Action.setText('Stop counter')
+            self._mw.start_power_Action.setText('Stop powermeter')
         else:
-            self._mw.start_counter_Action.setText('Start counter')
+            self._mw.start_power_Action.setText('Start powermeter')
         return running
 
     # TODO:

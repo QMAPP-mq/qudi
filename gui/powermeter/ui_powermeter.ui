@@ -20,7 +20,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>30</height>
+     <height>19</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuView">
@@ -44,7 +44,7 @@
    <addaction name="menuView"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <widget class="QDockWidget" name="counter_trace_DockWidget">
+  <widget class="QDockWidget" name="power_trace_DockWidget">
    <property name="sizePolicy">
     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
      <horstretch>1</horstretch>
@@ -52,7 +52,7 @@
     </sizepolicy>
    </property>
    <property name="windowTitle">
-    <string>Slow Counter</string>
+    <string>Powermeter</string>
    </property>
    <attribute name="dockWidgetArea">
     <number>4</number>
@@ -60,7 +60,7 @@
    <widget class="QWidget" name="dockWidgetContents">
     <layout class="QVBoxLayout" name="verticalLayout">
      <item>
-      <widget class="QLabel" name="count_value_Label">
+      <widget class="QLabel" name="power_value_Label">
        <property name="font">
         <font>
          <pointsize>60</pointsize>
@@ -77,12 +77,12 @@
       </widget>
      </item>
      <item>
-      <widget class="PlotWidget" name="counter_trace_PlotWidget"/>
+      <widget class="PlotWidget" name="power_trace_PlotWidget"/>
      </item>
     </layout>
    </widget>
   </widget>
-  <widget class="QDockWidget" name="slow_counter_parameters_DockWidget">
+  <widget class="QDockWidget" name="powermeter_parameters_DockWidget">
    <property name="maximumSize">
     <size>
      <width>524287</width>
@@ -90,7 +90,7 @@
     </size>
    </property>
    <property name="windowTitle">
-    <string>Slow counter control</string>
+    <string>Powermeter control</string>
    </property>
    <attribute name="dockWidgetArea">
     <number>8</number>
@@ -123,12 +123,12 @@
      <item>
       <widget class="QLabel" name="label_2">
        <property name="text">
-        <string>Count frequency (Hz):</string>
+        <string>Sampling frequency (Hz):</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QSpinBox" name="count_freq_SpinBox">
+      <widget class="QSpinBox" name="sampling_freq_SpinBox">
        <property name="minimum">
         <number>1</number>
        </property>
@@ -151,12 +151,12 @@ Use for extremely fast counting, since all the raw data is saved.
 Timestamps in oversampling interval are all equal to the averaging time.</string>
        </property>
        <property name="text">
-        <string>Oversampling (#):</string>
+        <string>Wavelength (nm):</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QSpinBox" name="oversampling_SpinBox">
+      <widget class="QSpinBox" name="wavelength_SpinBox">
        <property name="toolTip">
         <string>If bigger than 1, the number of samples is averaged over the given number and then displayed. 
 Use for extremely fast counting, since all the raw data is saved. 
@@ -189,10 +189,10 @@ Timestamps in oversampling interval are all equal to the averaging time.</string
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="start_counter_Action"/>
+   <addaction name="start_power_Action"/>
    <addaction name="record_counts_Action"/>
   </widget>
-  <action name="start_counter_Action">
+  <action name="start_power_Action">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -201,10 +201,10 @@ Timestamps in oversampling interval are all equal to the averaging time.</string
      <normaloff>../../artwork/icons/qudiTheme/22x22/start-counter.png</normaloff>../../artwork/icons/qudiTheme/22x22/start-counter.png</iconset>
    </property>
    <property name="text">
-    <string>Start counter</string>
+    <string>Start powermeter</string>
    </property>
    <property name="toolTip">
-    <string>Start the counter</string>
+    <string>Start the powermeter</string>
    </property>
   </action>
   <action name="record_counts_Action">
@@ -279,7 +279,7 @@ Timestamps in oversampling interval are all equal to the averaging time.</string
   <connection>
    <sender>slow_counter_view_Action</sender>
    <signal>triggered(bool)</signal>
-   <receiver>counter_trace_DockWidget</receiver>
+   <receiver>power_trace_DockWidget</receiver>
    <slot>setVisible(bool)</slot>
    <hints>
     <hint type="sourcelabel">
@@ -293,7 +293,7 @@ Timestamps in oversampling interval are all equal to the averaging time.</string
    </hints>
   </connection>
   <connection>
-   <sender>counter_trace_DockWidget</sender>
+   <sender>power_trace_DockWidget</sender>
    <signal>visibilityChanged(bool)</signal>
    <receiver>slow_counter_view_Action</receiver>
    <slot>setChecked(bool)</slot>
@@ -311,7 +311,7 @@ Timestamps in oversampling interval are all equal to the averaging time.</string
   <connection>
    <sender>slow_counter_parameters_view_Action</sender>
    <signal>triggered(bool)</signal>
-   <receiver>slow_counter_parameters_DockWidget</receiver>
+   <receiver>powermeter_parameters_DockWidget</receiver>
    <slot>setVisible(bool)</slot>
    <hints>
     <hint type="sourcelabel">
@@ -325,7 +325,7 @@ Timestamps in oversampling interval are all equal to the averaging time.</string
    </hints>
   </connection>
   <connection>
-   <sender>slow_counter_parameters_DockWidget</sender>
+   <sender>powermeter_parameters_DockWidget</sender>
    <signal>visibilityChanged(bool)</signal>
    <receiver>slow_counter_parameters_view_Action</receiver>
    <slot>setChecked(bool)</slot>
