@@ -75,10 +75,10 @@ class SpectrumLogic(GenericLogic):
         self.diff_spec_data_mod_off = np.array([])
         self.repetition_count = 0    # count loops for differential spectrum
 
-        self._spectrometer_device = self.get_connector('spectrometer')
-        self._odmr_logic = self.get_connector('odmrlogic1')
-        self._save_logic = self.get_connector('savelogic')
-        self._fit_logic = self.get_connector('fitlogic')
+        self._spectrometer_device = self.spectrometer()
+        self._odmr_logic = self.odmrlogic1()
+        self._save_logic = self.savelogic()
+        self._fit_logic = self.fitlogic()
 
         self.next_diff_loop_Signal.connect(self._loop_differential_spectrum)
 
