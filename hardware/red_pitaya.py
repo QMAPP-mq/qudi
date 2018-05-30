@@ -82,7 +82,9 @@ class RedPitaya(Base, GenScannerInterface):
         self._scanner_frequency = self._scanner_frequency[0]
 
         # handle all the parameters given by the config
+
         self._current_position = np.zeros(len(self._scanner_ao_channels))
+        self.set_position(x=self._scanner_position_ranges[0][0], y=self._scanner_position_ranges[1][0])
 
         if len(self._scanner_ao_channels) != len(self._scanner_voltage_ranges):
             self.log.error(
@@ -215,6 +217,7 @@ class RedPitaya(Base, GenScannerInterface):
             self.log.error('Given line_path list is not array type.')
             return np.array([[-1.]])
         print(line_path)#debug testing
+
         if self.x_path_volt[0] != line_path[0][0] or self.x_path_volt[len(self.x_path_volt)-1] != line_path[0][len(line_path)-1]:
             self._set_up_line(line_path=line_path)
             self.log.info('New line required') #debug testing
@@ -264,8 +267,10 @@ class RedPitaya(Base, GenScannerInterface):
         #if the scan path varies in y, set the y position to the final value, don't touch x
         #dirty hack to prevent delays from writing positions to RP
         print('got 2') #debug
-        if line_path[1][0] != line_path[1][len(line_path[1])-1]:
-            self.set_position(y=line_path[1][len(line_path[1])-1])
+        y_final = line_path[1][len(line_path[1])-1]
+        if line_path[1][0] != y_final:
+            self.set_position(y=y_final)
+            print('got set y pos') #debug
             return 0
         print('got 3') #debug
         self._is_x_line = 1
@@ -291,11 +296,12 @@ class RedPitaya(Base, GenScannerInterface):
                 #set source 1,2 waveform to our scan values
                 self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + self.x_line) 
                 print('got 6')#debug
-                self._red_pitaya_scanline_burstmode()
+                self._red_pitaya_scanline_burstmode(y_final)
 
                 self._scan_state = '_scanner'
             else:
                 self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + self.x_line) 
+            time.sleep(20) #bug test
         except:        
             self.log.exception('Could not set up scanline on RP device on '+ self._ip)
             return -1
@@ -351,16 +357,20 @@ class RedPitaya(Base, GenScannerInterface):
         #set the scanner frequencies from the config file
         self.rp_s.tx_txt('SOUR1:FREQ:FIX ' + str(self._scanner_frequency))
 
-    def _red_pitaya_scanline_burstmode(self):
+    def _red_pitaya_scanline_burstmode(self, y_pos):
         #set source burst repititions to 1
         print('got 7')#debug
         self.rp_s.tx_txt('SOUR1:BURS:NCYC 1')
-
-        #enable source 1,2 to be triggered (may cause a trigger)
-        self.rp_s.tx_txt('OUTPUT1:STATE ON')
+        self.rp_s.tx_txt('SOUR2:BURS:NCYC 1')
 
         #set trigger to be external
         self.rp_s.tx_txt('SOUR1:TRIG:SOUR EXT_PE')
+
+        #enable source 1,2 to be triggered (may cause a trigger)
+        self.rp_s.tx_txt('OUTPUT1:STATE ON')
+        self.rp_s.tx_txt('OUTPUT2:STATE ON')
+
+        self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + str(y_pos))
 
         #set digital input/output of trigger channel to output
         self.rp_s.tx_txt('DIG:PIN:DIR OUT,'+ self._trigger_out_channel)
