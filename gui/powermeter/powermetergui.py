@@ -265,6 +265,7 @@ class PowermeterGui(GUIBase):
         """ Handling the change of the wavelength and sending it to the measurement.
         """
         self._powermeter_logic.wavelength = self._mw.wavelength_SpinBox.value()
+        self._set_wavelength_representor(self._powermeter_logic.wavelength)
         # self._pw.setXRange(
         #     0,
         #     self._powermeter_logic.trace_length / self._powermeter_logic.sampling_frequency
