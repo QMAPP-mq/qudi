@@ -171,7 +171,11 @@ class RedPitaya(Base, GenScannerInterface):
             self._current_position[1] = np.float(y)
 
         try:
-            if self._scan_state != '_set_pos':
+            if self._scan_state = 'scanner' and x is None:
+                self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_volt)
+                self.rp_s.tx_txt('OUTPUT2:STATE ON')
+
+            elif self._scan_state != '_set_pos':
 
                 self._red_pitaya_setpos(x=x_volt, y=y_volt)            
                 self._scan_state = '_set_pos'
@@ -296,7 +300,7 @@ class RedPitaya(Base, GenScannerInterface):
                 #set source 1,2 waveform to our scan values
                 self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + self.x_line) 
                 print('got 6')#debug
-                self._red_pitaya_scanline_burstmode(y_final)
+                self._red_pitaya_scanline_burstmode()
 
                 self._scan_state = '_scanner'
             else:
@@ -357,20 +361,16 @@ class RedPitaya(Base, GenScannerInterface):
         #set the scanner frequencies from the config file
         self.rp_s.tx_txt('SOUR1:FREQ:FIX ' + str(self._scanner_frequency))
 
-    def _red_pitaya_scanline_burstmode(self, y_pos):
+    def _red_pitaya_scanline_burstmode(self):
         #set source burst repititions to 1
         print('got 7')#debug
         self.rp_s.tx_txt('SOUR1:BURS:NCYC 1')
-        self.rp_s.tx_txt('SOUR2:BURS:NCYC 1')
 
         #set trigger to be external
         self.rp_s.tx_txt('SOUR1:TRIG:SOUR EXT_PE')
 
         #enable source 1,2 to be triggered (may cause a trigger)
         self.rp_s.tx_txt('OUTPUT1:STATE ON')
-        self.rp_s.tx_txt('OUTPUT2:STATE ON')
-
-        self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + str(y_pos))
 
         #set digital input/output of trigger channel to output
         self.rp_s.tx_txt('DIG:PIN:DIR OUT,'+ self._trigger_out_channel)
