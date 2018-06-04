@@ -439,11 +439,10 @@ class PowermeterLogic(GenericLogic):
 
                 # read the current power value
                 self.rawdata[0] = self._powermeter_device.get_power(self._trace_samples)
-                if self.rawdata[0] < 0:
-                    self.log.error('The trace went wrong, killing the powermeter.')
-                    self.stopRequested = True
-                else:
-                    self._process_data()
+                # if self.rawdata[0] < 0:
+                    # self.log.warning('The trace had a negative power reading.')
+                
+                self._process_data()
 
             # wait the sampling period
             time.sleep(1 / self._sampling_frequency)

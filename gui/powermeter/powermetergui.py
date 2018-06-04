@@ -121,7 +121,7 @@ class PowermeterGui(GUIBase):
 
         self._mw.trace_length_SpinBox.valueChanged.connect(self.trace_length_changed)
         self._mw.sampling_freq_SpinBox.valueChanged.connect(self.sampling_frequency_changed)
-        self._mw.wavelength_SpinBox.valueChanged.connect(self.wavelength_changed)
+        self._mw.wavelength_SpinBox.editingFinished.connect(self.wavelength_changed)
 
         # Connect the default view action
         self._mw.restore_default_view_Action.triggered.connect(self.restore_default_view)
@@ -181,13 +181,36 @@ class PowermeterGui(GUIBase):
         self._mw.close()
         return
 
+    def generate_power_unit(self, powerval):
+        # Scale power values using SI prefix
+        prefix = ['p', 'n', 'u','m', '', 'k', 'M', 'G']
+        prefix_index = 4
+        if -1e-12 <= powerval <= 1e-12:
+            prefix_index = 0
+            powerval = powerval * 1e12
+        elif powerval >= 1e3:
+            while powerval >= 1000:
+                powerval = powerval / 1000
+                prefix_index = prefix_index + 1
+        else:
+            while abs(powerval) < 1:
+                powerval = powerval * 1000
+                prefix_index = prefix_index - 1
+
+        power_prefix = prefix[prefix_index]
+
+        return powerval, power_prefix + 'W'
+
     def updateData(self):
         """ The function that grabs the data and sends it to the plot.
         """
 
         if self._powermeter_logic.module_state() == 'locked':
+            powerval = self._powermeter_logic.powerdata_smoothed[-1]
+            powerval_scaled, powerunit = self.generate_power_unit(powerval)
+
             self._mw.power_value_Label.setText(
-                '{0:,.0f}'.format(self._powermeter_logic.powerdata_smoothed[-1]))
+                '{0:,.3f} {1}'.format(powerval_scaled, powerunit))
 
             x_vals = (
                 np.arange(0, self._powermeter_logic.trace_length)
@@ -264,7 +287,7 @@ class PowermeterGui(GUIBase):
     def wavelength_changed(self):
         """ Handling the change of the wavelength and sending it to the measurement.
         """
-        self._powermeter_logic.wavelength = self._mw.wavelength_SpinBox.value()
+        self._powermeter_logic.wavelength = self._mw.wavelength_SpinBox.value() * 1e-9  # GUI is in nm
         self._set_wavelength_representor(self._powermeter_logic.wavelength)
         # self._pw.setXRange(
         #     0,
@@ -381,15 +404,11 @@ class PowermeterGui(GUIBase):
             @param float wavelength : in meters
         """
 
-        self._mw.wavelength_representor.setAutoFillBackground(True)
-
-        palette = self._mw.wavelength_representor.palette()
-
         r, g, b = self._wavelength_to_rgb(wavelength)
 
-        palette.setColor(self._mw.wavelength_representor.backgroundRole(), QtGui.QColor(r, g, b))
+        style_string = "background-color:rgb({}, {}, {})".format(r, g, b)
 
-        self._mw.wavelength_representor.setPalette(palette)
+        self._mw.statusbar.setStyleSheet(style_string)
 
     def _wavelength_to_rgb(self, wavelength, gamma=0.8):
 

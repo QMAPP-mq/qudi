@@ -76,6 +76,10 @@ class ThorlabsPM(Base, PowermeterInterface):
 
         self._connect()
         self.log.info('Connected to dummy powermeter device')
+
+        self.mean_signal = 10
+        self.noise_amplitude = 2
+        
         return 0
 
     def _connect(self):
@@ -149,9 +153,8 @@ class ThorlabsPM(Base, PowermeterInterface):
             self.ThorlabsPM.system.beeper.immediate() # Issue an audible signal (Thorlabs PM100A not very loud)
             self.log.warning('Power is above maximum detector threshold.')
         '''
-        mean_signal = 10
-        noise_amplitude = 2
-        return np.random.normal(mean_signal, noise_amplitude / 2)
+        
+        return np.random.normal(self.mean_signal, self.noise_amplitude / 2)
 
     def get_wavelength(self):
         """ Return the current wavelength setting of the powermeter.
