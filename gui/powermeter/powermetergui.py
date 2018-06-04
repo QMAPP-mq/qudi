@@ -112,7 +112,8 @@ class PowermeterGui(GUIBase):
         # Setting default parameters
         self._mw.trace_length_SpinBox.setValue(self._powermeter_logic.trace_length)
         self._mw.sampling_freq_SpinBox.setValue(self._powermeter_logic.sampling_frequency)
-        self._mw.wavelength_SpinBox.setValue(self._powermeter_logic.wavelength)
+        self._mw.wavelength_SpinBox.setValue(self._powermeter_logic.wavelength / 1e-9)
+        self._set_wavelength_representor(self._powermeter_logic.wavelength)
 
         #####################
         # Connecting user interactions
