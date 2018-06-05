@@ -25,7 +25,6 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 
 """
 
-from qtpy import QtCore
 from core.module import Base
 from interface.spectrometer_interface import SpectrometerInterface
 import numpy as np
@@ -42,9 +41,6 @@ import comtypes.gen.WINX32Lib as WinSpecLib
 class WinSpec32(Base, SpectrometerInterface):
     """ Hardware module for reading spectra from the WinSpec32 spectrometer software.
     """
-    _acquisition_done_Signal = QtCore.Signal(bool)
-    _start_acquisition_Signal = QtCore.Signal()
-    specdata_updated_Signal = QtCore.Signal(np.ndarray)
 
     def on_activate(self):
         """ Activate module.
@@ -53,9 +49,6 @@ class WinSpec32(Base, SpectrometerInterface):
         self.expt_is_running = WinSpecLib.EXP_RUNNING
         self.path = 'asdf'
         self.prefix = 'test'
-
-        self._start_acquisition_Signal.connect(self._do_acquisition)
-        self._acquisition_done_Signal.connect(self._return_specdata)
 
     def on_deactivate(self):
         """ Deactivate module.
@@ -76,14 +69,6 @@ class WinSpec32(Base, SpectrometerInterface):
         # Close all documents so we do not get any errors or prompts to save the currently opened spectrum in WinSpec32
         self.WinspecDocs.CloseAll()
 
-        # Initialise specdata array for return
-        self.specdata = np.empty((2, 0))
-
-        self._start_acquisition_Signal.emit()
-
-    def _do_acquisition(self):
-        """ This does the actual waiting for the ccd exposure time in a separate thread.
-        """
         if self.WinspecExpt.Start(self.WinspecDoc)[0]:
             # start the experiment
             # Wait for acquisition to finish (and check for errors continually)
@@ -96,25 +81,16 @@ class WinSpec32(Base, SpectrometerInterface):
             if self.status != 0:
                 print('Error running experiment.')
             
-            success = True
-        
-        else:
-            print("Could not initiate acquisition.")
-            success = False
-
-        self._acquisition_done_Signal.emit(success)
-
-    def _return_specdata(self, success):
-        """
-            Pass a pointer to Winspec so it can put the spectrum in a place in
-            memory where python will be able to find it.
-        """
-        if success:
+            
+            """
+                Pass a pointer to Winspec so it can put the spectrum in a place in
+                memory where python will be able to find it.
+            """
             datapointer = c_float()
             raw_spectrum = self.WinspecDoc.GetFrame(1, datapointer)
             spectrum = np.array(raw_spectrum).flatten()
-            self.specdata = np.empty((2, len(spectrum)))
-            self.specdata[1] = spectrum
+            specdata = np.empty((2, len(spectrum)))
+            specdata[1] = spectrum
             calibration = self.WinspecDoc.GetCalibration()
 
             if calibration.Order != 2:
@@ -129,9 +105,12 @@ class WinSpec32(Base, SpectrometerInterface):
                     calibration.PolyCoeffs(1),
                     calibration.PolyCoeffs(0)
                 ])
-            self.specdata[0] = np.polyval(p, range(1, 1+len(spectrum)))
-                  
-        self.specdata_updated_Signal.emit(self.specdata)
+            specdata[0] = np.polyval(p, range(1, 1+len(spectrum)))
+            return specdata
+
+        else:
+            print("Could not initiate acquisition.")
+            return {'wavelength': [0], 'intensity': [0]}
 
     def saveSpectrum(self, path, postfix = ''):
         """ Save spectrum from WinSpec32 software.

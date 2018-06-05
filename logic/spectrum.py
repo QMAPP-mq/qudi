@@ -82,8 +82,6 @@ class SpectrumLogic(GenericLogic):
 
         self.next_diff_loop_Signal.connect(self._loop_differential_spectrum)
 
-        self._spectrometer_device.specdata_updated_Signal.connect(self.accept_new_data)
-
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
         """
@@ -124,13 +122,7 @@ class SpectrumLogic(GenericLogic):
 
         self.module_state.lock()
 
-        netobtain(self._spectrometer_device.recordSpectrum())
-
-    def accept_new_data(self, specdata):
-
-        self.module_state.unlock()
-
-        self.spectrum_data = specdata
+        self.spectrum_data = netobtain(self._spectrometer_device.recordSpectrum())
 
         # Clearing the differential spectra data arrays so that they do not get
         # saved with this single spectrum.
