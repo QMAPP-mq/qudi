@@ -171,7 +171,7 @@ class RedPitaya(Base, GenScannerInterface):
             self._current_position[1] = np.float(y)
 
         try:
-            if self._scan_state = 'scanner' and x is None:
+            if self._scan_state == 'scanner' and x is None:
                 self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_volt)
                 self.rp_s.tx_txt('OUTPUT2:STATE ON')
 
@@ -230,8 +230,12 @@ class RedPitaya(Base, GenScannerInterface):
         try:
             print('got 8')#debug
             #turn digital output on
-            self.rp_s.tx_txt('DIG:PIN '+ self._trigger_out_channel+', 1')  
-            time.sleep(0.01)
+            self.rp_s.tx_txt('DIG:PIN '+ self._trigger_out_channel+', 1')
+
+            #enable source 1 to be triggered 
+            self.rp_s.tx_txt('OUTPUT1:STATE ON')
+            time.sleep(1/self._scanner_frequency)
+
             #turn digital output off
             self.rp_s.tx_txt('DIG:PIN '+ self._trigger_out_channel+', 0')    
 
@@ -305,7 +309,7 @@ class RedPitaya(Base, GenScannerInterface):
                 self._scan_state = '_scanner'
             else:
                 self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + self.x_line) 
-            time.sleep(20) #bug test
+            #time.sleep(20) #bug test
         except:        
             self.log.exception('Could not set up scanline on RP device on '+ self._ip)
             return -1
@@ -368,9 +372,6 @@ class RedPitaya(Base, GenScannerInterface):
 
         #set trigger to be external
         self.rp_s.tx_txt('SOUR1:TRIG:SOUR EXT_PE')
-
-        #enable source 1,2 to be triggered (may cause a trigger)
-        self.rp_s.tx_txt('OUTPUT1:STATE ON')
 
         #set digital input/output of trigger channel to output
         self.rp_s.tx_txt('DIG:PIN:DIR OUT,'+ self._trigger_out_channel)
