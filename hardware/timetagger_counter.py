@@ -189,3 +189,7 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
         @return int: error code (0:OK, -1:error)
         """
         return 0
+
+####################################################################################################
+
+    # statify the triggered counter interface here
