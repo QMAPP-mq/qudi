@@ -29,7 +29,7 @@ from core.module import Base, ConfigOption
 from interface.gen_scanner_interface import GenScannerInterface
 
 
-class RedPitaya(Base, GenScannerInterface):
+class RedPitaya(Base, GenScannerInterface, TriggerInterface):
     """ unstable: Matt Joliffe
 
     A Red Pitaya device that can do lots of things.
@@ -230,15 +230,7 @@ class RedPitaya(Base, GenScannerInterface):
             self.log.info('No new line required') #debug testing
         try:
             print('got 8')#debug
-            #turn digital output on
-            self.rp_s.tx_txt('DIG:PIN '+ self._trigger_out_channel+', 1')
-
-            #enable source 1 to be triggered 
-            self.rp_s.tx_txt('OUTPUT1:STATE ON')
-            time.sleep(1/self._scanner_frequency)
-
-            #turn digital output off
-            self.rp_s.tx_txt('DIG:PIN '+ self._trigger_out_channel+', 0')    
+            self.fire_trigger    
 
             # update the scanner position instance variable
             self._current_position[0] = np.array(line_path[0][len(line_path)-1])
