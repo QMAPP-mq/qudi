@@ -30,7 +30,7 @@ class TriggeredCounterInterface(metaclass=InterfaceMetaclass):
     _modclass = 'interface'
 
     @abc.abstractmethod
-    def set_up_histogram(self, counting_channel=None, trigger_channel=None, n_bins=1, binwidth=1):
+    def set_up_histogram(self, counting_channel=None, trigger_channel=None, binwidth=1, n_bins=1):
         """ Configure the triggered counter
 
         @param int counting_channel: this is the physical channel of the counter
