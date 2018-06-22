@@ -80,6 +80,7 @@ class RedPitaya(Base, GenScannerInterface):
         self.x_path_volt = [0,0]
         self._scan_state = None
         self._scanner_frequency = self._scanner_frequency[0]
+        self._pulse_duration = 1/self._scanner_frequency
 
         # handle all the parameters given by the config
 
@@ -403,3 +404,29 @@ class RedPitaya(Base, GenScannerInterface):
         
 
     # ================ End ConfocalScannerInterface Commands ===================
+
+    # ================ TriggerInterface Commands ===============================
+
+    def set_pulse_amplitude(self, amplitude):
+        self.log.info('Can not set pulse amplitude on Red Pitaya. Amplitude is 3.3 V')
+
+    def set_pulse_duration(self, duration):
+        self._pulse_duration = duration
+        return 0 
+
+    def fire_trigger(self):
+
+        #set digital input/output of trigger channel to output
+        self.rp_s.tx_txt('DIG:PIN:DIR OUT,'+ self._trigger_out_channel)
+
+        #turn digital output on
+        self.rp_s.tx_txt('DIG:PIN '+ self._trigger_out_channel+', 1')
+
+        #enable source 1 to be triggered(only used in scanning)
+        self.rp_s.tx_txt('OUTPUT1:STATE ON')
+        time.sleep(self._pulse_duration)
+
+        #turn digital output off
+        self.rp_s.tx_txt('DIG:PIN '+ self._trigger_out_channel+', 0')
+        return 0
+    # ================ End TriggerInterface Commands ===================
