@@ -30,16 +30,26 @@ class TriggerInterface(metaclass=InterfaceMetaclass):
     _modclass = 'interface'
 
     @abc.abstractmethod
-    def set_pulse_amplitude(self, amplitude, duration):
+    def set_pulse_amplitude(self, amplitude):
+        """ 
+        Set the amplitude of the trigger.
+
+        @param float amplitude: amplitude in Volts
+
+        """
         pass
     
-    def set_pulse_duration(self, amplitude, duration):
+    def set_pulse_duration(self, duration):
+        """
+        Set the pulse duration.
+        @param float duration: duration in seconds
+        """
         pass
 
     @abc.abstractmethod
-    def fire_trigger(self, channel):
-        """ Return a list of channel names.
+    def fire_trigger(self):
+        """ 
+        Fire the trigger.
 
-        @return list(str): channels recorded during ODMR measurement
         """
         pass
