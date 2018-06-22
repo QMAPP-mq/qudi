@@ -190,6 +190,48 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
         """
         return 0
 
-####################################################################################################
+### Triggered Counter Methods #################################################
 
     # statify the triggered counter interface here
+
+    def set_up_histogram(self, counting_channel=None, trigger_channel=None, binwidth=1, n_bins=1):
+        """ Configure the triggered counter
+
+        @param int counting_channel: this is the physical channel of the counter
+        @param int trigger_channel: this is the physical channel of the trigger
+        @param int n_bins: number of bins in each histogram
+        @param int binwidth: bin width in seconds
+
+        @return int: error code (0:OK, -1:error)
+        """
+        tagger = tt.createTimeTagger()
+        td_measurement = tt.TimeDifferences(tagger,
+                                            click channel = counting_channel, # TODO fix
+                                            start channel = trigger_channel, # TODO fix
+                                            binwidth = binwidth,
+                                            n_bins = n_bins,
+                                            n_histograms = 1
+                                            )
+
+    def get_counts(self):
+        """ Return the count histogram across the bins.
+
+        The histogram will continue to be filled.
+
+        @return histogram: the count histrogram
+        """
+        return td_measurement.getData()
+
+    def reset_histrogram(self):
+        """ Reset the count histogram.
+
+        @return int: error code (0:OK, -1:error)
+        """
+        self.set_up_histogram()
+
+    def get_channels(self):
+        """ Return a list of channel names.
+
+        @return list(str): counting and trigger channels
+        """
+        return ['counting channel', 'trigger channel']
