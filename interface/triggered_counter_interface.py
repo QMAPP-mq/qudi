@@ -31,16 +31,12 @@ class TriggeredCounterInterface(metaclass=InterfaceMetaclass):
 
     @abc.abstractmethod
     def set_up_histogram(self, counting_channel=None, trigger_channel=None, n_bins=1, binwidth=1):
-        """ Configures the actual counter with a given clock.
+        """ Configure the triggered counter
 
-        @param str counter_channel: if defined, this is the physical channel of
-                                    the counter
-        @param str photon_source: if defined, this is the physical channel where
-                                  the photons are to count from
-        @param str clock_channel: if defined, this specifies the clock for the
-                                  counter
-        @param str odmr_trigger_channel: if defined, this specifies the trigger
-                                         output for the microwave
+        @param int counting_channel: this is the physical channel of the counter
+        @param int trigger_channel: this is the physical channel of the trigger
+        @param int n_bins: number of bins in each histogram
+        @param int binwidth: bin width in seconds
 
         @return int: error code (0:OK, -1:error)
         """
@@ -48,26 +44,26 @@ class TriggeredCounterInterface(metaclass=InterfaceMetaclass):
 
     @abc.abstractmethod
     def get_counts(self):
-        """ Sweeps the microwave and returns the counts on that sweep.
+        """ Return the count histogram across the bins.
 
-        @param int length: length of microwave sweep in pixel
+        The histogram will continue to be filled.
 
-        @return float[]: the count histrogram accross the bins
+        @return histogram: the count histrogram
         """
         pass
 
     @abc.abstractmethod
     def reset_histrogram(self):
-        """ Close the odmr and clean up afterwards.
+        """ Reset the count histogram.
 
         @return int: error code (0:OK, -1:error)
         """
         pass
 
     @abc.abstractmethod
-    def get_odmr_channels(self):
+    def get_channels(self):
         """ Return a list of channel names.
 
-        @return list(str): channels recorded during ODMR measurement
+        @return list(str): counting and trigger channels
         """
         pass
