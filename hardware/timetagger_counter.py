@@ -194,7 +194,7 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
 
     # statify the triggered counter interface here
 
-    def set_up_histogram(self, counting_channel=None, trigger_channel=None, binwidth=1, n_bins=1):
+    def set_up_histogram(self, counting_channel=None, trigger_channel=None, binwidth=1, n_bins=1, td_dict=None):
         """ Configure the triggered counter
 
         @param int counting_channel: this is the physical channel of the counter
@@ -204,14 +204,23 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        tagger = tt.createTimeTagger()
-        td_measurement = tt.TimeDifferences(tagger,
-                                            click channel = counting_channel, # TODO fix
-                                            start channel = trigger_channel, # TODO fix
-                                            binwidth = binwidth,
-                                            n_bins = n_bins,
-                                            n_histograms = 1
-                                            )
+        if td_dict is None: # TODO fix this
+            self.tagger = tt.createTimeTagger()
+            self.td_measurement = tt.TimeDifferences(self.tagger,
+                                                click_channel = counting_channel,
+                                                start_channel = trigger_channel,
+                                                binwidth = binwidth,
+                                                n_bins = n_bins,
+                                                n_histograms = 1
+                                                )
+        else:
+            self.td_measurement = tt.TimeDifferences(self.tagger,
+                                                click_channel = td_dict['counting_channel'],
+                                                start_channel = td_dict['trigger_channel'],
+                                                binwidth = td_dict['binwidth'],
+                                                n_bins = td_dict['n_bins'],
+                                                n_histograms = 1
+                                                )
 
     def get_counts(self):
         """ Return the count histogram across the bins.
@@ -220,14 +229,14 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
 
         @return histogram: the count histrogram
         """
-        return td_measurement.getData()
+        return self.td_measurement.getData()
 
     def reset_histrogram(self):
         """ Reset the count histogram.
 
         @return int: error code (0:OK, -1:error)
         """
-        self.set_up_histogram()
+        self.set_up_histogram() # TODO fix this
 
     def get_channels(self):
         """ Return a list of channel names.
