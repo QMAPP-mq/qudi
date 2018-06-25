@@ -183,14 +183,14 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
                 self._red_pitaya_setpos(x=x_volt, y=y_volt)            
                 self._scan_state = '_set_pos'
 
-            else:
-                if x is not None:
-                    self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + x_volt)
-                    self.rp_s.tx_txt('OUTPUT1:STATE ON')
-                if y is not None:
-                    self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_volt)
-                    self.rp_s.tx_txt('OUTPUT2:STATE ON')
-
+            # else:
+            #     if x is not None:
+            #         self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + x_volt)
+            #         self.rp_s.tx_txt('OUTPUT1:STATE ON')
+            #     if y is not None:
+            #         self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_volt)
+            #         self.rp_s.tx_txt('OUTPUT2:STATE ON')
+ 
                 self.rp_s.tx_txt('TRIG:IMM')
 
             self.rp_s.tx_txt('OUTPUT1:STATE ON')
