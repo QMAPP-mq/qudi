@@ -173,7 +173,8 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
             self._current_position[1] = np.float(y)
 
         try:
-            if self._scan_state == 'scanner' and x is None:
+            if self._scan_state == '_scanner' and x is None:
+                self.rp_s.tx_txt('SOUR2:FUNC ARBITRARY')
                 self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_volt)
                 self.rp_s.tx_txt('OUTPUT2:STATE ON')
 
@@ -353,7 +354,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
     def _red_pitaya_scanline_setup(self):
         print('got in rp scanline setup')#debug
         #resets generator to default settings
-        self.rp_s.tx_txt('GEN:RST')
+        #elf.rp_s.tx_txt('GEN:RST')
 
         #set source 1,2 to have an arbitrary input 
         self.rp_s.tx_txt('SOUR1:FUNC ARBITRARY')
@@ -377,7 +378,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
     def _red_pitaya_setpos(self, x=None, y=None):
 
         #resets generator to default settings
-        self.rp_s.tx_txt('GEN:RST')
+        #self.rp_s.tx_txt('GEN:RST')
 
         #set source 1,2 to have an arbitrary input 
         self.rp_s.tx_txt('SOUR1:FUNC ARBITRARY')
