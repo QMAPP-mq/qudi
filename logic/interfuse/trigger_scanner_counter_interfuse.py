@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+'# -*- coding: utf-8 -*-
 """
 Interfuse to do confocal scans with spectrometer data rather than APD count rates.
 
@@ -26,7 +26,7 @@ from core.module import Base, Connector, ConfigOption
 from interface.confocal_scanner_interface import ConfocalScannerInterface
 
 
-class SpectrometerScannerInterfuse(Base, ConfocalScannerInterface):
+class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
 
     """This is the Interface class to define the controls for the simple
     microwave hardware.
@@ -35,12 +35,12 @@ class SpectrometerScannerInterfuse(Base, ConfocalScannerInterface):
     _modtype = 'hardware'
 
     # connectors
-    fitlogic = Connector(interface='FitLogic')
-    confocalscanner1 = Connector(interface='ConfocalScannerInterface')
-    spectrometer1 = Connector(interface='SpectrometerInterface')
+    trigger_hw = Connector(interface='TriggerInterface')
+    general_scannner_hw = Connector(interface='GeneralScannerInterface')
+    # tcounter_hw  # tcounter for "triggered counter", normal "slow counter" will not work.
 
     # config options
-    _clock_frequency = ConfigOption('clock_frequency', 100, missing='warn')
+    #_clock_frequency = ConfigOption('clock_frequency', 100, missing='warn')
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -59,10 +59,8 @@ class SpectrometerScannerInterfuse(Base, ConfocalScannerInterface):
         """ Initialisation performed during activation of the module.
         """
 
-        self._fit_logic = self.fitlogic()
-        self._scanner_hw = self.confocalscanner1()
-        self._spectrometer_hw = self.spectrometer1()
-
+        self._trig_hw = self.trigger_hw()
+        self._gen_scan_hw = self.general_scannner_hw()
 
     def on_deactivate(self):
         self.reset_hardware()
@@ -81,7 +79,7 @@ class SpectrometerScannerInterfuse(Base, ConfocalScannerInterface):
 
         @return float [4][2]: array of 4 ranges with an array containing lower and upper limit
         """
-        return self._scanner_hw.get_position_range()
+        return self._gen_scan_hw.get_position_range()
 
     def set_position_range(self, myrange=None):
         """ Sets the physical range of the scanner.
@@ -91,11 +89,7 @@ class SpectrometerScannerInterfuse(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        if myrange is None:
-            myrange = [[0,1],[0,1],[0,1],[0,1]]
-
-        self._scanner_hw.set_position_range(myrange=myrange)
-
+        self.log.warning('Cannot set the position range on this hardware.')
         return 0
 
     def set_voltage_range(self, myrange=None):
@@ -106,10 +100,7 @@ class SpectrometerScannerInterfuse(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        if myrange is None:
-            myrange = [-10.,10.]
-
-        self._scanner_hw.set_voltage_range(myrange=myrange)
+        self.log.warning('Cannot yet set voltage range. Matt needs to write more code...')
         return 0
 
     def set_up_scanner_clock(self, clock_frequency = None, clock_channel = None):
@@ -121,8 +112,7 @@ class SpectrometerScannerInterfuse(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-
-        #return self._scanner_hw.set_up_scanner_clock(clock_frequency=clock_frequency, clock_channel=clock_channel)
+        # TODO: convert clock_frequency into a class variable that might be useful later on.
         return 0
 
     def set_up_scanner(self, counter_channel = None, photon_source = None, clock_channel = None, scanner_ao_channels = None):
@@ -142,7 +132,8 @@ class SpectrometerScannerInterfuse(Base, ConfocalScannerInterface):
 
     def get_scanner_axes(self):
         """ Pass through scanner axes. """
-        return self._scanner_hw.get_scanner_axes()
+        # TODO: get from hardware
+        return ['x', 'y']
 
     def scanner_set_position(self, x = None, y = None, z = None, a = None):
         """Move stage to x, y, z, a (where a is the fourth voltage channel).
@@ -155,8 +146,8 @@ class SpectrometerScannerInterfuse(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-
-        self._scanner_hw.scanner_set_position(x=x, y=y, z=z, a=a)
+        # TODO: hardware needs to handle the extra axes.
+        self._gen_scan_hw.set_position(x=x, y=y)
         return 0
 
     def get_scanner_position(self):
@@ -165,7 +156,7 @@ class SpectrometerScannerInterfuse(Base, ConfocalScannerInterface):
         @return float[]: current position in (x, y, z, a).
         """
 
-        return self._scanner_hw.get_scanner_position()
+        return self._gen_scan_hw.get_position()
 
     def set_up_line(self, length=100):
         """ Set the line length
@@ -201,18 +192,9 @@ class SpectrometerScannerInterfuse(Base, ConfocalScannerInterface):
 
         count_data = np.zeros(self._line_length)
 
-        for i in xrange(self._line_length):
-            coords = line_path[:, i]
-            self.scanner_set_position(x=coords[0], y=coords[1], z=coords[2], a=coords[3])
-            print(coords)
-            print(i)
+        self.line_path = line_path
 
-            # record spectral data
-            this_spectrum_data = self._spectrometer_hw.recordSpectrum()
-            #this_spectrum_data = [1,2,3,4,5]
-            count_data[i] = np.sum(this_spectrum_data)
-            time.sleep(0.2)
-
+        #self._gen_scan_hw.scan_line(line_path)
         return count_data
 
     def close_scanner(self):
