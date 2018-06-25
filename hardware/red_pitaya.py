@@ -27,6 +27,7 @@ from thirdparty.redpitaya import redpitaya_scpi as scpi
 
 from core.module import Base, ConfigOption
 from interface.gen_scanner_interface import GenScannerInterface
+from interface.trigger_interface import TriggerInterface
 
 
 class RedPitaya(Base, GenScannerInterface, TriggerInterface):
@@ -217,11 +218,18 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
             [ [1, 2, 3, 4, 5], [1, 1, 1, 1, 1]]
         n is the number of scanner axes, which can vary. Typical values are 2 for galvo scanners,
         """
-        print('got 1') #debug
+        print('got scan_line') #debug
         if not isinstance(line_path, (frozenset, list, set, tuple, np.ndarray, ) ):
             self.log.error('Given line_path list is not array type.')
             return np.array([[-1.]])
         print(line_path)#debug testing
+
+        y_final = line_path[1][len(line_path[1])-1]
+        if line_path[1][0] != y_final:
+            self.set_position(y=y_final)
+            print('got set y pos') #debug
+            return 0
+        print('did not set y pos') #debug
 
         if self.x_path_volt[0] != line_path[0][0] or self.x_path_volt[len(self.x_path_volt)-1] != line_path[0][len(line_path)-1]:
             self._set_up_line(line_path=line_path)
@@ -229,8 +237,8 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         else:
             self.log.info('No new line required') #debug testing
         try:
-            print('got 8')#debug
-            self.fire_trigger    
+            print('got fire trigger')#debug
+            self.fire_trigger()    
 
             # update the scanner position instance variable
             self._current_position[0] = np.array(line_path[0][len(line_path)-1])
@@ -267,13 +275,8 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
 
         #if the scan path varies in y, set the y position to the final value, don't touch x
         #dirty hack to prevent delays from writing positions to RP
-        print('got 2') #debug
-        y_final = line_path[1][len(line_path[1])-1]
-        if line_path[1][0] != y_final:
-            self.set_position(y=y_final)
-            print('got set y pos') #debug
-            return 0
-        print('got 3') #debug
+        print('got _set_up_line') #debug
+
         self._is_x_line = 1
 
         #Red Pitaya does not like having a line path less than its buffer size
@@ -291,12 +294,12 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
             self.x_line = self.x_line[:len(self.x_line)-2]   
             #print(self.x_line)#debug
             if self._scan_state != '_scanner':
-                print('got 4')#debug
+                print('got scan_state not scanner')#debug
                 self._red_pitaya_scanline_setup()
 
                 #set source 1,2 waveform to our scan values
                 self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + self.x_line) 
-                print('got 6')#debug
+                print('got past rp scanline setup')#debug
                 self._red_pitaya_scanline_burstmode()
 
                 self._scan_state = '_scanner'
@@ -348,7 +351,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         return volts
 
     def _red_pitaya_scanline_setup(self):
-        print('got 5')#debug
+        print('got in rp scanline setup')#debug
         #resets generator to default settings
         self.rp_s.tx_txt('GEN:RST')
 
@@ -360,7 +363,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
 
     def _red_pitaya_scanline_burstmode(self):
         #set source burst repititions to 1
-        print('got 7')#debug
+        print('got in rp scanline_burstmode')#debug
         self.rp_s.tx_txt('SOUR1:BURS:NCYC 1')
 
         #set trigger to be external
