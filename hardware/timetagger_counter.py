@@ -235,7 +235,7 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
         
         return 0
 
-    def get_counts(self):
+    def get_histogram(self):
         """ Return the count histogram across the bins.
 
         The histogram will continue to be filled.
