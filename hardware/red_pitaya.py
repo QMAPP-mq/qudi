@@ -148,13 +148,15 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-
+        print('set position') #debug
         if self.module_state() == 'locked': #TODO: check if this is necessary
             self.log.error('Another scan_line is already running, close this one first.')
             return -1
         x_volt = self._current_position[0]
         y_volt = self._current_position[1]
+
         if x is not None:
+            print('x is not none') #debug
             _is_x_check = 1
             x_volt = self._scanner_position_to_volt(positions=[x], is_x_check=_is_x_check)
             x_volt = str(x_volt[0][0])
@@ -164,6 +166,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
             self._current_position[0] = np.float(x)
 
         if y is not None:
+            print('y is not none')
             _is_x_check = 0
             y_volt = self._scanner_position_to_volt(positions=[y], is_x_check=_is_x_check)
             y_volt = str(y_volt[0][0])
@@ -174,13 +177,20 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
 
         try:
             if self._scan_state == '_scanner' and x is None:
+                print('state is scanner')
                 self.rp_s.tx_txt('SOUR2:FUNC ARBITRARY')
                 self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_volt)
                 self.rp_s.tx_txt('OUTPUT2:STATE ON')
 
-            elif self._scan_state != '_set_pos':
-
-                self._red_pitaya_setpos(x=x_volt, y=y_volt)            
+            else:
+                print('state is not scanner')
+                print(x_volt, y_volt)
+                if x is not None and y is not None:
+                    self._red_pitaya_setpos(x=x_volt, y=y_volt)
+                elif x is not None:
+                    self._red_pitaya_setpos(x=x_volt)
+                else:
+                    self._red_pitaya_setpos(y=y_volt)                
                 self._scan_state = '_set_pos'
 
             # else:
@@ -191,7 +201,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
             #         self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_volt)
             #         self.rp_s.tx_txt('OUTPUT2:STATE ON')
  
-                self.rp_s.tx_txt('TRIG:IMM')
+            self.rp_s.tx_txt('TRIG:IMM')
 
             self.rp_s.tx_txt('OUTPUT1:STATE ON')
         except:
