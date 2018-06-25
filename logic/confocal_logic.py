@@ -480,7 +480,7 @@ class ConfocalLogic(GenericLogic):
         self._YL = self._Y
         self._AL = np.zeros(self._XL.shape)
 
-        # Arrays for retrace line
+        # Arrays for retrace line  # TODO: this is not right for returning "to the start of the next line"
         self._return_XL = np.linspace(self._XL[-1], self._XL[0], self.return_slowness)
         self._return_AL = np.zeros(self._return_XL.shape)
 
@@ -775,35 +775,28 @@ class ConfocalLogic(GenericLogic):
                 self.signal_scan_lines_next.emit()
                 return
 
+
+
+
+
+
+
+
+
+
+            # If there are more lines to scan after this one, 
             # make a line to go to the starting position of the next scan line
-            if self.depth_img_is_xz or not self._zscan:
+            if self._scan_counter < np.size(self._image_vert_axis) - 1:  # minus 1 because scan_counter starts at 0 
+                rs = self.return_slowness
+                lsx = np.linspace(image[self._scan_counter, -1, 0], image[self._scan_counter + 1, 0, 0], rs)
+                lsy = np.linspace(image[self._scan_counter, -1, 1], image[self._scan_counter + 1, 0, 1], rs)
+                lsz = np.linspace(image[self._scan_counter, -1, 2], image[self._scan_counter + 1, 0, 2], rs)
+                
                 if n_ch <= 3:
-                    return_line = np.vstack([
-                        self._return_XL,
-                        image[self._scan_counter, 0, 1] * np.ones(self._return_XL.shape),
-                        image[self._scan_counter, 0, 2] * np.ones(self._return_XL.shape)
-                    ][0:n_ch])
+                    return_line = np.vstack([lsx, lsy, lsz][0:n_ch])
                 else:
-                    return_line = np.vstack([
-                            self._return_XL,
-                            image[self._scan_counter, 0, 1] * np.ones(self._return_XL.shape),
-                            image[self._scan_counter, 0, 2] * np.ones(self._return_XL.shape),
-                            np.ones(self._return_XL.shape) * self._current_a
-                        ])
-            else:
-                if n_ch <= 3:
-                    return_line = np.vstack([
-                            image[self._scan_counter, 0, 1] * np.ones(self._return_YL.shape),
-                            self._return_YL,
-                            image[self._scan_counter, 0, 2] * np.ones(self._return_YL.shape)
-                        ][0:n_ch])
-                else:
-                    return_line = np.vstack([
-                            image[self._scan_counter, 0, 1] * np.ones(self._return_YL.shape),
-                            self._return_YL,
-                            image[self._scan_counter, 0, 2] * np.ones(self._return_YL.shape),
-                            np.ones(self._return_YL.shape) * self._current_a
-                        ])
+                    return_line = np.vstack(
+                        [lsx, lsy, lsz, np.ones(lsx.shape) * self._current_a])
 
             # return the scanner to the start of next line, counts are thrown away
             return_line_counts = self._scanning_device.scan_line(return_line)
