@@ -199,12 +199,12 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
     def set_up_histogram(self, histo_dict=None):
         """ Configure the triggered counter
 
-        If the measurement is running no settings will be changed
+        @param dict histo_dict: a dictionary containing all of the measurement parameters
 
-        @param int counting_channel: this is the physical channel of the counter
-        @param int trigger_channel: this is the physical channel of the trigger
-        @param int n_bins: number of bins in each histogram
-        @param int binwidth: bin width in seconds
+            @param int counting_channel: this is the physical channel of the counter
+            @param int trigger_channel: this is the physical channel of the trigger
+            @param int n_bins: number of bins in each histogram
+            @param int binwidth: bin width in seconds
 
         @return int: error code (0:OK, -1:error)
         """

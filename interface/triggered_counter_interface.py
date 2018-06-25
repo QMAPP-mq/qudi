@@ -30,13 +30,15 @@ class TriggeredCounterInterface(metaclass=InterfaceMetaclass):
     _modclass = 'interface'
 
     @abc.abstractmethod
-    def set_up_histogram(self, counting_channel=None, trigger_channel=None, binwidth=1, n_bins=1):
+    def set_up_histogram(self, histo_dict):
         """ Configure the triggered counter
 
-        @param int counting_channel: this is the physical channel of the counter
-        @param int trigger_channel: this is the physical channel of the trigger
-        @param int n_bins: number of bins in each histogram
-        @param int binwidth: bin width in seconds
+        @param dict histo_dict: a dictionary containing all of the measurement parameters
+
+            @param int counting_channel: this is the physical channel of the counter
+            @param int trigger_channel: this is the physical channel of the trigger
+            @param int n_bins: number of bins in each histogram
+            @param int binwidth: bin width in seconds
 
         @return int: error code (0:OK, -1:error)
         """
