@@ -34,7 +34,7 @@ class TriggerCounterInterfuse(Base, ODMRCounterInterface):
     tcounter1 = Connector(interface='TriggeredCounterInterface')
 
     # config options
-    #_clock_frequency = ConfigOption('clock_frequency', 100, missing='warn')
+    _clock_frequency = ConfigOption('clock_frequency', 100, missing='warn')
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -61,8 +61,11 @@ class TriggerCounterInterfuse(Base, ODMRCounterInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        # TODO: take clock_frequency and work out binwidth
-        binwidth = 1/ clock_frequency
+        
+        if clock_frequency is not None:
+            binwidth = 1/ clock_frequency
+        else:
+            binwidth = 1/ self._clock_frequency
 
         self._tcounter_hw.set_binwidth(binwidth)
         pass
