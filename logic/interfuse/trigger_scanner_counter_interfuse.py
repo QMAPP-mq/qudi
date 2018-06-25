@@ -1,4 +1,4 @@
-'# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Interfuse to do confocal scans with spectrometer data rather than APD count rates.
 
@@ -134,6 +134,15 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         """ Pass through scanner axes. """
         # TODO: get from hardware
         return ['x', 'y']
+
+    def get_scanner_count_channels(self):
+        """ Returns the list of channels that are recorded while scanning an image.
+
+        @return list(str): channel names
+
+        Most methods calling this might just care about the number of channels.
+        """
+        return ['apd1']
 
     def scanner_set_position(self, x = None, y = None, z = None, a = None):
         """Move stage to x, y, z, a (where a is the fourth voltage channel).
