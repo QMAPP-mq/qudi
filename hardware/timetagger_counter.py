@@ -212,7 +212,7 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
         if histo_dict is not None:
             self.tagger = tt.createTimeTagger()
 
-            required_keys = ['counting_channel', 'trigger_channel', 'binwidth', 'n_bins']
+            required_keys = ['counting_channel', 'trigger_channel', 'binwidth', 'n_bins', 'n_histograms']
 
             for key in required_keys:
                 if key not in histo_dict:
@@ -224,13 +224,14 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
             self._histogram_dict['trigger_channel'] = histo_dict['trigger_channel']
             self._histogram_dict['binwidth'] = histo_dict['binwidth']
             self._histogram_dict['n_bins'] = histo_dict['n_bins']
+            self._histogram_dict['n_histograms'] = histo_dict['n_histograms']
 
         self.td_measurement = tt.TimeDifferences(self.tagger,
                                             click_channel = self._histogram_dict['counting_channel'],
                                             start_channel = self._histogram_dict['trigger_channel'],
                                             binwidth = self._histogram_dict['binwidth'],
                                             n_bins = self._histogram_dict['n_bins'],
-                                            n_histograms = 1
+                                            n_histograms = self._histogram_dict['n_histograms']
                                             )
         
         return 0
