@@ -55,6 +55,8 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
 
         self._num_points = 500
 
+        self.line_paths = []
+
     def on_activate(self):
         """ Initialisation performed during activation of the module.
         """
@@ -79,7 +81,13 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
 
         @return float [4][2]: array of 4 ranges with an array containing lower and upper limit
         """
-        return self._gen_scan_hw.get_position_range()
+        pos_range =  [[0, 0]]*4
+        hw_ranges = self._gen_scan_hw.get_position_range()
+
+        for axis, ax_range in enumerate(hw_ranges):
+            pos_range[axis] = ax_range 
+
+        return pos_range
 
     def set_position_range(self, myrange=None):
         """ Sets the physical range of the scanner.
@@ -156,6 +164,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
         # TODO: hardware needs to handle the extra axes.
+
         self._gen_scan_hw.set_position(x=x, y=y)
         return 0
 
@@ -165,7 +174,13 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         @return float[]: current position in (x, y, z, a).
         """
 
-        return self._gen_scan_hw.get_position()
+        pos =  [0]*4
+        hw_pos = self._gen_scan_hw.get_position()
+
+        for axis, ax_pos in enumerate(hw_pos):
+            pos[axis] = ax_pos
+
+        return pos
 
     def set_up_line(self, length=100):
         """ Set the line length
@@ -199,11 +214,11 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
 
         self.set_up_line(np.shape(line_path)[1])
 
-        count_data = np.zeros(self._line_length)
+        count_data = np.zeros((self._line_length, 1))
 
-        self.line_path = line_path
+        self.line_paths.append(line_path)
 
-        #self._gen_scan_hw.scan_line(line_path)
+        self._gen_scan_hw.scan_line(line_path)
         return count_data
 
     def close_scanner(self):
