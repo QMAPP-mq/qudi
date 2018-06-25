@@ -798,12 +798,12 @@ class ConfocalLogic(GenericLogic):
                     return_line = np.vstack(
                         [lsx, lsy, lsz, np.ones(lsx.shape) * self._current_a])
 
-            # return the scanner to the start of next line, counts are thrown away
-            return_line_counts = self._scanning_device.scan_line(return_line)
-            if np.any(return_line_counts == -1):
-                self.stopRequested = True
-                self.signal_scan_lines_next.emit()
-                return
+                # return the scanner to the start of next line, counts are thrown away
+                return_line_counts = self._scanning_device.scan_line(return_line)
+                if np.any(return_line_counts == -1):
+                    self.stopRequested = True
+                    self.signal_scan_lines_next.emit()
+                    return
 
             # update image with counts from the line we just scanned
             if self._zscan:
