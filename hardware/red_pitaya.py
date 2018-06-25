@@ -176,22 +176,14 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
             self._current_position[1] = np.float(y)
 
         try:
-            if self._scan_state == '_scanner' and x is None:
-                print('state is scanner')
-                self.rp_s.tx_txt('SOUR2:FUNC ARBITRARY')
-                self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_volt)
-                self.rp_s.tx_txt('OUTPUT2:STATE ON')
-
+            print(x_volt, y_volt)
+            if x is not None and y is not None:
+                self._red_pitaya_setpos(x=x_volt, y=y_volt)
+            elif x is not None:
+                self._red_pitaya_setpos(x=x_volt)
             else:
-                print('state is not scanner')
-                print(x_volt, y_volt)
-                if x is not None and y is not None:
-                    self._red_pitaya_setpos(x=x_volt, y=y_volt)
-                elif x is not None:
-                    self._red_pitaya_setpos(x=x_volt)
-                else:
-                    self._red_pitaya_setpos(y=y_volt)                
-                self._scan_state = '_set_pos'
+                self._red_pitaya_setpos(y=y_volt)                
+            self._scan_state = '_set_pos'
 
             # else:
             #     if x is not None:
@@ -237,9 +229,15 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
 
         y_final = line_path[1][len(line_path[1])-1]
         if line_path[1][0] != y_final:
-            self.set_position(y=y_final)
-            print('got set y pos') #debug
-            return 0
+                print('state is scanner')
+                y_volt = self._scanner_position_to_volt(positions=[y_final], is_x_check=0)
+                y_volt = str(y_volt[0][0])
+
+                self.rp_s.tx_txt('SOUR2:FUNC ARBITRARY')
+                self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + y_volt)
+                self.rp_s.tx_txt('OUTPUT2:STATE ON')
+                self._current_position[1] = np.float(y_final)
+                return 0
         print('did not set y pos') #debug
 
         if self.x_path_volt[0] != line_path[0][0] or self.x_path_volt[len(self.x_path_volt)-1] != line_path[0][len(line_path)-1]:
