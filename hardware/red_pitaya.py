@@ -176,7 +176,6 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
             self._current_position[1] = np.float(y)
 
         try:
-            print(x_volt, y_volt)
             if x is not None and y is not None:
                 self._red_pitaya_setpos(x=x_volt, y=y_volt)
             elif x is not None:
@@ -225,7 +224,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         if not isinstance(line_path, (frozenset, list, set, tuple, np.ndarray, ) ):
             self.log.error('Given line_path list is not array type.')
             return np.array([[-1.]])
-        print(line_path)#debug testing
+        print(line_path, 'line path')#debug testing
 
         y_final = line_path[1][len(line_path[1])-1]
         if line_path[1][0] != y_final:
@@ -239,8 +238,8 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
                 self._current_position[1] = np.float(y_final)
                 return 0
         print('did not set y pos') #debug
-
-        if self.x_path_volt[0] != line_path[0][0] or self.x_path_volt[len(self.x_path_volt)-1] != line_path[0][len(line_path)-1]:
+        print(self.x_path_volt[len(self.x_path_volt)-1], line_path[0][len(line_path[0])-1]) #debug
+        if self.x_path_volt[0] != line_path[0][0] or self.x_path_volt[len(self.x_path_volt)-1] != line_path[0][len(line_path[0])-1]:
             self._set_up_line(line_path=line_path)
             self.log.info('New line required') #debug testing
         else:
@@ -292,7 +291,6 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         self.x_path_volt = np.linspace(line_path[0][0], line_path[0][len(line_path[0])-1], self._buffer_size)
 
         x_path = self._scanner_position_to_volt(positions = self.x_path_volt, is_x_check=self._is_x_line)
-        print(x_path)#debug
         try:
             self.x_line = ''
 
