@@ -228,7 +228,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
 
         y_final = line_path[1][len(line_path[1])-1]
         if line_path[1][0] != y_final:
-                print('state is scanner')
+                print('y cheat')
                 y_volt = self._scanner_position_to_volt(positions=[y_final], is_x_check=0)
                 y_volt = str(y_volt[0][0])
 
@@ -238,15 +238,18 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
                 self._current_position[1] = np.float(y_final)
                 return 0
         print('did not set y pos') #debug
-        print(self.x_path_volt[len(self.x_path_volt)-1], line_path[0][len(line_path[0])-1]) #debug
-        if self.x_path_volt[0] != line_path[0][0] or self.x_path_volt[len(self.x_path_volt)-1] != line_path[0][len(line_path[0])-1]:
+        print(self.x_path_volt[len(self.x_path_volt)-1], line_path[0][len(line_path[0])-1], 'new scan check') #debug
+        if self.x_path_volt[0] != line_path[0][0] or self.x_path_volt[len(self.x_path_volt)-1] != line_path[0][len(line_path[0])-1] or self._scan_state=='_set_pos':
             self._set_up_line(line_path=line_path)
             self.log.info('New line required') #debug testing
         else:
             self.log.info('No new line required') #debug testing
         try:
+            self._red_pitaya_scanline_setup()
+            self._red_pitaya_scanline_burstmode()
             print('got fire trigger')#debug
-            self.fire_trigger()    
+            self.fire_trigger()
+            self._scan_state = '_scanner'    
 
             # update the scanner position instance variable
             self._current_position[0] = np.array(line_path[0][len(line_path)-1])
@@ -302,17 +305,17 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
             #print(self.x_line)#debug
             if self._scan_state != '_scanner':
                 print('got scan_state not scanner')#debug
-                self._red_pitaya_scanline_setup()
+
 
                 #set source 1,2 waveform to our scan values
+                self._red_pitaya_scanline_setup()
                 self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + self.x_line) 
-                print('got past rp scanline setup')#debug
                 self._red_pitaya_scanline_burstmode()
-
-                self._scan_state = '_scanner'
+                self.fire_trigger()
+                self.rp_s.tx_txt('OUTPUT1:STATE ON')
             else:
                 self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + self.x_line) 
-            #time.sleep(20) #bug test
+            time.sleep(5) #bug test
         except:        
             self.log.exception('Could not set up scanline on RP device on '+ self._ip)
             return -1
@@ -425,7 +428,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         self.rp_s.tx_txt('DIG:PIN '+ self._trigger_out_channel+', 1')
 
         #enable source 1 to be triggered(only used in scanning)
-        self.rp_s.tx_txt('OUTPUT1:STATE ON')
+
         time.sleep(self._pulse_duration)
 
         #turn digital output off
