@@ -46,7 +46,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         super().__init__(config=config, **kwargs)
 
         # Internal parameters
-        self.line_paths = []
+        self._line_length = None
     def on_activate(self):
         """ Initialisation performed during activation of the module.
         """
