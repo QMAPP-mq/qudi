@@ -46,16 +46,6 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         super().__init__(config=config, **kwargs)
 
         # Internal parameters
-        self._line_length = None
-        self._scanner_counter_daq_task = None
-        self._voltage_range = [-10., 10.]
-
-        self._position_range = [[0., 100.], [0., 100.], [0., 100.], [0., 1.]]
-        self._current_position = [0., 0., 0., 0.]
-
-        self._num_points = 500
-
-        self.line_paths = []
 
     def on_activate(self):
         """ Initialisation performed during activation of the module.
@@ -72,6 +62,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
+        self._gen_scan_hw.reset_hardware()
         self.log.warning('Scanning Device will be reset.')
         return 0
 
@@ -100,15 +91,16 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         self.log.warning('Cannot set the position range on this hardware.')
         return 0
 
-    def set_voltage_range(self, myrange=None):
-        """ Sets the voltage range of the NI Card.
+    def set_voltage_range(self, myrange=None, channel=[0,1]):
+        """ Sets the voltage range of the Red Pitaya.
         This is a direct pass-through to the scanner HW
 
-        @param float [2] myrange: array containing lower and upper limit
+        @param float [2] myrange: array containing lower and upper limit in volts
+        @param float [2-4] channel: array containing channels to set the range of. Channels 0-3
 
         @return int: error code (0:OK, -1:error)
         """
-        self.log.warning('Cannot yet set voltage range. Matt needs to write more code...')
+        self._gen_scan_hw.set_voltage_range(myrange, channel)
         return 0
 
     def set_up_scanner_clock(self, clock_frequency = None, clock_channel = None):
@@ -165,7 +157,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         """
         # TODO: hardware needs to handle the extra axes.
 
-        self._gen_scan_hw.set_position(x=x, y=y)
+        self._gen_scan_hw.set_position(x=x, y=y, z=z, a=a)
         return 0
 
     def get_scanner_position(self):
@@ -182,7 +174,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
 
         return pos
 
-    def set_up_line(self, length=100):
+    def set_up_line(self, line_path):
         """ Set the line length
         Nothing else to do here, because the line will be scanned using multiple scanner_set_position calls.
 
@@ -190,7 +182,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self._line_length = length
+        self._gen_scan_hw.set_up_line(line_path)
         return 0
 
     def scan_line(self, line_path=None, pixel_clock=False):
@@ -212,8 +204,6 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
             self.log.error('Given voltage list is no array type.')
             return np.array([-1.])
 
-        self.set_up_line(np.shape(line_path)[1])
-
         count_data = np.zeros((self._line_length, 1))
 
         self.line_paths.append(line_path)
@@ -227,7 +217,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
 
-        #self._scanner_hw.close_scanner()
+        self._scanner_hw.scanner_off()
 
         return 0
 
@@ -236,5 +226,5 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        #self._scanner_hw.close_scanner_clock()
+        #self._trig_hw.close_scanner_clock()
         return 0
