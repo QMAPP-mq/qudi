@@ -91,7 +91,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         self.log.warning('Cannot set the position range on this hardware.')
         return 0
 
-    def set_voltage_range(self, myrange=None):
+    def set_voltage_range(self, myrange=None, channel=[x,y,z,a]):
         """ Sets the voltage range of the NI Card.
         This is a direct pass-through to the scanner HW
 
@@ -156,7 +156,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         """
         # TODO: hardware needs to handle the extra axes.
 
-        self._gen_scan_hw.set_position(x=x, y=y)
+        self._gen_scan_hw.set_position(x=x, y=y, z=z, a=a)
         return 0
 
     def get_scanner_position(self):
