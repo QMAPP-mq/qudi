@@ -142,7 +142,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
 
         return 0
 
-    def set_position(self, x=None, y=None):
+    def set_position(self, x=None, y=None, z=None, a=None):
         """Move stage to x, y
 
         @param float x: postion in x-direction (metres)
@@ -153,6 +153,10 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         if self.module_state() == 'locked': #TODO: check if this is necessary
             self.log.error('Another scan_line is already running, close this one first.')
             return -1
+
+        if z is not None or a is not None:
+            self.log.error('Can only set position in x and y axes')
+            return -1)
 
         if x is not None:
             if not(self._scanner_position_ranges[0][0] <= x <= self._scanner_position_ranges[0][1]):
