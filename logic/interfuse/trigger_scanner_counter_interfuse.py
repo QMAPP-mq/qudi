@@ -91,15 +91,16 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         self.log.warning('Cannot set the position range on this hardware.')
         return 0
 
-    def set_voltage_range(self, myrange=None, channel=[x,y,z,a]):
-        """ Sets the voltage range of the NI Card.
+    def set_voltage_range(self, myrange=None, channel=[0,1]):
+        """ Sets the voltage range of the Red Pitaya.
         This is a direct pass-through to the scanner HW
 
-        @param float [2] myrange: array containing lower and upper limit
+        @param float [2] myrange: array containing lower and upper limit in volts
+        @param float [2-4] channel: array containing channels to set the range of. Channels 0-3
 
         @return int: error code (0:OK, -1:error)
         """
-        self.log.warning('Cannot yet set voltage range. Matt needs to write more code...')
+        self._gen_scan_hw.set_voltage_range(myrange, channel)
         return 0
 
     def set_up_scanner_clock(self, clock_frequency = None, clock_channel = None):
