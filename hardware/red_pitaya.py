@@ -156,8 +156,8 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
 
         if z is not None or a is not None:
             self.log.error('Can only set position in x and y axes')
-            return -1)
-
+            return -1
+            
         if x is not None:
             if not(self._scanner_position_ranges[0][0] <= x <= self._scanner_position_ranges[0][1]):
                 self.log.error('You want to set x out of range: {0:f}.'.format(x))
