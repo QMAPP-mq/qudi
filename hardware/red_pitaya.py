@@ -142,7 +142,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
 
         return 0
 
-    def set_position(self, x=None, y=None):
+    def set_position(self, x=None, y=None, z=None, a=None):
         """Move stage to x, y
 
         @param float x: postion in x-direction (metres)
@@ -153,6 +153,10 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         if self.module_state() == 'locked': #TODO: check if this is necessary
             self.log.error('Another scan_line is already running, close this one first.')
             return -1
+
+        if z is not None or a is not None:
+            self.log.error('Can only set position in x and y axes')
+            return -1)
 
         if x is not None:
             if not(self._scanner_position_ranges[0][0] <= x <= self._scanner_position_ranges[0][1]):
@@ -227,7 +231,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
                 return 0
 
         if self.x_path_volt[0] != line_path[0][0] or self.x_path_volt[len(self.x_path_volt)-1] != line_path[0][len(line_path[0])-1] or self._scan_state !='_scanner':
-            self._set_up_line(line_path=line_path)
+            self.set_up_line(line_path=line_path)
 
         try:
             self.fire_trigger()
@@ -254,10 +258,30 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
 
         return 0
 
+    def set_voltage_range(self, myrange=[-1,1],channel=[0,1]):
+        for axis in channel:
+            if axis > 1:
+                self.log.error('Can only set axis 0 or 1 on this device')
+                return -1
+        if myrange[0] < -1 or myrange[1] > 1:
+            self.log.error('Voltage must be between -1 and 1')
+            return -1
+        if myrange[0] >= myrange[1]:
+            self.log.error('Voltage range must go from low to high')
+            return -1
+        for axis in channel:
+            self._scanner_voltage_ranges[axis][0] = myrange[0]
+            self._scanner_voltage_ranges[axis][1] = myrange[1]
+            self._scan_state = None
+            return 0
+    
+    def get_scanner_axes(self):
+        return ['x','y']
+
     ############################################################################
     # ======== Private methods for GeneralScannerInterface Commands ===========
     
-    def _set_up_line(self, line_path):
+    def set_up_line(self, line_path):
         """ Sets up the analog output for scanning a line.
 
         @param float[c][m] line_path: array of c-tuples defining the voltage points
