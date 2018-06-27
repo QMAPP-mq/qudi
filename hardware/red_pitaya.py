@@ -272,8 +272,8 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         for axis in channel:
             self._scanner_voltage_ranges[axis][0] = myrange[0]
             self._scanner_voltage_ranges[axis][1] = myrange[1]
-            self._scan_state = None
-            return 0
+        self._scan_state = None
+        return 0
     
     def get_scanner_axes(self):
         return ['x','y']
