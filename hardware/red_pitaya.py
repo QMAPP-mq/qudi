@@ -231,7 +231,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
                 return 0
 
         if self.x_path_volt[0] != line_path[0][0] or self.x_path_volt[len(self.x_path_volt)-1] != line_path[0][len(line_path[0])-1] or self._scan_state !='_scanner':
-            self._set_up_line(line_path=line_path)
+            self.set_up_line(line_path=line_path)
 
         try:
             self.fire_trigger()
@@ -281,7 +281,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
     ############################################################################
     # ======== Private methods for GeneralScannerInterface Commands ===========
     
-    def _set_up_line(self, line_path):
+    def set_up_line(self, line_path):
         """ Sets up the analog output for scanning a line.
 
         @param float[c][m] line_path: array of c-tuples defining the voltage points
