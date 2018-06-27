@@ -254,7 +254,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
 
         return 0
 
-    def set_voltage_range(myrange=[-1,1],channel=[0,1]):
+    def set_voltage_range(self, myrange=[-1,1],channel=[0,1]):
         for axis in channel:
             if axis > 1:
                 self.log.error('Can only set axis 0 or 1 on this device')
@@ -270,6 +270,9 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
             self._scanner_voltage_ranges[axis][1] = myrange[1]
             self._scan_state = None
             return 0
+    
+    def get_scanner_axes(self):
+        return ['x','y']
 
     ############################################################################
     # ======== Private methods for GeneralScannerInterface Commands ===========
