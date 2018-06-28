@@ -435,4 +435,15 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         #turn digital output off
         self.rp_s.tx_txt('DIG:PIN '+ self._trigger_out_channel+', 0')
         return 0
+    
+    def gen_trigger(self, pin='DIO1_P'):
+        #turn pin to output
+        self.rp_s.tx_txt('DIG:PIN:DIR OUT,'+ pin)
+        #turn digital output on
+        self.rp_s.tx_txt('DIG:PIN '+ pin', 1')
+        time.sleep(self._pulse_duration)
+        #turn digital output off
+        self.rp_s.tx_txt('DIG:PIN '+ pin+', 0')
+        
+        return 0
     # ================ End TriggerInterface Commands ===================
