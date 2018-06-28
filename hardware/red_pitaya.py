@@ -168,7 +168,6 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
             self._current_position[0] = np.float(x)
 
         if y is not None:
-            print('y is not none')
             if not(self._scanner_position_ranges[1][0] <= y <= self._scanner_position_ranges[1][1]):
                 self.log.error('You want to set y out of range: {0:f}.'.format(y))
                 return -1
@@ -220,7 +219,6 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
 
         y_final = line_path[1][len(line_path[1])-1]
         if line_path[1][0] != y_final:
-                print('y cheat')
                 y_volt = self._scanner_position_to_volt(positions=[y_final], is_x_check=0)
                 y_volt = str(y_volt[0][0])
 
