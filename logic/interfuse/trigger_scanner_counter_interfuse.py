@@ -209,6 +209,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         self.line_paths.append(line_path)
 
         self._gen_scan_hw.scan_line(line_path)
+        self._trig_hw.fire_trigger()
         return count_data
 
     def close_scanner(self):
