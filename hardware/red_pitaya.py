@@ -341,9 +341,9 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         #    self.log.error('Given position list is no array type.')
         #    return np.array([np.NaN])
 
-        x_check = 0
+        x_check = 1
         if is_x_check ==1:
-            x_check = 1
+            x_check = 0
         vlist = []
         for i in (positions):
             vlist.append(
@@ -352,7 +352,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
                 * (i - self._scanner_position_ranges[x_check][0])
                 + self._scanner_voltage_ranges[x_check][0]
             )
-        if x_check ==1:
+        if x_check ==0:
             vlist = [-x for x in vlist]
         volts = np.vstack(vlist)
 
