@@ -46,7 +46,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         super().__init__(config=config, **kwargs)
 
         # Internal parameters
-        self._line_length = 100
+        self._line_length = None
         self.line_paths = []
     def on_activate(self):
         """ Initialisation performed during activation of the module.
@@ -204,7 +204,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         if not isinstance( line_path, (frozenset, list, set, tuple, np.ndarray, ) ):
             self.log.error('Given voltage list is no array type.')
             return np.array([-1.])
-
+        self._line_length = len(line_path[0])
         count_data = np.zeros((self._line_length, 1))
 
         self.line_paths.append(line_path)
