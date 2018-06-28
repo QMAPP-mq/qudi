@@ -205,6 +205,7 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
             @param int trigger_channel: this is the physical channel of the trigger
             @param int n_bins: number of bins in each histogram
             @param int binwidth: bin width in seconds
+            @param int n_histograms: number of histograms (read pixels)
 
         @return int: error code (0:OK, -1:error)
         """
