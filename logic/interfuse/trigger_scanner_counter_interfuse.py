@@ -133,8 +133,8 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
 
     def get_scanner_axes(self):
         """ Pass through scanner axes. """
-        # TODO: get from hardware
-        return ['x', 'y']
+        
+        return self._gen_scan_hw.get_scanner_axes()
 
     def get_scanner_count_channels(self):
         """ Returns the list of channels that are recorded while scanning an image.
@@ -156,7 +156,6 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        # TODO: hardware needs to handle the extra axes.
 
         self._gen_scan_hw.set_position(x=x, y=y, z=z, a=a)
         return 0
