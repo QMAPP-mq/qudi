@@ -278,6 +278,13 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
     def get_scanner_axes(self):
         return ['x','y']
 
+    def set_scanner_speed(self, frequency=10):
+        self._scanner_frequency = frequency
+        self._pulse_duration = 1/frequency
+        self._scan_state = None
+        return 0
+
+
     ############################################################################
     # ======== Private methods for GeneralScannerInterface Commands ===========
     
