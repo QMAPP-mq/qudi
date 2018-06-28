@@ -314,7 +314,6 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
                 self._red_pitaya_scanline_setup()
                 self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + self.x_line) 
                 self._red_pitaya_scanline_burstmode()
-                self.fire_trigger()
                 self.rp_s.tx_txt('OUTPUT1:STATE ON')
             else:
                 self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + self.x_line) 
