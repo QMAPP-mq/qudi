@@ -199,6 +199,8 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
     def set_up_histogram(self, histo_dict=None):
         """ Configure the triggered counter
 
+        Info at: swabianinstruments.com/static/documentation/TimeTagger/sections/api.html#timedifferences
+
         @param dict histo_dict: a dictionary containing all of the measurement parameters
 
             @param int counting_channel: this is the physical channel of the counter
