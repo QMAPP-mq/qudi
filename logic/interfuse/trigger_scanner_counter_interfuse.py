@@ -37,7 +37,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
     # connectors
     trigger_hw = Connector(interface='TriggerInterface')
     general_scannner_hw = Connector(interface='GeneralScannerInterface')
-    # tcounter_hw  # tcounter for "triggered counter", normal "slow counter" will not work.
+    tcounter_hw =Connector(interface='TriggeredCounterInterface' ) # tcounter for "triggered counter", normal "slow counter" will not work.
 
     # config options
     #_clock_frequency = ConfigOption('clock_frequency', 100, missing='warn')
@@ -48,12 +48,14 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         # Internal parameters
         self._line_length = None
         self.line_paths = []
+        self._histo_dict = {}
     def on_activate(self):
         """ Initialisation performed during activation of the module.
         """
 
         self._trig_hw = self.trigger_hw()
         self._gen_scan_hw = self.general_scannner_hw()
+        self._trig_count_hw = self.tcounter_hw
 
     def on_deactivate(self):
         self.reset_hardware()
@@ -114,6 +116,9 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
         # TODO: convert clock_frequency into a class variable that might be useful later on.
+        self._histo_dict['clock_frequency'] = clock_frequency
+        self._histo_dict['clock_channel'] = clock_channel
+
         return 0
 
     def set_up_scanner(self, counter_channel = None, photon_source = None, clock_channel = None, scanner_ao_channels = None):
