@@ -29,7 +29,7 @@ from interface.slow_counter_interface import SlowCounterInterface
 from interface.slow_counter_interface import SlowCounterConstraints
 from interface.slow_counter_interface import CountingMode
 
-class TimeTaggerCounter(Base, SlowCounterInterface):
+class TimeTaggerCounter(Base, SlowCounterInterface, TriggeredCounterInterface):
 
     """ Using the TimeTagger as a counter."""
 
@@ -199,12 +199,15 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
     def set_up_histogram(self, histo_dict=None):
         """ Configure the triggered counter
 
+        Info at: swabianinstruments.com/static/documentation/TimeTagger/sections/api.html#timedifferences
+
         @param dict histo_dict: a dictionary containing all of the measurement parameters
 
             @param int counting_channel: this is the physical channel of the counter
             @param int trigger_channel: this is the physical channel of the trigger
             @param int n_bins: number of bins in each histogram
             @param int binwidth: bin width in seconds
+            @param int n_histograms: number of histograms (read pixels)
 
         @return int: error code (0:OK, -1:error)
         """
