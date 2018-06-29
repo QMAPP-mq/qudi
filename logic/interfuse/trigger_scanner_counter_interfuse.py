@@ -219,7 +219,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         self._histo_dict['binwidth'] = binwidth
 
 
-        set_up_histogram(histo_dict=self._histo_dict)
+        self._trig_count_hw.set_up_histogram(histo_dict=self._histo_dict)
         self._trig_hw.fire_trigger()
         get_histo = self._trig_count_hw.get_histogram()
         self._trig_count_hw.reset_histogram()
