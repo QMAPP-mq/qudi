@@ -48,14 +48,14 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         # Internal parameters
         self._line_length = None
         self.line_paths = []
-        self._histo_dict = {}
+        self._histo_dict = {'n_histograms':1}
     def on_activate(self):
         """ Initialisation performed during activation of the module.
         """
 
         self._trig_hw = self.trigger_hw()
         self._gen_scan_hw = self.general_scannner_hw()
-        self._trig_count_hw = self.tcounter_hw
+        self._trig_count_hw = self.tcounter_hw()
 
     def on_deactivate(self):
         self.reset_hardware()
@@ -148,7 +148,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
 
         Most methods calling this might just care about the number of channels.
         """
-        return ['apd1']
+        return self._trig_count_hw.get_channels()
 
     def scanner_set_position(self, x = None, y = None, z = None, a = None):
         """Move stage to x, y, z, a (where a is the fourth voltage channel).
@@ -208,14 +208,22 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         if not isinstance( line_path, (frozenset, list, set, tuple, np.ndarray, ) ):
             self.log.error('Given voltage list is no array type.')
             return np.array([-1.])
+        self._gen_scan_hw.scan_line(line_path)
+
         self._line_length = len(line_path[0])
-        count_data = np.zeros((self._line_length, 1))
+        self._histo_dict['n_bins'] = self._line_length
 
         self.line_paths.append(line_path)
 
-        self._gen_scan_hw.scan_line(line_path)
+        binwidth = 1/(self._gen_scan_hw._scanner_frequency*self._line_length)
+        self._histo_dict['binwidth'] = binwidth
+
+
+        set_up_histogram(histo_dict=self._histo_dict)
         self._trig_hw.fire_trigger()
-        return count_data
+        get_histo = self._trig_count_hw.get_histogram()
+        self._trig_count_hw.reset_histogram()
+        return get_histo
 
     def close_scanner(self):
         """ Closes the scanner and cleans up afterwards.
