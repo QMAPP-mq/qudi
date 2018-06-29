@@ -232,7 +232,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
             self.set_up_line(line_path=line_path)
 
         try:
-            self.fire_trigger()
+            #self.fire_trigger()
             self._scan_state = '_scanner'    
 
             # update the scanner position instance variable
@@ -438,7 +438,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         #turn pin to output
         self.rp_s.tx_txt('DIG:PIN:DIR OUT,'+ pin)
         #turn digital output on
-        self.rp_s.tx_txt('DIG:PIN '+ pin', 1')
+        self.rp_s.tx_txt('DIG:PIN '+ pin+', 1')
         time.sleep(self._pulse_duration)
         #turn digital output off
         self.rp_s.tx_txt('DIG:PIN '+ pin+', 0')
