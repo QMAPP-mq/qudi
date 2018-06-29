@@ -29,7 +29,7 @@ from interface.slow_counter_interface import SlowCounterInterface
 from interface.slow_counter_interface import SlowCounterConstraints
 from interface.slow_counter_interface import CountingMode
 
-class TimeTaggerCounter(Base, SlowCounterInterface):
+class TimeTaggerCounter(Base, SlowCounterInterface, TriggeredCounterInterface):
 
     """ Using the TimeTagger as a counter."""
 
