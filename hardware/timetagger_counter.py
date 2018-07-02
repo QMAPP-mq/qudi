@@ -26,6 +26,7 @@ import numpy as np
 
 from core.module import Base, ConfigOption
 from interface.slow_counter_interface import SlowCounterInterface
+from interface.triggered_counter_interface import TriggeredCounterInterface
 from interface.slow_counter_interface import SlowCounterConstraints
 from interface.slow_counter_interface import CountingMode
 
@@ -230,11 +231,11 @@ class TimeTaggerCounter(Base, SlowCounterInterface, TriggeredCounterInterface):
             self._histogram_dict['n_histograms'] = histo_dict['n_histograms']
 
         self.td_measurement = tt.TimeDifferences(self.tagger,
-                                            click_channel = self._histogram_dict['counting_channel'],
-                                            start_channel = self._histogram_dict['trigger_channel'],
-                                            binwidth = self._histogram_dict['binwidth'],
-                                            n_bins = self._histogram_dict['n_bins'],
-                                            n_histograms = self._histogram_dict['n_histograms']
+                                            click_channel = int(self._histogram_dict['counting_channel']),
+                                            start_channel = int(self._histogram_dict['trigger_channel']),
+                                            binwidth = int(self._histogram_dict['binwidth']),
+                                            n_bins = int(self._histogram_dict['n_bins']),
+                                            n_histograms = int(self._histogram_dict['n_histograms'])
                                             )
         
         return 0
@@ -248,7 +249,7 @@ class TimeTaggerCounter(Base, SlowCounterInterface, TriggeredCounterInterface):
         """
         return self.td_measurement.getData()
 
-    def reset_histrogram(self):
+    def reset_histogram(self):
         """ Reset the count histogram.
 
         @return int: error code (0:OK, -1:error)
