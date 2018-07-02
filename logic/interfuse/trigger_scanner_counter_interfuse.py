@@ -48,7 +48,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         # Internal parameters
         self._line_length = None
         self.line_paths = []
-        self._histo_dict = {'n_histograms':1}
+        self._histo_dict = {'n_histograms':1, 'Counting_channel':1, 'Trigger_channel':0}
     def on_activate(self):
         """ Initialisation performed during activation of the module.
         """
@@ -148,7 +148,8 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
 
         Most methods calling this might just care about the number of channels.
         """
-        return self._trig_count_hw.get_channels()
+        channels = self._trig_count_hw.get_channels()
+        return channels
 
     def scanner_set_position(self, x = None, y = None, z = None, a = None):
         """Move stage to x, y, z, a (where a is the fourth voltage channel).
