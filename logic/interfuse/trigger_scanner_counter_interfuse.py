@@ -212,7 +212,6 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         self._gen_scan_hw.scan_line(line_path)
 
         self._line_length = len(line_path[0])
-        self.log.warning(self._line_length)
         self._histo_dict['n_bins'] = self._line_length
 
         self.line_paths.append(line_path)
@@ -220,12 +219,14 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         binwidth = 1/(self._gen_scan_hw._scanner_frequency*self._line_length)
         self._histo_dict['binwidth'] = binwidth
 
+        if self._gen_scan_hw._trigger == 1:
+            self._trig_count_hw.set_up_histogram(histo_dict=self._histo_dict)
+            self._trig_hw.fire_trigger()
 
-        self._trig_count_hw.set_up_histogram(histo_dict=self._histo_dict)
-        self._trig_hw.fire_trigger()
-        get_histo = self._trig_count_hw.get_histogram()
-        self._trig_count_hw.reset_histogram()
-        return get_histo
+            get_histo = self._trig_count_hw.get_histogram()
+            self._trig_count_hw.reset_histogram()
+            return get_histo
+        return 0
 
     def close_scanner(self):
         """ Closes the scanner and cleans up afterwards.
