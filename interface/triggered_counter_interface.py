@@ -45,7 +45,7 @@ class TriggeredCounterInterface(metaclass=InterfaceMetaclass):
         pass
 
     @abc.abstractmethod
-    def get_counts(self):
+    def get_histogram(self):
         """ Return the count histogram across the bins.
 
         The histogram will continue to be filled.
@@ -55,7 +55,7 @@ class TriggeredCounterInterface(metaclass=InterfaceMetaclass):
         pass
 
     @abc.abstractmethod
-    def reset_histrogram(self):
+    def reset_histogram(self):
         """ Reset the count histogram.
 
         @return int: error code (0:OK, -1:error)
