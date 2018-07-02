@@ -216,7 +216,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
 
         self.line_paths.append(line_path)
 
-        binwidth = 1/(self._gen_scan_hw._scanner_frequency*self._line_length)
+        binwidth = 10**12/(self._gen_scan_hw._scanner_frequency*self._line_length)
         self._histo_dict['binwidth'] = binwidth
 
         if self._gen_scan_hw._trigger == 1:
