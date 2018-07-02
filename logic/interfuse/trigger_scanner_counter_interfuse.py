@@ -48,7 +48,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         # Internal parameters
         self._line_length = None
         self.line_paths = []
-        self._histo_dict = {'n_histograms':1, 'Counting_channel':1, 'Trigger_channel':0}
+        self._histo_dict = {'n_histograms':1, 'counting_channel':1, 'trigger_channel':0}
     def on_activate(self):
         """ Initialisation performed during activation of the module.
         """
@@ -212,6 +212,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         self._gen_scan_hw.scan_line(line_path)
 
         self._line_length = len(line_path[0])
+        self.log.warning(self._line_length)
         self._histo_dict['n_bins'] = self._line_length
 
         self.line_paths.append(line_path)
