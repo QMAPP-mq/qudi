@@ -84,6 +84,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         self._scan_state = None
         self._scanner_frequency = self._scanner_frequency[0]
         self._pulse_duration = 1/self._scanner_frequency
+        self._trigger = 0
 
         # handle all the parameters given by the config
 
@@ -216,6 +217,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         if not isinstance(line_path, (frozenset, list, set, tuple, np.ndarray, ) ):
             self.log.error('Given line_path list is not array type.')
             return np.array([[-1.]])
+        self._trigger = 0
 
         y_final = line_path[1][len(line_path[1])-1]
         if line_path[1][0] != y_final:
@@ -233,7 +235,8 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
 
         try:
             #self.fire_trigger()
-            self._scan_state = '_scanner'    
+            self._scan_state = '_scanner'
+            self._trigger = 1    
 
             # update the scanner position instance variable
             self._current_position[0] = np.array(line_path[0][0])
