@@ -49,13 +49,14 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         self._line_length = None
         self.line_paths = []
         self._histo_dict = {'n_histograms':1, 'counting_channel':1, 'trigger_channel':0}
+
     def on_activate(self):
         """ Initialisation performed during activation of the module.
         """
-
         self._trig_hw = self.trigger_hw()
         self._gen_scan_hw = self.general_scannner_hw()
         self._trig_count_hw = self.tcounter_hw()
+        self._scan_freq = self._gen_scan_hw._scanner_frequency
 
     def on_deactivate(self):
         self.reset_hardware()
@@ -209,18 +210,24 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         if not isinstance( line_path, (frozenset, list, set, tuple, np.ndarray, ) ):
             self.log.error('Given voltage list is no array type.')
             return np.array([-1.])
+
         self._gen_scan_hw.scan_line(line_path)
 
-        self._line_length = len(line_path[0])
-        self._histo_dict['n_bins'] = self._line_length
+
+        if self._line_length != len(line_path[0]) or self._scan_freq != self._gen_scan_hw._scanner_frequency:
+            self._line_length = len(line_path[0])
+            self._scan_freq = self._gen_scan_hw._scanner_frequency
+
+            self._histo_dict['n_bins'] = self._line_length
+            binwidth = 10**12/(self._gen_scan_hw._scanner_frequency*self._line_length)
+            self._histo_dict['binwidth'] = binwidth
+            
+            self._trig_count_hw.set_up_histogram(histo_dict=self._histo_dict)
 
         self.line_paths.append(line_path)
-
-        binwidth = 10**12/(self._gen_scan_hw._scanner_frequency*self._line_length)
-        self._histo_dict['binwidth'] = binwidth
-
+    
         if self._gen_scan_hw._trigger == 1:
-            self._trig_count_hw.set_up_histogram(histo_dict=self._histo_dict)
+
             self._trig_hw.fire_trigger()
 
             get_histo = self._trig_count_hw.get_histogram()
