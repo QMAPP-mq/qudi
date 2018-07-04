@@ -48,7 +48,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         # Internal parameters
         self._line_length = None
         self.line_paths = []
-        self._histo_dict = {'n_histograms':1, 'counting_channel':1, 'trigger_channel':0}
+        self._histo_dict = {'n_histograms':1, 'counting_channel':0, 'trigger_channel':1}
 
     def on_activate(self):
         """ Initialisation performed during activation of the module.
@@ -134,7 +134,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self.log.warning('ConfocalScannerInterfaceDummy>set_up_scanner')
+        #self.log.warning('ConfocalScannerInterfaceDummy>set_up_scanner')
         return 0
 
     def get_scanner_axes(self):
@@ -213,7 +213,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
 
         self._gen_scan_hw.scan_line(line_path)
 
-
+        #if True:
         if self._line_length != len(line_path[0]) or self._scan_freq != self._gen_scan_hw._scanner_frequency:
             self._line_length = len(line_path[0])
             self._scan_freq = self._gen_scan_hw._scanner_frequency
@@ -231,7 +231,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
             self._trig_hw.fire_trigger()
 
             get_histo = self._trig_count_hw.get_histogram()
-            self.log.warning(get_histo)
+            #self.log.warning(get_histo)
             get_histo = np.append(get_histo, [[0]*len(get_histo[0])], axis = 0)
             get_histo = get_histo.T
 
