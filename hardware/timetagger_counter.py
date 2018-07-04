@@ -245,9 +245,11 @@ class TimeTaggerCounter(Base, SlowCounterInterface, TriggeredCounterInterface):
 
         The histogram will continue to be filled.
 
-        @return histogram: the count histrogram
+        @return histogram: the count histrogram (normalised to c/s)
         """
-        return self.td_measurement.getData()
+        binwidth = self._histogram_dict['binwidth'] / 1e12  # TODO: it should probably be in SI units not picoseconds
+        raw_counts = self.td_measurement.getData()
+        return raw_counts / binwidth
 
     def reset_histogram(self):
         """ Reset the count histogram.
