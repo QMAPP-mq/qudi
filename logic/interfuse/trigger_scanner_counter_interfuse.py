@@ -231,8 +231,10 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
             self._trig_hw.fire_trigger()
 
             get_histo = self._trig_count_hw.get_histogram()
+            self.log.warning(get_histo)
             get_histo = np.append(get_histo, [[0]*len(get_histo[0])], axis = 0)
             get_histo = get_histo.T
+
             self._trig_count_hw.reset_histogram()
             return get_histo
         return 0
