@@ -213,7 +213,6 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
 
         self._gen_scan_hw.scan_line(line_path)
 
-        #if True:
         if self._line_length != len(line_path[0]) or self._scan_freq != self._gen_scan_hw._scanner_frequency:
             self._line_length = len(line_path[0])
             self._scan_freq = self._gen_scan_hw._scanner_frequency
