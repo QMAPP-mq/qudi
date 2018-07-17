@@ -46,7 +46,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         super().__init__(config=config, **kwargs)
 
         # Internal parameters
-        self._line_length = None
+        self._line_length = 1
         self.line_paths = []
         self._histo_dict = {'n_histograms':1, 'counting_channel':0, 'trigger_channel':1}
 
@@ -116,9 +116,9 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        # TODO: convert clock_frequency into a class variable that might be useful later on.
-        self._histo_dict['clock_frequency'] = clock_frequency
-        self._histo_dict['clock_channel'] = clock_channel
+        # TODO: check whether this goes here or in set_up_scanner
+        self._gen_scan_hw._scanner_frequency = clock_frequency/self._line_length
+        self._gen_scan_hw._scan_state = None
 
         return 0
 
