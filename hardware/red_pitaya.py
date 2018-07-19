@@ -49,7 +49,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
     #         - [-1, 1]
     #     trigger_out_channel: 'DIO1_P'
     #     scanner_frequency:
-    #         - 100
+    #         - 10
     #     scanner_position_ranges:
     #         - [0, 1e-6]
     #         - [0, 1e-6]
@@ -77,7 +77,6 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
 
         self.rp_s.tx_txt('ACQ:BUF:SIZE?')
         self._buffer_size = int(self.rp_s.rx_txt())
-        #set digital input/output of trigger channel to output
         self.rp_s.tx_txt('DIG:PIN:DIR OUT,'+ self._trigger_out_channel)
 
         self.x_path_volt = [0,0]
@@ -109,8 +108,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
     ############################################################################
     # ================ GenerallScannerInterface Commands =======================
     def reset_hardware(self):
-        """ Resets the Red Pitaya hardware, so the connection is lost and other
-            programs can access it.
+        """ Resets the Red Pitaya hardware.
 
         @return int: error code (0:OK, -1:error)
         """
@@ -124,7 +122,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
     def get_position_range(self):
         """ Returns the physical range of the scanner.
 
-        @return float [2][2]: array of 4 ranges with an array containing lower
+        @return float [2][2]: array of 2 ranges with an array containing lower
                               and upper limit. The unit of the scan range is
                               meters.
         """
@@ -234,11 +232,9 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
             self.set_up_line(line_path=line_path)
 
         try:
-            #self.fire_trigger()
+            time.sleep(0.15) # Red pitaya has issues with rapidly self triggering
             self._scan_state = '_scanner'
             self._trigger = 1    
-
-            # update the scanner position instance variable
             self._current_position[0] = np.array(line_path[0][0])
         except:
             self.log.exception('Error while scanning line.')
@@ -246,8 +242,8 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         return 0
 
     def scanner_off(self):
-        """ Closes the scanner and cleans up afterwards.
-
+        """ Closes the scanner.
+        
         @return int: error code (0:OK, -1:error)
         """
 
@@ -260,6 +256,10 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         return 0
 
     def set_voltage_range(self, myrange=[-1,1],channel=[0,1]):
+        """ Set the voltage ranges for scanner.
+        @param float [2] myrange: 
+        @param float [n] channel:   
+        """
         for axis in channel:
             if axis > 1:
                 self.log.error('Can only set axis 0 or 1 on this device')
@@ -277,9 +277,17 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         return 0
     
     def get_scanner_axes(self):
+        """ Return the axes of the scanner
+        @return float[] of the axes
+
+        """
         return ['x','y']
 
     def set_scanner_speed(self, frequency=10):
+        """Set the scanning speed of the scanner in lines per second
+        @param float: Scanning speed in hertz
+        @return 0
+        """
         if frequency > 22:
             self.log.warning('Speeds greater than 22 lines per second may cause timing issues')
         self._scanner_frequency = frequency
@@ -337,13 +345,10 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
     def _scanner_position_to_volt(self, is_x_check, positions=None):
         """ Converts a set of position pixels to acutal voltages.
 
-        @param float[][n] positions: array of n-part tuples defining the pixels
+        @param float[n] positions: array of n-part tuples defining the pixels
 
-        @return float[][n]: array of n-part tuples of corresponing voltages
+        @return float[n]: array of n-part tuples of corresponing voltages
 
-        The positions is typically a matrix like
-            [[x_values], [y_values]]
-            but x, xy is allowed formats.
         """
 
         #if not isinstance(positions, (frozenset, list, set, tuple, np.ndarray, )):
@@ -373,46 +378,46 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         return volts
 
     def _red_pitaya_scanline_setup(self):
-        #set source 1,2 to have an arbitrary input 
+        """ Setup the Red Piatya to take an arbitrary scanline and set frequency.
+        @return 0
+        """
         self.rp_s.tx_txt('SOUR1:FUNC ARBITRARY')
-
-        #set the scanner frequencies from the config file
         self.rp_s.tx_txt('SOUR1:FREQ:FIX ' + str(self._scanner_frequency))
+        return 0
 
     def _red_pitaya_scanline_burstmode(self):
-        #set source burst repititions to 1
+        """ Set the Red Pitaya for burstmode scanning and external triggering
+        """
         self.rp_s.tx_txt('SOUR1:BURS:NCYC 1')
-
-        #set trigger to be external
         self.rp_s.tx_txt('SOUR1:TRIG:SOUR EXT_PE')
-
-        #set digital input/output of trigger channel to output
         self.rp_s.tx_txt('DIG:PIN:DIR OUT,'+ self._trigger_out_channel)
-        #set digital input/output pin 0_PE to external trigger input
         self.rp_s.tx_txt('DIG:PIN:DIR IN,DIO0_PE')
 
+        return 0
+
     def _red_pitaya_setpos(self, x=None, y=None):
-
-        #resets generator to default settings
-        #self.rp_s.tx_txt('GEN:RST')
-
-        #set source 1,2 to have an arbitrary input 
+        """Use Red Pitaya commands to set position.
+        @param float x: position in metres
+        @param float y: position in metres
+        """
         self.rp_s.tx_txt('SOUR1:FUNC ARBITRARY')
         self.rp_s.tx_txt('SOUR2:FUNC ARBITRARY')
 
-        #set the scanner frequencies from the config file
         self.rp_s.tx_txt('SOUR1:FREQ:FIX ' + str(self._scanner_frequency))
         self.rp_s.tx_txt('SOUR2:FREQ:FIX ' + str(self._scanner_frequency))
         
-        #set source 1,2 waveform to our scan values
-        if x is not None:
-            self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + str(x))
-        if y is not None:
-            self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + str(y))  
-        self.rp_s.tx_txt('OUTPUT1:STATE ON')
-        self.rp_s.tx_txt('OUTPUT2:STATE ON')
-        #set the x,y outputs to trigger internally and simultaneously 
-        self.rp_s.tx_txt('TRIG:IMM')
+        #set source 1,2 waveform to our position values
+        try:
+            if x is not None:
+                self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + str(x))
+            if y is not None:
+                self.rp_s.tx_txt('SOUR2:TRAC:DATA:DATA ' + str(y))
+
+            self.rp_s.tx_txt('OUTPUT1:STATE ON')
+            self.rp_s.tx_txt('OUTPUT2:STATE ON')
+            self.rp_s.tx_txt('TRIG:IMM')
+            return 0
+        return -1
         
 
     # ================ End ConfocalScannerInterface Commands ===================
@@ -420,33 +425,37 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
     # ================ TriggerInterface Commands ===============================
 
     def set_pulse_amplitude(self, amplitude):
+        """Set the amplitude trigger pulse.
+        @param float: amplitude of pulse in volts
+        """
         self.log.info('Can not set pulse amplitude on Red Pitaya. Amplitude is 3.3 V')
+        return 0
 
     def set_pulse_duration(self, duration):
+        """Set the duration of the trigger pulse.
+        @param float: Set the duration of the pulse in seconds
+        """
         self._pulse_duration = duration
         return 0 
 
     def fire_trigger(self):
-
-        #turn digital output on
-        self.rp_s.tx_txt('DIG:PIN '+ self._trigger_out_channel+', 1')
-
-        #enable source 1 to be triggered(only used in scanning)
-
+        """Fire the trigger!
+        """
+        self.rp_s.tx_txt('DIG:PIN '+ self._trigger_out_channel+', 1') #trigger on
         time.sleep(self._pulse_duration)
+        self.rp_s.tx_txt('DIG:PIN '+ self._trigger_out_channel+', 0') #trigger off
 
-        #turn digital output off
-        self.rp_s.tx_txt('DIG:PIN '+ self._trigger_out_channel+', 0')
-        time.sleep(0.15)
         return 0
     
     def gen_trigger(self, pin='DIO1_P'):
-        #turn pin to output
+        """Fire a general trigger!
+        @param str: The pin in which you want to trigger
+                    Pin will be of the form DIOM_P or DIOM_N
+                    where M is an int from 0-7
+        """
         self.rp_s.tx_txt('DIG:PIN:DIR OUT,'+ pin)
-        #turn digital output on
         self.rp_s.tx_txt('DIG:PIN '+ pin+', 1')
         time.sleep(self._pulse_duration)
-        #turn digital output off
         self.rp_s.tx_txt('DIG:PIN '+ pin+', 0')
         
         return 0
