@@ -66,7 +66,7 @@ class GenScannerInterface(metaclass=InterfaceMetaclass):
     def get_position_range(self):
         """ Returns the physical range of the scanner.
 
-        @return float [4][2]: array of 4 ranges with an array containing lower
+        @return float [n][2]: array of n ranges with an array containing lower
                               and upper limit
         """
         pass
@@ -99,7 +99,7 @@ class GenScannerInterface(metaclass=InterfaceMetaclass):
     def set_position_range(self, myrange=None):
         """ Sets the physical range of the scanner.
 
-        @param float [4][2] myrange: array of 4 ranges with an array containing
+        @param float [n][2] myrange: array of n ranges with an array containing
                                      lower and upper limit
 
         @return int: error code (0:OK, -1:error)
@@ -140,34 +140,14 @@ class GenScannerInterface(metaclass=InterfaceMetaclass):
         """
         pass
 
-    # @abc.abstractmethod
-    # def set_up_line(self, start=None, stop=None, step=None):
-    #     """
-    #     Configures the device for sweep-mode and optionally sets position start/stop/step
+     @abc.abstractmethod
+     def set_up_line(self, start=None, stop=None, step=None):
+         """
+         Configures the device for sweep-mode and optionally sets position start/stop/step
 
-    #     @return float, float, float, float, str: current start position in metres,
-    #                                              current stop position in metres,
-    #                                              current position step in metres,
-    #                                              current mode
-    #     """
-    #     pass
-
-    # @abc.abstractmethod
-    # def trigger(self):
-    #     """ Trigger the next element in the list or sweep mode programmatically.
-
-    #     @return int: error code (0:OK, -1:error)
-
-    #     Ensure that the Frequency was set AFTER the function returns, or give
-    #     the function at least a save waiting time corresponding to the
-    #     frequency switching speed.
-    #     """
-    #     pass
-
-    # @abc.abstractmethod
-    # def get_limits(self):
-    #     """ Return the device-specific limits in a nested dictionary.
-
-    #       @return GenScannerLimits: General scanner limits object
-    #     """
-    #     pass
+         @return float, float, float, float, str: current start position in metres,
+                                                  current stop position in metres,
+                                                  current position step in metres,
+                                                  current mode
+         """
+         pass
