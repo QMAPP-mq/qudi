@@ -140,14 +140,14 @@ class GenScannerInterface(metaclass=InterfaceMetaclass):
         """
         pass
 
-     @abc.abstractmethod
-     def set_up_line(self, start=None, stop=None, step=None):
-         """
-         Configures the device for sweep-mode and optionally sets position start/stop/step
+    @abc.abstractmethod
+    def set_up_line(self, start=None, stop=None, step=None):
+        """
+        Configures the device for sweep-mode and optionally sets position start/stop/step
 
-         @return float, float, float, float, str: current start position in metres,
+        @return float, float, float, float, str: current start position in metres,
                                                   current stop position in metres,
                                                   current position step in metres,
                                                   current mode
-         """
-         pass
+        """
+        pass

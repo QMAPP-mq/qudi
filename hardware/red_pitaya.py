@@ -416,7 +416,8 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
             self.rp_s.tx_txt('OUTPUT2:STATE ON')
             self.rp_s.tx_txt('TRIG:IMM')
             return 0
-        return -1
+        except:
+            return -1
         
 
     # ================ End ConfocalScannerInterface Commands ===================
