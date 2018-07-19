@@ -39,6 +39,8 @@ class TimeTaggerCounter(Base, SlowCounterInterface, TriggeredCounterInterface):
 
     _channel_apd_0 = ConfigOption('timetagger_channel_apd_0', missing='error')
     _channel_apd_1 = ConfigOption('timetagger_channel_apd_1', None, missing='warn')
+    _counting_channel = ConfigOption('timetagger_counting_channel')
+    _trigger_channel = ConfigOption('timetagger_trigger_channel')
     _sum_channels = ConfigOption('timetagger_sum_channels', False)
 
     _histogram_dict = {}    # for triggered counter methods
@@ -216,7 +218,7 @@ class TimeTaggerCounter(Base, SlowCounterInterface, TriggeredCounterInterface):
         if histo_dict is not None:
             self.tagger = tt.createTimeTagger()
 
-            required_keys = ['counting_channel', 'trigger_channel', 'binwidth', 'n_bins', 'n_histograms']
+            required_keys = ['binwidth', 'n_bins', 'n_histograms']
 
             for key in required_keys:
                 if key not in histo_dict:
@@ -224,8 +226,8 @@ class TimeTaggerCounter(Base, SlowCounterInterface, TriggeredCounterInterface):
                     return -1
 
             # Populate the dictionary
-            self._histogram_dict['counting_channel'] = histo_dict['counting_channel']
-            self._histogram_dict['trigger_channel'] = histo_dict['trigger_channel']
+            self._histogram_dict['counting_channel'] = self._counting_channel
+            self._histogram_dict['trigger_channel'] = self._trigger_channel
             self._histogram_dict['binwidth'] = histo_dict['binwidth']
             self._histogram_dict['n_bins'] = histo_dict['n_bins']
             self._histogram_dict['n_histograms'] = histo_dict['n_histograms']
