@@ -53,6 +53,8 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
     #     scanner_position_ranges:
     #         - [0, 1e-6]
     #         - [0, 1e-6]
+    #     x_axis_inverted: 1
+    #     y_axis_inverted: 0
     ```
 
     """
@@ -66,6 +68,8 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
     _scanner_frequency = ConfigOption('scanner_frequency', missing='error')
     _trigger_out_channel = ConfigOption('trigger_out_channel', missing='warn')
     _scanner_position_ranges = ConfigOption('scanner_position_ranges', missing='error')
+    _x_axis_inverted = ConfigOption('x_axis_inverted', missing='warn')
+    _y_axis_inverted = ConfigOption('y_axis_inverted', missing='warn')
 
     def on_activate(self):
         """ Starts up the RP Card at activation.
@@ -161,8 +165,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
             if not(self._scanner_position_ranges[0][0] <= x <= self._scanner_position_ranges[0][1]):
                 self.log.error('You want to set x out of range: {0:f}.'.format(x))
                 return -1
-            _is_x_check = 1
-            x_volt = self._scanner_position_to_volt(positions=[x], is_x_check=_is_x_check)
+            x_volt = self._scanner_position_to_volt(positions=[x], is_inverted=self._x_axis_inverted, axis=0)
             x_volt = str(x_volt[0][0])
             self._current_position[0] = np.float(x)
 
@@ -170,8 +173,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
             if not(self._scanner_position_ranges[1][0] <= y <= self._scanner_position_ranges[1][1]):
                 self.log.error('You want to set y out of range: {0:f}.'.format(y))
                 return -1
-            _is_x_check = 0
-            y_volt = self._scanner_position_to_volt(positions=[y], is_x_check=_is_x_check)
+            y_volt = self._scanner_position_to_volt(positions=[y], is_inverted=self._y_axis_inverted, axis=1)
             y_volt = str(y_volt[0][0])
             self._current_position[1] = np.float(y)
 
@@ -219,7 +221,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
 
         y_final = line_path[1][len(line_path[1])-1]
         if line_path[1][0] != y_final:
-                y_volt = self._scanner_position_to_volt(positions=[y_final], is_x_check=0)
+                y_volt = self._scanner_position_to_volt(positions=[y_final], is_inverted=self._y_axis_inverted, axis=1)
                 y_volt = str(y_volt[0][0])
 
                 self.rp_s.tx_txt('SOUR2:FUNC ARBITRARY')
@@ -316,7 +318,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         #Red Pitaya does not like having a line path less than its buffer size
         self.x_path_volt = np.linspace(line_path[0][0], line_path[0][len(line_path[0])-1], self._buffer_size)
 
-        x_path = self._scanner_position_to_volt(positions = self.x_path_volt, is_x_check=self._is_x_line)
+        x_path = self._scanner_position_to_volt(positions = self.x_path_volt, is_inverted=self._x_axis_inverted, axis=0)
         try:
             self.x_line = ''
 
@@ -342,7 +344,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
 
         return 0
     
-    def _scanner_position_to_volt(self, is_x_check, positions=None):
+    def _scanner_position_to_volt(self, is_inverted=0, positions=None, axis=0):
         """ Converts a set of position pixels to acutal voltages.
 
         @param float[n] positions: array of n-part tuples defining the pixels
@@ -355,22 +357,19 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         #    self.log.error('Given position list is no array type.')
         #    return np.array([np.NaN])
 
-        x_check = 1
-        if is_x_check ==1:
-            x_check = 0
         vlist = []
         for i in (positions):
             vlist.append(
-                (self._scanner_voltage_ranges[x_check][1] - self._scanner_voltage_ranges[x_check][0])
-                / (self._scanner_position_ranges[x_check][1] - self._scanner_position_ranges[x_check][0])
-                * (i - self._scanner_position_ranges[x_check][0])
-                + self._scanner_voltage_ranges[x_check][0]
+                (self._scanner_voltage_ranges[axis][1] - self._scanner_voltage_ranges[axis][0])
+                / (self._scanner_position_ranges[axis][1] - self._scanner_position_ranges[axis][0])
+                * (i - self._scanner_position_ranges[axis][0])
+                + self._scanner_voltage_ranges[axis][0]
             )
-        if x_check ==0:
+        if is_inverted == 1:
             vlist = [-x for x in vlist]
         volts = np.vstack(vlist)
 
-        if volts.min() < self._scanner_voltage_ranges[x_check][0] or volts.max() > self._scanner_voltage_ranges[x_check][1]:
+        if volts.min() < self._scanner_voltage_ranges[axis][0] or volts.max() > self._scanner_voltage_ranges[axis][1]:
             self.log.error(
                 'Voltages ({0}, {1}) exceed the limit, the positions have to '
                 'be adjusted to stay in the given range.'.format(volts.min(), volts.max()))
