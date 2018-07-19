@@ -280,6 +280,8 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         return ['x','y']
 
     def set_scanner_speed(self, frequency=10):
+        if frequency > 22:
+            self.log.warning('Speeds greater than 22 lines per second may cause timing issues')
         self._scanner_frequency = frequency
         self._pulse_duration = 1/frequency
         self._scan_state = None
@@ -435,7 +437,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
 
         #turn digital output off
         self.rp_s.tx_txt('DIG:PIN '+ self._trigger_out_channel+', 0')
-        time.sleep(0.1)
+        time.sleep(0.15)
         return 0
     
     def gen_trigger(self, pin='DIO1_P'):
