@@ -117,8 +117,7 @@ class TriggerScannerCounterInterfuse(Base, ConfocalScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
         # TODO: check whether this goes here or in set_up_scanner
-        self._gen_scan_hw._scanner_frequency = clock_frequency/self._line_length
-        self._gen_scan_hw._scan_state = None
+        self._gen_scan_hw.set_up_clock(clock_frequency=clock_frequency)
 
         return 0
 
