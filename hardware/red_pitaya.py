@@ -318,8 +318,6 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         #if the scan path varies in y, set the y position to the final value, don't touch x
         #dirty hack to prevent delays from writing positions to RP
 
-        self._is_x_line = 1
-
         #Red Pitaya does not like having a line path less than its buffer size
         self.x_path_volt = np.linspace(line_path[0][0], line_path[0][len(line_path[0])-1], self._buffer_size)
 
