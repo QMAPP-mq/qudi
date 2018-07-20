@@ -88,6 +88,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         self._scanner_frequency = self._scanner_frequency[0]
         self._pulse_duration = 1/self._scanner_frequency
         self._trigger = 0
+        self._clock_frequency = self._scanner_frequency
 
         # handle all the parameters given by the config
 
@@ -285,17 +286,21 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         """
         return ['x','y']
 
-    def set_scanner_speed(self, frequency=10):
+    def _set_scanner_speed(self, clock_frequency=self._clock_frequency, pixels=1):
         """Set the scanning speed of the scanner in lines per second
         @param float: Scanning speed in hertz
         @return 0
         """
+        frequency = clock_frequency/pixels
         if frequency > 22:
             self.log.warning('Speeds greater than 22 lines per second may cause timing issues')
         self._scanner_frequency = frequency
         self._pulse_duration = 1/frequency
-        self._scan_state = None
         return 0
+        
+    def set_up_clock(clock_frequency=None):
+        self._clock_frequency = frequency
+        self._scan_state = None
 
 
     ############################################################################
@@ -331,7 +336,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
             if self._scan_state != '_scanner':
                 
                 #set source 1,2 waveform to our scan values
-                self._red_pitaya_scanline_setup()
+                self._red_pitaya_scanline_setup(pixels=len(line_path[0]))
                 self.rp_s.tx_txt('SOUR1:TRAC:DATA:DATA ' + self.x_line) 
                 self._red_pitaya_scanline_burstmode()
                 self.rp_s.tx_txt('OUTPUT1:STATE ON')
@@ -376,11 +381,12 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
             return np.array([np.NaN])
         return volts
 
-    def _red_pitaya_scanline_setup(self):
+    def _red_pitaya_scanline_setup(self, pixels=1):
         """ Setup the Red Piatya to take an arbitrary scanline and set frequency.
         @return 0
         """
         self.rp_s.tx_txt('SOUR1:FUNC ARBITRARY')
+        self._set_scanner_speed(self, clock_frequency=self._clock_frequency, pixels=pixels)
         self.rp_s.tx_txt('SOUR1:FREQ:FIX ' + str(self._scanner_frequency))
         return 0
 
