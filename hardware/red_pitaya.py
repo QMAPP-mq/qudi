@@ -286,12 +286,12 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         """
         return ['x','y']
 
-    def _set_scanner_speed(self, clock_frequency=self._clock_frequency, pixels=1):
+    def _set_scanner_speed(self, pixels=1):
         """Set the scanning speed of the scanner in lines per second
         @param float: Scanning speed in hertz
         @return 0
         """
-        frequency = clock_frequency/pixels
+        frequency = self._clock_frequency/pixels
         if frequency > 22:
             self.log.warning('Speeds greater than 22 lines per second may cause timing issues')
         self._scanner_frequency = frequency
@@ -299,7 +299,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         return 0
         
     def set_up_clock(self, clock_frequency=None):
-        self._clock_frequency = frequency
+        self._clock_frequency = clock_frequency
         self._scan_state = None
 
 
@@ -386,7 +386,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         @return 0
         """
         self.rp_s.tx_txt('SOUR1:FUNC ARBITRARY')
-        self._set_scanner_speed(self, clock_frequency=self._clock_frequency, pixels=pixels)
+        self._set_scanner_speed(pixels=pixels)
         self.rp_s.tx_txt('SOUR1:FREQ:FIX ' + str(self._scanner_frequency))
         return 0
 
