@@ -298,7 +298,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
         self._pulse_duration = 1/frequency
         return 0
         
-    def set_up_clock(clock_frequency=None):
+    def set_up_clock(self, clock_frequency=None):
         self._clock_frequency = frequency
         self._scan_state = None
 
