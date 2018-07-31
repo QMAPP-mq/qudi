@@ -56,10 +56,10 @@ class MSquaredLaser(Base, SimpleLaserInterface):
     ```
     mylaser:
         module.Class: 'laser.msquared_laser.MSquaredLaser'
-        laser_ip: '192.168.1.222'
+        laser_ip: '10.48.16.129'
         laser_port: 39933
-        default_x_alignment_param: 77.85
-        default_y_alignment_param: 62.80
+        default_x_alignment_param: 50.00
+        default_y_alignment_param: 50.00
     ```
     """
 
@@ -382,30 +382,32 @@ class MSquaredLaser(Base, SimpleLaserInterface):
 
     def _get_wavelength_lock(self):
         """ Get the wavelength lock status
+            In the msquared laser in the diamond lab only the etalon lock is available
 
             @return bool : status of the wavelength lock
         """
 
-        message = {'transmission_id':[7], 'op':'poll_wave_m'}
+        message = {'transmission_id':[7], 'op':'etalon_lock_status'}
 
         self._send_command(message)
         time.sleep(0.1)
         response = self._read_response()
 
-        if response['lock_status'][0] == 3:
+        if response['status'][0] == 0:
             return True
         else:
             return False
 
     def _set_wavelength_lock(self, target_state):
         """ Set the wavelength lock either `on' or `off'
-
+            In the msquared laser in the diamond lab only the etalon lock is available
+            
             @param bool targer_state : desired lock state of the laser
 
             @return bool state : status of the wavelength lock
         """
 
-        message = {'transmission_id':[6], 'op':'lock_wave_m',
+        message = {'transmission_id':[6], 'op':'etalon_lock',
                    'parameters':{'operation':target_state}}
 
         self._send_command(message)
