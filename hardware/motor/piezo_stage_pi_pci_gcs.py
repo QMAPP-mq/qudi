@@ -43,7 +43,7 @@ class PiezoStagePI_GCS1(Base, MotorInterface):
     Example configuration:
     ```
     # pi_piezo:
-    #     module.Class: 'motor.piezo_stage_pi_pci_gcs.PiezoStagePI_GCS1'
+    #     module.Class: 'motor.piezo_stage_pi_pci_gcs.PiezoStagePI'
     #     axis_labels:
     #         - x
     #         - y
