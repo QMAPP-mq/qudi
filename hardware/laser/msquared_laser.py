@@ -414,21 +414,18 @@ class MSquaredLaser(Base, SimpleLaserInterface):
         time.sleep(0.1)
         response = self._read_response()
 
-        if response['status'][0] == 0:
-            if target_state == 'on':
+        if target_state == 'on' and response['condition'] == 'on':
+            return True
+        elif target_state == 'off' and response['condition'] == 'off':
+            return False
+        else:
+            self.log.error('Something went wrong setting the wavelength lock!')
+            if target_state == 'on' and response['condition'] == 'off':
+                return False
+            elif target_state == 'off' and response['condition'] == 'on':
                 return True
             else:
-                return False
-        else:
-            if target_state == 'on':
-                verb = 'apply'
-                state = False
-            else:
-                verb = 'remove'
-                state = True
-
-            self.log.error('Unable to {} wavelength lock!'.format(verb))
-            return state
+                self.log.error('Something REALLY went wrong setting the wavelength lock!')
 
     def _get_beam_align(self):
         """ Get the Beam X and Beam Y alignment variables
