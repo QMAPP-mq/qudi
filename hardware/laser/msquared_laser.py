@@ -549,7 +549,7 @@ class MSquaredLaser(Base, SimpleLaserInterface):
             }
 
         self._send_command(message)
-        time.sleep(0.1)
+        time.sleep(0.5)
         response = self._read_response()
 
         if response['status'][0] != 0:
