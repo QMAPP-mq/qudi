@@ -235,7 +235,7 @@ class RedPitaya(Base, GenScannerInterface, TriggerInterface):
             self.set_up_line(line_path=line_path)
 
         try:
-            time.sleep(0.15) # Red pitaya has issues with rapidly self triggering
+            time.sleep(0.2) # Red pitaya has issues with rapidly self triggering
             self._scan_state = '_scanner'
             self._trigger = 1    
             self._current_position[0] = np.array(line_path[0][0])
