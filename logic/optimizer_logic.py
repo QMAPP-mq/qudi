@@ -378,7 +378,7 @@ class OptimizerLogic(GenericLogic):
             else:
                 return_line = np.vstack((lsx, lsy, lsz, np.zeros(lsx.shape)))  # Todo: 4th channel should stay at current value, not zero
 
-            return_lin e_counts = self._scanning_device.scan_line(return_line)
+            return_line_counts = self._scanning_device.scan_line(return_line)
             if np.any(return_line_counts == -1):
                 self.log.error('The scan went wrong (negative count values received), killing the scanner.')
                 self.stop_refocus()
