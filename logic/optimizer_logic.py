@@ -260,6 +260,8 @@ class OptimizerLogic(GenericLogic):
         self._Y_values = np.linspace(ymin, ymax, num=self.optimizer_XY_res)
         self._Z_values = self.optim_pos_z * np.ones(self._X_values.shape)
         self._A_values = np.zeros(self._X_values.shape)
+        
+        # TODO: I think these can be removed when the retun line is simply going to the start of the next image line
         self._return_X_values = np.linspace(xmax, xmin, num=self.optimizer_XY_res)
         self._return_A_values = np.zeros(self._return_X_values.shape)
 
@@ -319,6 +321,8 @@ class OptimizerLogic(GenericLogic):
         until the xy optimization image is complete.
         """
         n_ch = len(self._scanning_device.get_scanner_axes())
+        image = self.xy_refocus_image
+
         # stop scanning if instructed
         if self.stopRequested:
             with self.threadlock:
@@ -332,18 +336,18 @@ class OptimizerLogic(GenericLogic):
 
         # move to the start of the first line
         if self._xy_scan_line_count == 0:
-            status = self._move_to_start_pos([self.xy_refocus_image[0, 0, 0],
-                                              self.xy_refocus_image[0, 0, 1],
-                                              self.xy_refocus_image[0, 0, 2]])
+            status = self._move_to_start_pos([image[0, 0, 0],
+                                              image[0, 0, 1],
+                                              image[0, 0, 2]])
             if status < 0:
                 self.log.error('Error during move to starting point.')
                 self.stop_refocus()
                 self._sigScanNextXyLine.emit()
                 return
 
-        lsx = self.xy_refocus_image[self._xy_scan_line_count, :, 0]
-        lsy = self.xy_refocus_image[self._xy_scan_line_count, :, 1]
-        lsz = self.xy_refocus_image[self._xy_scan_line_count, :, 2]
+        lsx = image[self._xy_scan_line_count, :, 0]
+        lsy = image[self._xy_scan_line_count, :, 1]
+        lsz = image[self._xy_scan_line_count, :, 2]
 
         # scan a line of the xy optimization image
         if n_ch <= 3:
@@ -358,20 +362,28 @@ class OptimizerLogic(GenericLogic):
             self._sigScanNextXyLine.emit()
             return
 
-        lsx = self._return_X_values
-        lsy = self.xy_refocus_image[self._xy_scan_line_count, 0, 1] * np.ones(lsx.shape)
-        lsz = self.xy_refocus_image[self._xy_scan_line_count, 0, 2] * np.ones(lsx.shape)
-        if n_ch <= 3:
-            return_line = np.vstack((lsx, lsy, lsz))
-        else:
-            return_line = np.vstack((lsx, lsy, lsz, np.zeros(lsx.shape)))
+        # If there are more lines to scan after this one, 
+        # make a line to go to the starting position of the next scan line
+        if self._xy_scan_line_count < len(image[:, 0, 0]) - 1:  # minus 1 because scan_counter starts at 0
+        
+            rs = self.return_slowness
 
-        return_line_counts = self._scanning_device.scan_line(return_line)
-        if np.any(return_line_counts == -1):
-            self.log.error('The scan went wrong, killing the scanner.')
-            self.stop_refocus()
-            self._sigScanNextXyLine.emit()
-            return
+            lsx = np.linspace(image[self._xy_scan_line_count, -1, 0], image[self._xy_scan_line_count + 1, 0, 0], rs)
+            lsy = np.linspace(image[self._xy_scan_line_count, -1, 1], image[self._xy_scan_line_count + 1, 0, 1], rs)
+            lsz = np.linspace(image[self._xy_scan_line_count, -1, 2], image[self._xy_scan_line_count + 1, 0, 2], rs)
+
+        
+            if n_ch <= 3:
+                return_line = np.vstack((lsx, lsy, lsz))
+            else:
+                return_line = np.vstack((lsx, lsy, lsz, np.zeros(lsx.shape)))  # Todo: 4th channel should stay at current value, not zero
+
+            return_lin e_counts = self._scanning_device.scan_line(return_line)
+            if np.any(return_line_counts == -1):
+                self.log.error('The scan went wrong (negative count values received), killing the scanner.')
+                self.stop_refocus()
+                self._sigScanNextXyLine.emit()
+                return
 
         s_ch = len(self.get_scanner_count_channels())
         self.xy_refocus_image[self._xy_scan_line_count, :, 3:3 + s_ch] = line_counts
