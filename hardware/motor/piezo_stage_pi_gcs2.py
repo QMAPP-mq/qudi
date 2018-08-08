@@ -30,7 +30,7 @@ from core.module import Base, ConfigOption
 from interface.motor_interface import MotorInterface
 
 
-class PiezoStagePI(Base, MotorInterface):
+class PiezoStagePI_GCS2(Base, MotorInterface):
 
     """unstable: Lachlan Rogers, Matt van Breugel
     This is the hardware module for communicating with PI Piezo scanning stages
