@@ -29,7 +29,28 @@ import sys
 import struct
 import serial
 
+from core.module import Base, ConfigOption
+
 class ps2000(Base, PowersupplyInterface):
+
+    """ stabel: Matt van Breugel, Lachlan Rogers
+    This is the hardware module for communicating with Elektro Automatik PS2000 series powersupplys
+    over USB.
+
+    Example configuration (Windows):
+    ```
+        my_powersupply:
+            module.Class 'powersupply.ea_ps2000.ps2000'
+            port: 'COM3'
+    ```
+
+    Example configuration (Linux):
+    ```
+        my_powersupply:
+            module.Class 'powersupply.ea_ps2000.ps2000'
+            port: '/dev/ttyACM0''
+    ```
+    """
 
     # set verbose to True to see all bytes
     _verbose = False
@@ -42,18 +63,23 @@ class ps2000(Base, PowersupplyInterface):
     _u_nom = 0
     _i_nom = 0
 
+    # fetch port information
+    _port = ConfigOption('port', missing='error')
+
     # open port upon initialization
-    def on_activate(self): # , port)
-        # TODO make more general
-        port = 'COM3'
+    def on_activate(self):
         # set timeout to 0.06s to guarantee minimum interval time of 50ms
-        self.ser_dev = serial.Serial(port, timeout=0.06, baudrate=115200, parity=serial.PARITY_ODD)
+        self.ser_dev = serial.Serial(self._port, timeout=0.06, baudrate=115200, parity=serial.PARITY_ODD)
         self._u_nom = self.get_nominal_voltage()
         self._i_nom = self.get_nominal_current()
 
     # close the door behind you
     def on_deactivate(self):
         self.ser_dev.close()
+
+    #
+    # internal methods ##################################################
+    #
 
     # construct telegram
     def _construct(self, type, node, obj, data):
@@ -236,13 +262,6 @@ class ps2000(Base, PowersupplyInterface):
     def OVP_threshold(self, u):
         return self._set_integer(38, u)
 
-    # # object 38
-    # def get_OVP_threshold(self):
-    #     return self._get_integer(38)
-
-    # def set_OVP_threshold(self, u):
-    #     return self._set_integer(38, u)
-
     # object 39
     @property
     def OCP_threshold(self):
@@ -251,13 +270,6 @@ class ps2000(Base, PowersupplyInterface):
     @OCP_threshold.setter
     def OCP_threshold(self, i):
         return self._set_integer(39, i)
-
-    # # object 39
-    # def get_OCP_threshold(self):
-    #     return self._get_integer(39)
-
-    # def set_OCP_threshold(self, i):
-    #     return self._set_integer(39, i)
 
     # object 50
     @property
@@ -269,14 +281,6 @@ class ps2000(Base, PowersupplyInterface):
     def voltage_setpoint(self, u):
         return self._set_integer(50, int(round((u * 25600.0) / self._u_nom)))
 
-    # # object 50
-    # def get_voltage_setpoint(self):
-    #     v = self._get_integer(50)
-    #     return self._u_nom * v / 25600
-
-    # def set_voltage(self, u):
-    #     return self._set_integer(50, int(round((u * 25600.0) / self._u_nom)))
-
     # object 51
     @property
     def current_setpoint(self):
@@ -286,14 +290,6 @@ class ps2000(Base, PowersupplyInterface):
     @current_setpoint.setter
     def current_setpoint(self, i):
         return self._set_integer(51, int(round((i * 25600.0) / self._i_nom)))
-
-    # # object 51
-    # def get_current_setpoint(self):
-    #     i = self._get_integer(50)
-    #     return self._i_nom * i / 25600
-
-    # def set_current(self, i):
-    #     return self._set_integer(51, int(round((i * 25600.0) / self._i_nom)))
 
     # object 54
     def _get_control(self):
