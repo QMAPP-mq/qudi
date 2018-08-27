@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Interface file for lab power supplies.
+Interface file for lab powersupplies.
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -24,8 +24,8 @@ import abc
 from core.util.interfaces import InterfaceMetaclass
 
 
-class SimpleLaserInterface(metaclass=InterfaceMetaclass):
-    _modtype = 'SimpleLaserInterface'
+class PowersupplyInterface(metaclass=InterfaceMetaclass):
+    _modtype = 'PowersupplyInterface'
     _modclass = 'interface'
 
 	# object 2
@@ -79,7 +79,6 @@ class SimpleLaserInterface(metaclass=InterfaceMetaclass):
 
 		# return True if command was acknowledged ("error 0")
 		return ans[0] == 0xff and ans[1] == 0x00
-
 
 	def set_remote(self, remote=True):
 		if remote:
