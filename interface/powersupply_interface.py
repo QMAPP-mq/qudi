@@ -28,14 +28,6 @@ class SimpleLaserInterface(metaclass=InterfaceMetaclass):
     _modtype = 'SimpleLaserInterface'
     _modclass = 'interface'
 
-    # object 0
-	def get_type(self):
-		return self._get_string(0)
-		
-	# object 1
-	def get_serial(self):
-		return self._get_string(1)
-
 	# object 2
 	def get_nominal_voltage(self):
 		return self._get_float(2)
@@ -47,22 +39,6 @@ class SimpleLaserInterface(metaclass=InterfaceMetaclass):
 	# object 4
 	def get_nominal_power(self):
 		return self._get_float(4)
-
-	# object 6
-	def get_article(self):
-		return self._get_string(6)
-
-	# object 8
-	def get_manufacturer(self):
-		return self._get_string(8)
-
-	# object 9
-	def get_version(self):
-		return self._get_string(9)
-
-	# object 19
-	def get_device_class(self):
-		return self._get_integer(19)
 
 	# object 38
 	def get_OVP_threshold(self):
