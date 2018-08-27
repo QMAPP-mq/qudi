@@ -68,21 +68,41 @@ class ps2000(Base, PowersupplyInterface):
 
     # open port upon initialization
     def on_activate(self):
-        # set timeout to 0.06s to guarantee minimum interval time of 50ms
+        """ Initialise the hardware module.
+
+        Set timeout to 0.06s to guarantee minimum interval time of 50ms
+
+        @return int error code (0:OK, -1:error)
+        """
+
         self.ser_dev = serial.Serial(self._port, timeout=0.06, baudrate=115200, parity=serial.PARITY_ODD)
         self._u_nom = self.get_nominal_voltage()
         self._i_nom = self.get_nominal_current()
+        return 0
 
     # close the door behind you
     def on_deactivate(self):
+        """ Deactivate the hardware module
+
+        @return int error code (0:OK, -1:error)
+        """
         self.ser_dev.close()
+        return 0
 
     #
     # internal methods ##################################################
     #
 
-    # construct telegram
     def _construct(self, type, node, obj, data):
+        """ Construct telegram byte packet
+
+        @param type :
+        @param node :
+        @param obj  :
+        @param data :
+
+        @return telegram : telegram byte packet
+        """
         telegram = bytearray()
         telegram.append(0x30 + type)	# SD (start delimiter)
         telegram.append(node)		# DN (device node)
@@ -99,8 +119,13 @@ class ps2000(Base, PowersupplyInterface):
         
         return telegram
 
-    # compare checksum with header and data in response from device
     def _check_checksum(self, ans):
+        """ Compare checksum with header and data in response from device
+
+        @param ans :
+
+        @return bool error : (True:OK, False:error)
+        """
         cs = 0
         for b in ans[0:-2]:
             cs += b
@@ -111,8 +136,15 @@ class ps2000(Base, PowersupplyInterface):
         else:
             return True
 
-    # check for errors in response from device
     def _check_error(self, ans):
+        """ Check for errors in response from device
+
+        Will print error code is present
+
+        @param ans :
+
+        @return bool error : (True:OK, False:error)
+        """
         if ans[2] != 0xff:
             return False
 
@@ -145,8 +177,17 @@ class ps2000(Base, PowersupplyInterface):
         sys.exit(1)
         return True
 
-    # send one telegram, receive and check one response
     def _transfer(self, type, node, obj, data):
+        """ Send one telegram, receive and check one response
+
+        @param type :
+        @param node :
+        @param obj  :
+        @param data :
+
+        @return ans :
+        """
+
         telegram = self._construct(type, 0, obj, data)
         if self._verbose:
             print('* telegram: ', end='')
@@ -177,38 +218,71 @@ class ps2000(Base, PowersupplyInterface):
         
         return ans
 
-    # get a binary object
     def _get_binary(self, obj):
+        """ Get a binary object
+
+        @param obj :
+
+        @return ans :
+        """
         ans = self._transfer(self._PS_QUERY, 0, obj, '')
 
         return ans[3:-2]
 
-    # set a binary object
     def _set_binary(self, obj, mask, data):
+        """ Set a binary object
+
+        @param obj  :
+        @param mask :
+        @param data :
+
+        @return ans :
+        """
         ans = self._transfer(self._PS_SEND, 0, obj, [mask, data])
 
         return ans[3:-2]
 
-    # get a string-type object
     def _get_string(self, obj):
+        """ Get a string-type object
+
+        @param obj :
+
+        @return ans :
+        """
         ans = self._transfer(self._PS_QUERY, 0, obj, '')
 
         return ans[3:-3].decode('ascii')
 
-    # get a float-type object
     def _get_float(self, obj):
+        """ Get a float-type object
+
+        @param obj :
+
+        @return ans :
+        """
         ans = self._transfer(self._PS_QUERY, 0, obj, '')
 
         return struct.unpack('>f', ans[3:-2])[0]
 
-    # get an integer object
     def _get_integer(self, obj):
+        """ Get an integer object
+
+        @param obj :
+
+        @return ans :
+        """
         ans = self._transfer(self._PS_QUERY, 0, obj, '')
 
         return (ans[3] << 8) + ans[4]
 
-    # set an integer object
     def _set_integer(self, obj, data):
+        """ Set an integer object
+
+        @param obj  :
+        @param data :
+
+        @return ans :
+        """
         ans = self._transfer(self._PS_SEND, 0, obj, [data >> 8, data & 0xff])
 
         return (ans[3] << 8) + ans[4]
