@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-This file contains the Qudi hardware file to control SMIQ microwave device.
+This file contains the Qudi hardware file to control a Elektro Automatik PS2000 series powersupply.
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,9 +16,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Qudi. If not, see <http://www.gnu.org/licenses/>.
 
-This module was developed from PyAPT, written originally by Michael Leung
-(mcleung@stanford.edu). Have a look in:
-    https://github.com/HaeffnerLab/Haeffner-Lab-LabRAD-Tools/blob/master/cdllservers/APTMotor/APTMotorServer.py
+This module was developed from PyAPT, written originally by marcj71.
+Have a look in:
+    https://github.com/marcj71/ps2000.py
 
 Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
@@ -29,28 +29,28 @@ import sys
 import struct
 import serial
 
-class ps2000(object):
+class ps2000(Base, PowersupplyInterface):
 
 	# set verbose to True to see all bytes
-	verbose = False
+	_verbose = False
 
 	# defines
-	PS_QUERY = 0x40
-	PS_SEND  = 0xc0
+	_PS_QUERY = 0x40
+	_PS_SEND  = 0xc0
 
 	# nominal values, required for all voltage and current calculations
-	u_nom = 0
-	i_nom = 0
+	_u_nom = 0
+	_i_nom = 0
 
 	# open port upon initialization
-	def __init__(self, port='/dev/ttyACM0'):
+	def on_activate(self, port='/dev/ttyACM0'):
 		# set timeout to 0.06s to guarantee minimum interval time of 50ms
 		self.ser_dev = serial.Serial(port, timeout=0.06, baudrate=115200, parity=serial.PARITY_ODD)
-		self.u_nom = self.get_nominal_voltage()
-		self.i_nom = self.get_nominal_current()
+		self._u_nom = self.get_nominal_voltage()
+		self._i_nom = self.get_nominal_current()
 
 	# close the door behind you
-	def close(self):
+	def on_deactivate(self):
 		self.ser_dev.close()
 
 	# construct telegram
@@ -120,7 +120,7 @@ class ps2000(object):
 	# send one telegram, receive and check one response
 	def _transfer(self, type, node, obj, data):
 		telegram = self._construct(type, 0, obj, data)
-		if self.verbose:
+		if self._verbose:
 			print('* telegram: ', end='')
 			for b in telegram:
 				print('%02x ' % (b), end='')
@@ -132,7 +132,7 @@ class ps2000(object):
 		# receive response (always ask for more than the longest answer)
 		ans = self.ser_dev.read(100)
 
-		if self.verbose:
+		if self._verbose:
 			print('* answer:   ', end='')
 			for b in ans:
 				print('%02x ' % (b), end='')
@@ -151,37 +151,37 @@ class ps2000(object):
 
 	# get a binary object
 	def _get_binary(self, obj):
-		ans = self._transfer(self.PS_QUERY, 0, obj, '')
+		ans = self._transfer(self._PS_QUERY, 0, obj, '')
 
 		return ans[3:-2]
 
 	# set a binary object
 	def _set_binary(self, obj, mask, data):
-		ans = self._transfer(self.PS_SEND, 0, obj, [mask, data])
+		ans = self._transfer(self._PS_SEND, 0, obj, [mask, data])
 
 		return ans[3:-2]
 
 	# get a string-type object
 	def _get_string(self, obj):
-		ans = self._transfer(self.PS_QUERY, 0, obj, '')
+		ans = self._transfer(self._PS_QUERY, 0, obj, '')
 
 		return ans[3:-3].decode('ascii')
 
 	# get a float-type object
 	def _get_float(self, obj):
-		ans = self._transfer(self.PS_QUERY, 0, obj, '')
+		ans = self._transfer(self._PS_QUERY, 0, obj, '')
 
 		return struct.unpack('>f', ans[3:-2])[0]
 
 	# get an integer object
 	def _get_integer(self, obj):
-		ans = self._transfer(self.PS_QUERY, 0, obj, '')
+		ans = self._transfer(self._PS_QUERY, 0, obj, '')
 
 		return (ans[3] << 8) + ans[4]
 
 	# set an integer object
 	def _set_integer(self, obj, data):
-		ans = self._transfer(self.PS_SEND, 0, obj, [data >> 8, data & 0xff])
+		ans = self._transfer(self._PS_SEND, 0, obj, [data >> 8, data & 0xff])
 
 		return (ans[3] << 8) + ans[4]
 
@@ -242,18 +242,18 @@ class ps2000(object):
 	# object 50
 	def get_voltage_setpoint(self):
 		v = self._get_integer(50)
-		return self.u_nom * v / 25600
+		return self._u_nom * v / 25600
 
 	def set_voltage(self, u):
-		return self._set_integer(50, int(round((u * 25600.0) / self.u_nom)))
+		return self._set_integer(50, int(round((u * 25600.0) / self._u_nom)))
 
 	# object 51
 	def get_current_setpoint(self):
 		i = self._get_integer(50)
-		return self.i_nom * i / 25600
+		return self._i_nom * i / 25600
 
 	def set_current(self, i):
-		return self._set_integer(51, int(round((i * 25600.0) / self.i_nom)))
+		return self._set_integer(51, int(round((i * 25600.0) / self._i_nom)))
 
 	# object 54
 	def _get_control(self):
@@ -264,7 +264,6 @@ class ps2000(object):
 
 		# return True if command was acknowledged ("error 0")
 		return ans[0] == 0xff and ans[1] == 0x00
-
 
 	def set_remote(self, remote=True):
 		if remote:
@@ -299,8 +298,8 @@ class ps2000(object):
 		actual['OCP']      = True if ans[1] & 0x20 else False
 		actual['OPP']      = True if ans[1] & 0x40 else False
 		actual['OTP']      = True if ans[1] & 0x80 else False
-		actual['v']        = self.u_nom * ((ans[2] << 8) + ans[3]) / 25600
-		actual['i']        = self.i_nom * ((ans[4] << 8) + ans[5]) / 25600
+		actual['v']        = self._u_nom * ((ans[2] << 8) + ans[3]) / 25600
+		actual['i']        = self._i_nom * ((ans[4] << 8) + ans[5]) / 25600
 
 		if print_state:
 			if actual['remote']:
