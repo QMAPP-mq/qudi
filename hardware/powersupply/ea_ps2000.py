@@ -43,7 +43,9 @@ class ps2000(Base, PowersupplyInterface):
     _i_nom = 0
 
     # open port upon initialization
-    def on_activate(self, port='/dev/ttyACM0'):
+    def on_activate(self): # , port)
+        # TODO make more general
+        port = 'COM3'
         # set timeout to 0.06s to guarantee minimum interval time of 50ms
         self.ser_dev = serial.Serial(port, timeout=0.06, baudrate=115200, parity=serial.PARITY_ODD)
         self._u_nom = self.get_nominal_voltage()
@@ -194,66 +196,104 @@ class ps2000(Base, PowersupplyInterface):
         return self._get_string(0)
         
     # object 1
-    def get_serial(self):
+    def serial(self):
         return self._get_string(1)
 
     # object 2
-    def get_nominal_voltage(self):
+    def nominal_voltage(self):
         return self._get_float(2)
 
     # object 3
-    def get_nominal_current(self):
+    def nominal_current(self):
         return self._get_float(3)
 
     # object 4
-    def get_nominal_power(self):
+    def nominal_power(self):
         return self._get_float(4)
 
     # object 6
-    def get_article(self):
+    def article(self):
         return self._get_string(6)
 
     # object 8
-    def get_manufacturer(self):
+    def manufacturer(self):
         return self._get_string(8)
 
     # object 9
-    def get_version(self):
+    def version(self):
         return self._get_string(9)
 
     # object 19
-    def get_device_class(self):
+    def device_class(self):
         return self._get_integer(19)
 
     # object 38
-    def get_OVP_threshold(self):
+    @property
+    def OVP_threshold(self):
         return self._get_integer(38)
 
-    def set_OVP_threshold(self, u):
+    @OVP_threshold.setter
+    def OVP_threshold(self, u):
         return self._set_integer(38, u)
 
+    # # object 38
+    # def get_OVP_threshold(self):
+    #     return self._get_integer(38)
+
+    # def set_OVP_threshold(self, u):
+    #     return self._set_integer(38, u)
+
     # object 39
-    def get_OCP_threshold(self):
+    @property
+    def OCP_threshold(self):
         return self._get_integer(39)
 
-    def set_OCP_threshold(self, i):
+    @OCP_threshold.setter
+    def OCP_threshold(self, i):
         return self._set_integer(39, i)
 
+    # # object 39
+    # def get_OCP_threshold(self):
+    #     return self._get_integer(39)
+
+    # def set_OCP_threshold(self, i):
+    #     return self._set_integer(39, i)
+
     # object 50
-    def get_voltage_setpoint(self):
+    @property
+    def voltage_setpoint(self):
         v = self._get_integer(50)
         return self._u_nom * v / 25600
 
-    def set_voltage(self, u):
+    @voltage_setpoint.setter
+    def voltage_setpoint(self, u):
         return self._set_integer(50, int(round((u * 25600.0) / self._u_nom)))
 
+    # # object 50
+    # def get_voltage_setpoint(self):
+    #     v = self._get_integer(50)
+    #     return self._u_nom * v / 25600
+
+    # def set_voltage(self, u):
+    #     return self._set_integer(50, int(round((u * 25600.0) / self._u_nom)))
+
     # object 51
-    def get_current_setpoint(self):
+    @property
+    def current_setpoint(self):
         i = self._get_integer(50)
         return self._i_nom * i / 25600
 
-    def set_current(self, i):
+    @current_setpoint.setter
+    def current_setpoint(self, i):
         return self._set_integer(51, int(round((i * 25600.0) / self._i_nom)))
+
+    # # object 51
+    # def get_current_setpoint(self):
+    #     i = self._get_integer(50)
+    #     return self._i_nom * i / 25600
+
+    # def set_current(self, i):
+    #     return self._set_integer(51, int(round((i * 25600.0) / self._i_nom)))
 
     # object 54
     def _get_control(self):
