@@ -78,12 +78,12 @@ class ps2000(Base, PowersupplyInterface):
     # fetch port information
     _port = ConfigOption('port', missing='error')
 
-    # open port upon initialization
-    def on_activate(self, triple=False):
-        """ Initialise the hardware module.
+    # fetch if triple output information
+    _triple = ConfigOption('port', default=False, missing='warning')
 
-        :param port: The device port your power supply is connected to.
-        :param triple: Set to True if you have a Triple model. This is needed to address second channel.
+    # open port upon initialization
+    def on_activate(self):
+        """ Initialise the hardware module.
 
         :return int error code (0:OK, -1:error)
         """
@@ -91,7 +91,6 @@ class ps2000(Base, PowersupplyInterface):
         self.ser_dev = serial.Serial(self._port, timeout=0.06, baudrate=115200, parity=serial.PARITY_ODD)
         self._u_nom = self.get_nominal_voltage()
         self._i_nom = self.get_nominal_current()
-        self.triple = triple
 
         return 0
 
@@ -428,7 +427,8 @@ class ps2000(Base, PowersupplyInterface):
         actual['on'] = True if ans[1] & 0x01 else False
         actual['CC'] = True if ans[1] & 0x06 else False
         actual['CV'] = not actual['CC']
-        #	actual['tracking'] = True if ans[1] & 0x08 else False
+        if self._triple:
+        	actual['tracking'] = True if ans[1] & 0x08 else False
         actual['OVP'] = True if ans[1] & 0x10 else False
         actual['OCP'] = True if ans[1] & 0x20 else False
         actual['OPP'] = True if ans[1] & 0x40 else False
@@ -454,10 +454,11 @@ class ps2000(Base, PowersupplyInterface):
                 print('constant voltage')
 
             # for dual/triple output only
-            #		if actual['tracking']:
-            #			print('tracking on')
-            #		else:
-            #			print('tracking off')
+            if self._triple:
+                if actual['tracking']:
+                    print('tracking on')
+                else:
+                    print('tracking off')
 
             if actual['OVP']:
                 print('over-voltage protection active')
@@ -483,7 +484,6 @@ class ps2000(Base, PowersupplyInterface):
             print('actual current %fA' % actual['i'])
 
         return actual
-
 
 #
 # user example script ###############################################
