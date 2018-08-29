@@ -30,9 +30,12 @@ from interface.confocal_scanner_interface import ConfocalScannerInterface
 
 class ScannerMotorInterfuse(Base, ConfocalScannerInterface):
 
-    """This is the Interfuse class to combine the PiezoStagePI digital control over
-    usb with the APD counts through the NI Card. It joins these devices together and 
-    appears as a Confocal Scanner that can be connected to Confocal Logic.
+    """Interfuse to combine a motor stage with the slow counter for simple confocal scanning.
+    
+    This allows confocal scanning to be simply performed with
+    general hardware, but has slow speed because it needs to "think" per pixel
+    rather than per scanline. This interfuse appears as a Confocal Scanner
+    that can be connected to Confocal Logic.
     """
     _modclass = 'confocalscannerinterface'
     _modtype = 'hardware'
