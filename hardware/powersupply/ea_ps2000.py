@@ -3,6 +3,15 @@
 """
 This file contains the Qudi hardware file to control a Elektro Automatik PS2000 series powersupply.
 
+The following powersupplies are supported:
+* EA-PS 2042-06B
+* EA-PS 2042-10B
+* EA-PS 2042-20B
+* EA-PS 2084-03B
+* EA-PS 2084-05B
+* EA-PS 2084-10B
+* EA-PS 2342-10B
+
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -16,9 +25,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Qudi. If not, see <http://www.gnu.org/licenses/>.
 
-This module was developed from PyAPT, written originally by marcj71.
+This module was developed from ps2000, written originally by marcj71.
 Have a look in:
     https://github.com/marcj71/ps2000.py
+A fork of that project supporting an additional model was then used, 
+written by xolotl90, have a look in:
+    https://github.com/xolotl90/ps2000/blob/master/ps2000.py
 
 Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
@@ -57,7 +69,7 @@ class ps2000(Base, PowersupplyInterface):
 
     # defines
     _PS_QUERY = 0x40
-    _PS_SEND  = 0xc0
+    _PS_SEND = 0xc0
 
     # nominal values, required for all voltage and current calculations
     _u_nom = 0
@@ -67,24 +79,27 @@ class ps2000(Base, PowersupplyInterface):
     _port = ConfigOption('port', missing='error')
 
     # open port upon initialization
-    def on_activate(self):
+    def on_activate(self, triple=False):
         """ Initialise the hardware module.
 
-        Set timeout to 0.06s to guarantee minimum interval time of 50ms
+        :param port: The device port your power supply is connected to.
+        :param triple: Set to True if you have a Triple model. This is needed to address second channel.
 
-        @return int error code (0:OK, -1:error)
+        :return int error code (0:OK, -1:error)
         """
-
+        # set timeout to 0.06s to guarantee minimum interval time of 50ms
         self.ser_dev = serial.Serial(self._port, timeout=0.06, baudrate=115200, parity=serial.PARITY_ODD)
         self._u_nom = self.get_nominal_voltage()
         self._i_nom = self.get_nominal_current()
+        self.triple = triple
+
         return 0
 
     # close the door behind you
     def on_deactivate(self):
         """ Deactivate the hardware module
 
-        @return int error code (0:OK, -1:error)
+        :return int error code (0:OK, -1:error)
         """
         self.ser_dev.close()
         return 0
@@ -93,38 +108,42 @@ class ps2000(Base, PowersupplyInterface):
     # internal methods ##################################################
     #
 
-    def _construct(self, type, node, obj, data):
+    # construct telegram
+    @staticmethod
+    def _construct(type, node, obj, data):
         """ Construct telegram byte packet
 
-        @param type :
-        @param node :
-        @param obj  :
-        @param data :
+        :param type :
+        :param node :
+        :param obj  :
+        :param data :
 
-        @return telegram : telegram byte packet
+        :return telegram : telegram byte packet
         """
         telegram = bytearray()
-        telegram.append(0x30 + type)	# SD (start delimiter)
-        telegram.append(node)		# DN (device node)
-        telegram.append(obj)		# OBJ (object)
-        if len(data) > 0:		# DATA
+        telegram.append(0x30 + type)  # SD (start delimiter)
+        telegram.append(node)  # DN (device node)
+        telegram.append(obj)  # OBJ (object)
+        if len(data) > 0:  # DATA
             telegram.extend(data)
-            telegram[0] += len(data) - 1	# update length
+            telegram[0] += len(data) - 1  # update length
 
         cs = 0
         for b in telegram:
             cs += b
-        telegram.append(cs >> 8)	# CS0
-        telegram.append(cs & 0xff)	# CS1 (checksum)
-        
+        telegram.append(cs >> 8)  # CS0
+        telegram.append(cs & 0xff)  # CS1 (checksum)
+
         return telegram
 
-    def _check_checksum(self, ans):
+    # compare checksum with header and data in response from device
+    @staticmethod
+    def _check_checksum(ans):
         """ Compare checksum with header and data in response from device
 
-        @param ans :
+        :param ans :
 
-        @return bool error : (True:OK, False:error)
+        :return bool error : (True:OK, False:error)
         """
         cs = 0
         for b in ans[0:-2]:
@@ -132,18 +151,19 @@ class ps2000(Base, PowersupplyInterface):
         if (ans[-2] != (cs >> 8)) or (ans[-1] != (cs & 0xff)):
             print('ERROR: checksum mismatch')
             sys.exit(1)
-            return False
         else:
             return True
 
-    def _check_error(self, ans):
+    # check for errors in response from device
+    @staticmethod
+    def _check_error(ans):
         """ Check for errors in response from device
 
         Will print error code is present
 
-        @param ans :
+        :param ans :
 
-        @return bool error : (True:OK, False:error)
+        :return bool error : (True:OK, False:error)
         """
         if ans[2] != 0xff:
             return False
@@ -175,20 +195,19 @@ class ps2000(Base, PowersupplyInterface):
             print('%02x ' % (b), end='')
         print()
         sys.exit(1)
-        return True
 
+    # send one telegram, receive and check one response
     def _transfer(self, type, node, obj, data):
         """ Send one telegram, receive and check one response
 
-        @param type :
-        @param node :
-        @param obj  :
-        @param data :
+        :param type :
+        :param node :
+        :param obj  :
+        :param data :
 
-        @return ans :
+        :return ans :
         """
-
-        telegram = self._construct(type, 0, obj, data)
+        telegram = self._construct(type, node, obj, data)
         if self._verbose:
             print('* telegram: ', end='')
             for b in telegram:
@@ -215,75 +234,81 @@ class ps2000(Base, PowersupplyInterface):
         # check answer
         self._check_checksum(ans)
         self._check_error(ans)
-        
+
         return ans
 
-    def _get_binary(self, obj):
+    # get a binary object
+    def _get_binary(self, obj, node):
         """ Get a binary object
 
-        @param obj :
+        :param obj :
 
-        @return ans :
+        :return ans :
         """
-        ans = self._transfer(self._PS_QUERY, 0, obj, '')
+        ans = self._transfer(self._PS_QUERY, node, obj, '')
 
         return ans[3:-2]
 
-    def _set_binary(self, obj, mask, data):
+    # set a binary object
+    def _set_binary(self, obj, mask, data, node):
         """ Set a binary object
 
-        @param obj  :
-        @param mask :
-        @param data :
+        :param obj  :
+        :param mask :
+        :param data :
 
-        @return ans :
+        :return ans :
         """
-        ans = self._transfer(self._PS_SEND, 0, obj, [mask, data])
+        ans = self._transfer(self._PS_SEND, node, obj, [mask, data])
 
         return ans[3:-2]
 
-    def _get_string(self, obj):
+    # get a string-type object
+    def _get_string(self, obj, node):
         """ Get a string-type object
 
-        @param obj :
+        :param obj :
 
-        @return ans :
+        :return ans :
         """
-        ans = self._transfer(self._PS_QUERY, 0, obj, '')
+        ans = self._transfer(self._PS_QUERY, node, obj, '')
 
         return ans[3:-3].decode('ascii')
 
-    def _get_float(self, obj):
+    # get a float-type object
+    def _get_float(self, obj, node):
         """ Get a float-type object
 
-        @param obj :
+        :param obj :
 
-        @return ans :
+        :return ans :
         """
-        ans = self._transfer(self._PS_QUERY, 0, obj, '')
+        ans = self._transfer(self._PS_QUERY, node, obj, '')
 
         return struct.unpack('>f', ans[3:-2])[0]
 
-    def _get_integer(self, obj):
+    # get an integer object
+    def _get_integer(self, obj, node):
         """ Get an integer object
 
-        @param obj :
+        :param obj :
 
-        @return ans :
+        :return ans :
         """
-        ans = self._transfer(self._PS_QUERY, 0, obj, '')
+        ans = self._transfer(self._PS_QUERY, node, obj, '')
 
         return (ans[3] << 8) + ans[4]
 
-    def _set_integer(self, obj, data):
+    # set an integer object
+    def _set_integer(self, obj, data, node):
         """ Set an integer object
 
-        @param obj  :
-        @param data :
+        :param obj  :
+        :param data :
 
-        @return ans :
+        :return ans :
         """
-        ans = self._transfer(self._PS_SEND, 0, obj, [data >> 8, data & 0xff])
+        ans = self._transfer(self._PS_SEND, node, obj, [data >> 8, data & 0xff])
 
         return (ans[3] << 8) + ans[4]
 
@@ -293,125 +318,126 @@ class ps2000(Base, PowersupplyInterface):
 
     # object 0
     def get_type(self):
-        return self._get_string(0)
-        
+        return self._get_string(0, node=0)
+
     # object 1
-    def serial(self):
-        return self._get_string(1)
+    def get_serial(self):
+        return self._get_string(1, node=0)
 
     # object 2
-    def nominal_voltage(self):
-        return self._get_float(2)
+    def get_nominal_voltage(self, node=0):
+        return self._get_float(2, node)
 
     # object 3
-    def nominal_current(self):
-        return self._get_float(3)
+    def get_nominal_current(self, node=0):
+        return self._get_float(3, node)
 
     # object 4
-    def nominal_power(self):
-        return self._get_float(4)
+    def get_nominal_power(self, node=0):
+        return self._get_float(4, node)
 
     # object 6
-    def article(self):
-        return self._get_string(6)
+    def get_article(self, node=0):
+        return self._get_string(6, node)
 
     # object 8
-    def manufacturer(self):
-        return self._get_string(8)
+    def get_manufacturer(self, node=0):
+        return self._get_string(8, node)
 
     # object 9
-    def version(self):
-        return self._get_string(9)
+    def get_version(self, node=0):
+        return self._get_string(9, node)
 
     # object 19
-    def device_class(self):
-        return self._get_integer(19)
+    def get_device_class(self, node=0):
+        return self._get_integer(19, node)
 
     # object 38
     @property
-    def OVP_threshold(self):
-        return self._get_integer(38)
+    def OVP_threshold(self, node=0):
+        return self._get_integer(38, node)
 
     @OVP_threshold.setter
-    def OVP_threshold(self, u):
-        return self._set_integer(38, u)
+    def OVP_threshold(self, u, node=0):
+        return self._set_integer(38, u, node)
 
     # object 39
     @property
-    def OCP_threshold(self):
-        return self._get_integer(39)
+    def OCP_threshold(self, node=0):
+        return self._get_integer(39, node)
 
     @OCP_threshold.setter
-    def OCP_threshold(self, i):
-        return self._set_integer(39, i)
+    def OCP_threshold(self, i, node=0):
+        return self._set_integer(39, i, node)
 
     # object 50
     @property
-    def voltage_setpoint(self):
-        v = self._get_integer(50)
+    def voltage_setpoint(self, node=0):
+        v = self._get_integer(50, node)
         return self._u_nom * v / 25600
 
     @voltage_setpoint.setter
-    def voltage_setpoint(self, u):
-        return self._set_integer(50, int(round((u * 25600.0) / self._u_nom)))
+    def voltage_setpoint(self, u, node=0):
+        return self._set_integer(50, int(round((u * 25600.0) / self._u_nom)), node)
 
     # object 51
     @property
-    def current_setpoint(self):
-        i = self._get_integer(50)
+    def current_setpoint(self, node=0):
+        i = self._get_integer(50, node)
         return self._i_nom * i / 25600
 
     @current_setpoint.setter
-    def current_setpoint(self, i):
-        return self._set_integer(51, int(round((i * 25600.0) / self._i_nom)))
+    def current_setpoint(self, i, node=0):
+        return self._set_integer(51, int(round((i * 25600.0) / self._i_nom)), node)
 
     # object 54
-    def _get_control(self):
-        return self._get_binary(54)
+    def _get_control(self, node=0):
+        return self._get_binary(54, node)
 
-    def _set_control(self, mask, data):
-        ans = self._set_binary(54, mask, data)
+    def _set_control(self, mask, data, node=0):
+        ans = self._set_binary(54, mask, data, node)
 
         # return True if command was acknowledged ("error 0")
         return ans[0] == 0xff and ans[1] == 0x00
 
-    def set_remote(self, remote=True):
+    def set_remote(self, remote=True, node=0):
         if remote:
-            return self._set_control(0x10, 0x10)
+            return self._set_control(0x10, 0x10, node)
         else:
-            return self._set_control(0x10, 0x00)
+            return self._set_control(0x10, 0x00, node)
 
-    def set_local(self, local=True):
-        return self.set_remote(not local)
+    def set_local(self, local=True, node=0):
+        return self.set_remote(not local, node)
 
-    def set_output_on(self, on=True):
+    def set_output_on(self, on=True, node=0):
         if on:
-            return self._set_control(0x01, 0x01)
+            return self._set_control(0x01, 0x01, node)
         else:
-            return self._set_control(0x01, 0x00)
+            return self._set_control(0x01, 0x00, node)
 
-    def set_output_off(self, off=True):
-        return self.set_output_on(not off)
+    def set_output_off(self, off=True, node=0):
+        return self.set_output_on(not off, node)
 
     # object 71
-    def get_actual(self, print_state = False):
-        ans = self._get_binary(71)
+    def get_actual(self, print_state=False, node=0):
+        ans = self._get_binary(71, node)
 
         actual = dict()
-        actual['remote']   = True if ans[0] & 0x03 else False
-        actual['local']    = not actual['remote']
-        actual['on']       = True if ans[1] & 0x01 else False
-        actual['CC']       = True if ans[1] & 0x06 else False
-        actual['CV']       = not actual['CC']
-    #	actual['tracking'] = True if ans[1] & 0x08 else False
-        actual['OVP']      = True if ans[1] & 0x10 else False
-        actual['OCP']      = True if ans[1] & 0x20 else False
-        actual['OPP']      = True if ans[1] & 0x40 else False
-        actual['OTP']      = True if ans[1] & 0x80 else False
-        actual['v']        = self._u_nom * ((ans[2] << 8) + ans[3]) / 25600
-        actual['i']        = self._i_nom * ((ans[4] << 8) + ans[5]) / 25600
+        actual['remote'] = True if ans[0] & 0x03 else False
+        actual['local'] = not actual['remote']
+        actual['on'] = True if ans[1] & 0x01 else False
+        actual['CC'] = True if ans[1] & 0x06 else False
+        actual['CV'] = not actual['CC']
+        #	actual['tracking'] = True if ans[1] & 0x08 else False
+        actual['OVP'] = True if ans[1] & 0x10 else False
+        actual['OCP'] = True if ans[1] & 0x20 else False
+        actual['OPP'] = True if ans[1] & 0x40 else False
+        actual['OTP'] = True if ans[1] & 0x80 else False
+        actual['v'] = self._u_nom * ((ans[2] << 8) + ans[3]) / 25600
+        actual['i'] = self._i_nom * ((ans[4] << 8) + ans[5]) / 25600
 
         if print_state:
+            print("Get_actual for node %i" % node)
             if actual['remote']:
                 print('remote')
             else:
@@ -427,11 +453,11 @@ class ps2000(Base, PowersupplyInterface):
             else:
                 print('constant voltage')
 
-    # for dual/triple output only
-    #		if actual['tracking']:
-    #			print('tracking on')
-    #		else:
-    #			print('tracking off')
+            # for dual/triple output only
+            #		if actual['tracking']:
+            #			print('tracking on')
+            #		else:
+            #			print('tracking off')
 
             if actual['OVP']:
                 print('over-voltage protection active')
@@ -457,3 +483,31 @@ class ps2000(Base, PowersupplyInterface):
             print('actual current %fA' % actual['i'])
 
         return actual
+
+
+#
+# user example script ###############################################
+#
+
+# ps = ps2000()  # add your port here if the default does not work for you
+# print('type    ' + ps.get_type())
+# print('serial  ' + ps.get_serial())
+# print('article ' + ps.get_article())
+# print('manuf   ' + ps.get_manufacturer())
+# print('version ' + ps.get_version())
+# print('nom. voltage %f' % ps.get_nominal_voltage())
+# print('nom. current %f' % ps.get_nominal_current())
+# print('nom. power   %f' % ps.get_nominal_power())
+# print('class        0x%04x' % ps.get_device_class())
+# print('OVP          0x%04x' % ps.get_OVP_threshold())
+# print('OCP          %d' % ps.get_OCP_threshold())
+# print('control      0x%04x' % ps.set_remote())
+# ps._verbose = True
+# print('output       0x%04x' % ps.set_output_on())
+# ps.get_actual(True, 0)
+# ps.get_actual(True, 1)
+# print('set voltage      %f %f' % (ps.set_voltage(12.34, node=0), ps.get_voltage_setpoint(0)))
+# print('set voltage      %f %f' % (ps.set_voltage(15.51, node=1), ps.get_voltage_setpoint(1)))
+# ps.get_actual(True, 0)
+# ps.get_actual(True, 1)
+# ps.close()
