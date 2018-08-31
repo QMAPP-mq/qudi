@@ -484,10 +484,6 @@ class ConfocalLogic(GenericLogic):
         self._YL = self._Y
         self._AL = np.zeros(self._XL.shape)
 
-        # Arrays for retrace line  # TODO: this is not right for returning "to the start of the next line"
-        self._return_XL = np.linspace(self._XL[-1], self._XL[0], self.return_slowness)
-        self._return_AL = np.zeros(self._return_XL.shape)
-
         if self._zscan:
             self._image_vert_axis = self._Z
             # update image scan direction from setting
@@ -529,10 +525,6 @@ class ConfocalLogic(GenericLogic):
 
                 z_value_matrix = np.full((len(self._Y), len(self._image_vert_axis)), self._Z)
                 self.depth_image[:, :, 2] = z_value_matrix.transpose()
-
-                # now we are scanning along the y-axis, so we need a new return line along Y:
-                self._return_YL = np.linspace(self._YL[-1], self._YL[0], self.return_slowness)
-                self._return_AL = np.zeros(self._return_YL.shape)
 
             self.sigImageDepthInitialized.emit()
 
@@ -733,18 +725,19 @@ class ConfocalLogic(GenericLogic):
                 self.history_index = len(self.history) - 1
                 return
 
+        # shorthand local names for clearer code in this complex function
         image = self.depth_image if self._zscan else self.xy_image
         n_ch = len(self.get_scanner_axes())
         s_ch = len(self.get_scanner_count_channels())
+        retslow = self.return_slowness
 
         try:
             if self._scan_counter == 0:
                 # make a line from the current cursor position to
                 # the starting position of the first scan line of the scan
-                rs = self.return_slowness
-                lsx = np.linspace(self._current_x, image[self._scan_counter, 0, 0], rs)
-                lsy = np.linspace(self._current_y, image[self._scan_counter, 0, 1], rs)
-                lsz = np.linspace(self._current_z, image[self._scan_counter, 0, 2], rs)
+                lsx = np.linspace(self._current_x, image[self._scan_counter, 0, 0], retslow)
+                lsy = np.linspace(self._current_y, image[self._scan_counter, 0, 1], retslow)
+                lsz = np.linspace(self._current_z, image[self._scan_counter, 0, 2], retslow)
                 if n_ch <= 3:
                     start_line = np.vstack([lsx, lsy, lsz][0:n_ch])
                 else:
@@ -779,22 +772,12 @@ class ConfocalLogic(GenericLogic):
                 self.signal_scan_lines_next.emit()
                 return
 
-
-
-
-
-
-
-
-
-
             # If there are more lines to scan after this one, 
             # make a line to go to the starting position of the next scan line
             if self._scan_counter < np.size(self._image_vert_axis) - 1:  # minus 1 because scan_counter starts at 0 
-                rs = self.return_slowness
-                lsx = np.linspace(image[self._scan_counter, -1, 0], image[self._scan_counter + 1, 0, 0], rs)
-                lsy = np.linspace(image[self._scan_counter, -1, 1], image[self._scan_counter + 1, 0, 1], rs)
-                lsz = np.linspace(image[self._scan_counter, -1, 2], image[self._scan_counter + 1, 0, 2], rs)
+                lsx = np.linspace(image[self._scan_counter, -1, 0], image[self._scan_counter + 1, 0, 0], retslow)
+                lsy = np.linspace(image[self._scan_counter, -1, 1], image[self._scan_counter + 1, 0, 1], retslow)
+                lsz = np.linspace(image[self._scan_counter, -1, 2], image[self._scan_counter + 1, 0, 2], retslow)
                 
                 if n_ch <= 3:
                     return_line = np.vstack([lsx, lsy, lsz][0:n_ch])

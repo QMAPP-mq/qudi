@@ -261,10 +261,6 @@ class OptimizerLogic(GenericLogic):
         self._Z_values = self.optim_pos_z * np.ones(self._X_values.shape)
         self._A_values = np.zeros(self._X_values.shape)
         
-        # TODO: I think these can be removed when the retun line is simply going to the start of the next image line
-        self._return_X_values = np.linspace(xmax, xmin, num=self.optimizer_XY_res)
-        self._return_A_values = np.zeros(self._return_X_values.shape)
-
         self.xy_refocus_image = np.zeros((
             len(self._Y_values),
             len(self._X_values),
