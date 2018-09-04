@@ -23,6 +23,7 @@ Changes/New features:
 * Added .ico image to make a desktop shortcut on Windows with explanation in the documentation
 * Added a how-to-participate guide to the documentation
 * Added installation options guide to the documentation
+* A lot of smaller fixes to the spectrometer (WinSpec) -> this also modifies the connectors in the default config
 
 Config changes:
 * Add separate conda environments for windows 7 32bit, windows 7 64bit, and windows 10 64bit. 
@@ -67,6 +68,7 @@ Changes/New features:
 * Analog signal input (for PDMR measurements) now supported for slow counter/confocal/ODMR (see config changes)
 * Use of rpyc became optional (does not need to be installed if no remote module capability is needed)
 * Mayor cleanup/overhaul of the `microwave_interface.py` and adaption of all affected modules (hardware/logic)
+* New hardware file for Microwave source - Anritsu MG3691C has been added.
 
 
 Config changes:
