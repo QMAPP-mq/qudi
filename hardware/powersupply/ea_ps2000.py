@@ -80,7 +80,7 @@ class ps2000(Base, PowersupplyInterface):
     _port = ConfigOption('port', missing='error')
 
     # fetch if triple output information
-    _triple = ConfigOption('port', default=False, missing='warning')
+    _triple = ConfigOption('port', default=False, missing='warn')
 
     # open port upon initialization
     def on_activate(self):
