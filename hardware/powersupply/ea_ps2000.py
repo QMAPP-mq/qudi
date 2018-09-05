@@ -42,6 +42,7 @@ import struct
 import serial
 
 from core.module import Base, ConfigOption
+from interface.powersupply_interface import PowersupplyInterface
 
 class ps2000(Base, PowersupplyInterface):
 
