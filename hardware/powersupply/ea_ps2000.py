@@ -98,7 +98,7 @@ class ps2000(Base, PowersupplyInterface):
 
         # take control of the output channels
         for channel in range(0, self._channels):
-            self.set_remote(mode=channel+1)
+            self.set_remote(node=channel+1)
 
         return 0
 
@@ -110,7 +110,7 @@ class ps2000(Base, PowersupplyInterface):
         """
         # relinquish control of the output channels
         for channel in range(0, self._channels):
-            self.set_local(mode=channel+1)
+            self.set_local(node=channel+1)
 
         self.ser_dev.close()
         return 0
