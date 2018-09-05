@@ -353,41 +353,33 @@ class ps2000(Base, PowersupplyInterface):
         return self._get_integer(19, node)
 
     # object 38
-    @property
-    def OVP_threshold(self, node=0):
+    def get_OVP_threshold(self, node=0):
         return self._get_integer(38, node)
 
-    @OVP_threshold.setter
-    def OVP_threshold(self, u, node=0):
+    def set_OVP_threshold(self, u, node=0):
         return self._set_integer(38, u, node)
 
     # object 39
-    @property
-    def OCP_threshold(self, node=0):
+    def get_OCP_threshold(self, node=0):
         return self._get_integer(39, node)
 
-    @OCP_threshold.setter
-    def OCP_threshold(self, i, node=0):
+    def set_OCP_threshold(self, i, node=0):
         return self._set_integer(39, i, node)
 
     # object 50
-    @property
-    def voltage_setpoint(self, node=0):
+    def get_voltage_setpoint(self, node=0):
         v = self._get_integer(50, node)
         return self._u_nom * v / 25600
 
-    @voltage_setpoint.setter
-    def voltage_setpoint(self, u, node=0):
+    def set_voltage(self, u, node=0):
         return self._set_integer(50, int(round((u * 25600.0) / self._u_nom)), node)
 
     # object 51
-    @property
-    def current_setpoint(self, node=0):
+    def get_current_setpoint(self, node=0):
         i = self._get_integer(50, node)
         return self._i_nom * i / 25600
 
-    @current_setpoint.setter
-    def current_setpoint(self, i, node=0):
+    def set_current(self, i, node=0):
         return self._set_integer(51, int(round((i * 25600.0) / self._i_nom)), node)
 
     # object 54
