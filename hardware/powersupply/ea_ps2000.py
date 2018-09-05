@@ -79,6 +79,9 @@ class ps2000(Base, PowersupplyInterface):
     # fetch port information
     _port = ConfigOption('port', missing='error')
 
+    # fetch number of channels
+    _channels = ConfigOption('channels', default=1, missing='warn')
+
     # fetch if triple output information
     _triple = ConfigOption('port', default=False, missing='warn')
 
@@ -92,6 +95,11 @@ class ps2000(Base, PowersupplyInterface):
         self.ser_dev = serial.Serial(self._port, timeout=0.06, baudrate=115200, parity=serial.PARITY_ODD)
         self._u_nom = self.get_nominal_voltage()
         self._i_nom = self.get_nominal_current()
+
+        # take control of the output channels
+        if self._channels:
+            for channel in range(0, self._channels):
+                self.set_remote(mode=channel+1)
 
         return 0
 
