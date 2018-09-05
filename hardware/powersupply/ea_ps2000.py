@@ -97,9 +97,8 @@ class ps2000(Base, PowersupplyInterface):
         self._i_nom = self.get_nominal_current()
 
         # take control of the output channels
-        if self._channels:
-            for channel in range(0, self._channels):
-                self.set_remote(mode=channel+1)
+        for channel in range(0, self._channels):
+            self.set_remote(mode=channel+1)
 
         return 0
 
@@ -109,6 +108,10 @@ class ps2000(Base, PowersupplyInterface):
 
         :return int error code (0:OK, -1:error)
         """
+        # relinquish control of the output channels
+        for channel in range(0, self._channels):
+            self.set_local(mode=channel+1)
+
         self.ser_dev.close()
         return 0
 
