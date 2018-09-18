@@ -60,7 +60,8 @@ class RHEASpectrometer(Base, SpectrometerInterface):
 
         self._camera.Expose(self._exposure_time, 1, 0)
 
-        time.sleep(self._exposure_time + 10)
+        while not self._camera.ImageReady:
+            time.sleep(1)
 
         img = np.array(self._camera.ImageArray).T  # Transpose to match the shape when importing the *.fit files from Maxim DL
 
@@ -100,7 +101,7 @@ class RHEASpectrometer(Base, SpectrometerInterface):
     def _rhea_extract_image(self, I):
         """ Process RHEA CCD image to extract linear spectrum
         """
-        
+
         fit_dir = 'C:/Data/2018/08/20180816/rhea/'
         echelle_fit = np.loadtxt(fit_dir +'rhea_calibration_echelle_fit.csv')
         y_pix = np.arange(0, len(echelle_fit[0]))
@@ -123,6 +124,6 @@ class RHEASpectrometer(Base, SpectrometerInterface):
         # Amplitude normalisation
         line_spectra = (line_spectra - bg_offset) * norm_factor.reshape(np.shape(line_spectra))
 
-        spectrum_data = np.vstack((wlen, line_spectra))
+        spectrum_data = np.vstack((wlen*1e-9, line_spectra))
 
         return spectrum_data
