@@ -50,6 +50,7 @@ class RHEASpectrometer(Base, SpectrometerInterface):
         """ Deactivate module.
         """
         self._camera.CoolerOn = False
+        self._camera.Quit()
 
     def recordSpectrum(self):
         """ Record spectrum from WinSpec32 software.
