@@ -58,6 +58,11 @@ class RHEASpectrometer(Base, SpectrometerInterface):
         """
         w32c.pythoncom.CoInitialize()
 
+        # ensure that the CCD is cool
+        proceed = False
+        while proceed == False:
+            proceed = self._confirm_cool()
+
         self._camera.Expose(self._exposure_time, 1, 0)
 
         while not self._camera.ImageReady:
@@ -127,3 +132,23 @@ class RHEASpectrometer(Base, SpectrometerInterface):
         spectrum_data = np.vstack((wlen*1e-9, line_spectra))
 
         return spectrum_data
+
+    def _confirm_cool(self, wait_duration=1, temperature_threshold=2):
+        """ Return true if the CCD temperature is within the setpoint +/- threshold bounds
+
+            @param wait_duration : default to 1
+            @param temperature_threshold : default to 2
+
+            @return bool : True if ok, False if out-of-bounds
+        """
+
+        if self._camera.Temperature > self._camera.TemperatureSetpoint + temperature_threshold:
+            self.log.warning('RHEA CCD too warm, waiting {} seconds'.format(wait_duration))
+            time.sleep(wait_duration)
+            return False
+        elif self._camera.Temperature < self._camera.TemperatureSetpoint - temperature_threshold:
+            self.log.warning('RHEA CCD too cool, waiting {} seconds'.format(wait_duration))
+            time.sleep(wait_duration)
+            return False
+        else:
+            return True
