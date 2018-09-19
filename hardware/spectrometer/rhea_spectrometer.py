@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Acquire a spectrum using Winspec through the COM interface.
-This program gets the data from WinSpec, saves them and
+Acquire a spectrum using MaxIm DL through the COM interface.
+This program get and processes data from MaxIm DL, saves them and
 gets the data for plotting.
 
 Qudi is free software: you can redistribute it and/or modify
@@ -106,6 +106,8 @@ class RHEASpectrometer(Base, SpectrometerInterface):
 
     def _rhea_extract_image(self, I):
         """ Process RHEA CCD image to extract linear spectrum
+
+            @param I : MaxIm DL image
         """
 
         fit_dir = 'C:/Data/2018/08/20180816/rhea/'
