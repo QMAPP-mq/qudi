@@ -20,6 +20,8 @@ along with Qudi. If not, see <http://www.gnu.org/licenses/>.
 Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 
+MaxIm DL documentation can be found at <http://diffractionlimited.com/help/maximdl/MaxIm-DL.htm>
+
 """
 
 from core.module import Base
