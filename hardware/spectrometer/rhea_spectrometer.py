@@ -63,12 +63,13 @@ class RHEASpectrometer(Base, SpectrometerInterface):
 
         # ensure that the CCD is cool
         proceed = False
-        while proceed == False:
-            for i in range(0, 10):
-                proceed = self._confirm_cool()
-                if i == range(0, 10)[-1]:
-                    self.log.error('Unable to cool RHEA spectrometer after {} attempts'.format(len(range(0, 10))))
-                    return -1
+        tries = 0
+        while proceed == False and tries < 10:
+            proceed = self._confirm_cool()
+            tries += 1
+            if tries == 10:
+                self.log.error('Unable to cool RHEA spectrometer after {} attempts'.format(tries))
+                return -1
 
         self._camera.Expose(self._exposure_time, 1, 0)
 
