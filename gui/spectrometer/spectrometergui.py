@@ -64,6 +64,9 @@ class SpectrometerGui(GUIBase):
 
         self._spectrum_logic = self.spectrumlogic()
 
+        # Allow the plotted data to be restricted to a domain
+        self.plot_domain = np.array([])
+
         # setting up the window
         self._mw = SpectrometerWindow()
 
@@ -161,11 +164,24 @@ class SpectrometerGui(GUIBase):
         """
         data = self._spectrum_logic.spectrum_data
 
+        if self._plot_domain.any():
+            start_idx = self._spectrum_logic._find_nearest_idx(data[0,:], self._plot_domain[0])
+            stop_idx = self._spectrum_logic._find_nearest_idx(data[0,:], self._plot_domain[1])
+
+            data = data[:, start_idx:stop_idx]
+
         # erase previous fit line
         self._curve2.setData(x=[], y=[])
         
         # draw new data
         self._curve1.setData(x=data[0, :], y=data[1, :])
+
+    def set_plot_domain(self, newdomain):
+        """ Set a restricted plot domain to "zoom into" features of interest
+
+        @param list newdomain: 2-element list of min and max wavelength
+        """
+        self._plot_domain = newdomain
 
     def update_fit(self, fit_data, result_str_dict, current_fit):
         """ Update the drawn fit curve and displayed fit results.
