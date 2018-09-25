@@ -24,7 +24,7 @@ MaxIm DL documentation can be found at <http://diffractionlimited.com/help/maxim
 
 """
 
-from core.module import Base
+from core.module import Base, ConfigOption
 from interface.spectrometer_interface import SpectrometerInterface
 import numpy as np
 import win32com.client as w32c
@@ -36,6 +36,12 @@ import datetime
 class RHEASpectrometer(Base, SpectrometerInterface):
     """ Hardware module for reading spectra from the RHEA spectrometer using an Atik camera.
     """
+
+    _calib_dir = ConfigOption('calib_dir', missing='error')
+
+    _echelle_calib = ConfigOption('echelle_calib', missing='error')
+    _wavelen_calib = ConfigOption('wavelen_calib', missing='error')
+    _amplit_calib = ConfigOption('amplit_calib', missing='error')
 
     def on_activate(self):
         """ Activate module.
@@ -65,11 +71,11 @@ class RHEASpectrometer(Base, SpectrometerInterface):
         proceed = False
         tries = 0
         while proceed == False and tries < 10:
-            proceed = self._confirm_cool()
+            proceed = self._confirm_cool(wait_duration = 2.5)
             tries += 1
             if tries == 10:
                 self.log.error('Unable to cool RHEA spectrometer after {} attempts'.format(tries))
-                return -1
+                return np.array([[0, 1], [0, 0]])  # Simple "empty" data
 
         self._camera.Expose(self._exposure_time, 1, 0)
 
@@ -116,13 +122,11 @@ class RHEASpectrometer(Base, SpectrometerInterface):
 
             @param I : MaxIm DL image
         """
-
-        fit_dir = 'C:/Data/2018/08/20180816/rhea/'
-        echelle_fit = np.loadtxt(fit_dir +'rhea_calibration_echelle_fit.csv')
+        echelle_fit = np.loadtxt(self._calib_dir + self._echelle_calib)
         y_pix = np.arange(0, len(echelle_fit[0]))
-        wlen = np.loadtxt(fit_dir + 'rhea_calibration_wavelengths_fit.csv')
-
-        norm_factor = np.loadtxt('C:\\labdata\\project_inhouse_nds\\20180821_cryo_siv_nds\\rhea_calibration_amp_factor.csv')
+        
+        wlen = np.loadtxt(self._calib_dir + self._wavelen_calib)
+        norm_factor = np.loadtxt(self._calib_dir + self._amplit_calib)
 
         order_halfwidth = 10
         line_spectra = np.zeros(len(echelle_fit) * len(y_pix))  # Same shape as the echelle_fit array
