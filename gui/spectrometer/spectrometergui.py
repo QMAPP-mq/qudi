@@ -65,7 +65,7 @@ class SpectrometerGui(GUIBase):
         self._spectrum_logic = self.spectrumlogic()
 
         # Allow the plotted data to be restricted to a domain
-        self.plot_domain = np.array([])
+        self._plot_domain = np.array([])
 
         # setting up the window
         self._mw = SpectrometerWindow()
@@ -181,7 +181,7 @@ class SpectrometerGui(GUIBase):
 
         @param list newdomain: 2-element list of min and max wavelength
         """
-        self._plot_domain = newdomain
+        self._plot_domain = np.array(newdomain)
 
     def update_fit(self, fit_data, result_str_dict, current_fit):
         """ Update the drawn fit curve and displayed fit results.
