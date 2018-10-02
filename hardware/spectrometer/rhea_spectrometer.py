@@ -26,6 +26,8 @@ MaxIm DL documentation can be found at <http://diffractionlimited.com/help/maxim
 
 from core.module import Base, ConfigOption
 from interface.spectrometer_interface import SpectrometerInterface
+from astropy.io import fits
+
 import numpy as np
 import win32com.client as w32c
 import time
@@ -42,6 +44,7 @@ class RHEASpectrometer(Base, SpectrometerInterface):
     _echelle_calib = ConfigOption('echelle_calib', missing='error')
     _wavelen_calib = ConfigOption('wavelen_calib', missing='error')
     _amplit_calib = ConfigOption('amplit_calib', missing='error')
+    _background_image = ConfigOption('background_image', default=None, missing='warn')
 
     def on_activate(self):
         """ Activate module.
@@ -53,6 +56,19 @@ class RHEASpectrometer(Base, SpectrometerInterface):
         self._camera.CoolerOn = True
 
         self._exposure_time = 10
+
+        # self._bg_image = _background_image
+        if self.set_bg_image(self._calib_dir + self._background_image) == -1:
+            self._bg_image = None
+        else:
+            self.log.info('Spectrometer backfround file {} loaded'.format(self._background_image))
+
+        # Load calibration files
+        self._echelle_fit = np.loadtxt(self._calib_dir + self._echelle_calib)
+        self._y_pix = np.arange(0, len(self._echelle_fit[0]))
+        
+        self._wlen = np.loadtxt(self._calib_dir + self._wavelen_calib)
+        self._norm_factor = np.loadtxt(self._calib_dir + self._amplit_calib)
 
     def on_deactivate(self):
         """ Deactivate module.
@@ -117,33 +133,50 @@ class RHEASpectrometer(Base, SpectrometerInterface):
         """
         self._exposure_time = exposureTime
 
-    def _rhea_extract_image(self, I):
+    def set_bg_image(self, filepath):
+        """Set a *.fit file as a background image for subtraction
+
+        @param string filepath: file path and name of the *.fit dark bg image.
+        """
+        try:
+            spectral_image = fits.open(filepath)
+        except:
+            self.log.error('Cannot open the requested'
+                           'background image at {}'.format(filepath)
+                          )
+            return -1
+
+        self._bg_image = np.array(spectral_image[0].data, dtype=float)
+
+        return 0
+
+    def _rhea_extract_image(self, img):
         """ Process RHEA CCD image to extract linear spectrum
 
-            @param I : MaxIm DL image
+            @param img : MaxIm DL image
         """
-        echelle_fit = np.loadtxt(self._calib_dir + self._echelle_calib)
-        y_pix = np.arange(0, len(echelle_fit[0]))
-        
-        wlen = np.loadtxt(self._calib_dir + self._wavelen_calib)
-        norm_factor = np.loadtxt(self._calib_dir + self._amplit_calib)
+        # Background subtraction
+        if self._bg_image is None:
+            img = img - 1600  # TODO: check whether minimum is better here. 
+                              # Do *something* smarter!
+        else:
+            img = img - self._bg_image
 
+        # Unwrap echelle ROIs
         order_halfwidth = 10
-        line_spectra = np.zeros(len(echelle_fit) * len(y_pix))  # Same shape as the echelle_fit array
+        line_spectra = np.zeros(len(self._echelle_fit) * len(self._y_pix))  # Same shape as the echelle_fit array
 
-        for order, fit in enumerate(echelle_fit):
-            for y in y_pix:
+        for order, fit in enumerate(self._echelle_fit):
+            for y in self._y_pix:
                 idx = np.int(np.round(fit[y]))
-                signal = np.sum(I[len(y_pix) - y - 1, idx - order_halfwidth : idx + order_halfwidth])
+                signal = np.sum(img[len(self._y_pix) - y - 1, idx - order_halfwidth : idx + order_halfwidth])
                             
-                line_spectra[order * len(y_pix) + y] = signal
-
-        bg_offset = np.mean(line_spectra[0:2200])
+                line_spectra[order * len(self._y_pix) + y] = signal
 
         # Amplitude normalisation
-        line_spectra = (line_spectra - bg_offset) * norm_factor.reshape(np.shape(line_spectra))
+        line_spectra = (line_spectra) * self._norm_factor.reshape(np.shape(line_spectra))
 
-        spectrum_data = np.vstack((wlen*1e-9, line_spectra))
+        spectrum_data = np.vstack((self._wlen*1e-9, line_spectra))
 
         return spectrum_data
 
