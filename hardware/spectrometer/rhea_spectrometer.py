@@ -77,7 +77,7 @@ class RHEASpectrometer(Base, SpectrometerInterface):
         self._camera.Quit()
 
     def recordSpectrum(self):
-        """ Record spectrum from WinSpec32 software.
+        """ Record spectrum from MaxIm DL software.
 
             @return []: spectrum data
         """
@@ -105,7 +105,7 @@ class RHEASpectrometer(Base, SpectrometerInterface):
         return specdata
 
     def saveSpectrum(self, path, postfix = ''):
-        """ Save spectrum from WinSpec32 software.
+        """ Save spectrum from MaxIm DL software.
 
             @param str path: path to save origial spectrum
             @param str postfix: file posfix
