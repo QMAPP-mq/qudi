@@ -122,6 +122,7 @@ class SpectrometerGui(GUIBase):
         self._spectrum_logic.sig_specdata_updated.connect(self.update_data)
         self._spectrum_logic.spectrum_fit_updated_Signal.connect(self.update_fit)
         self._spectrum_logic.fit_domain_updated_Signal.connect(self.update_fit_domain)
+        self._spectrum_logic.sig_start_acquisition.connect(self.set_statusbar_measuring)
 
         self._mw.show()
 
@@ -166,6 +167,12 @@ class SpectrometerGui(GUIBase):
         
         # draw new data
         self._curve1.setData(x=data[0, :], y=data[1, :])
+        self._mw.statusBar().showMessage("Acquisition complete")
+
+    def set_statusbar_measuring(self):
+        """Show "Spectrometer Exposing" in status bar
+        """
+        self._mw.statusBar().showMessage("Spectrometer exposing...")
 
     def update_fit(self, fit_data, result_str_dict, current_fit):
         """ Update the drawn fit curve and displayed fit results.
