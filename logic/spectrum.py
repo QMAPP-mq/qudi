@@ -53,6 +53,7 @@ class SpectrumLogic(GenericLogic):
     # Internal signals
     sig_specdata_updated = QtCore.Signal()
     sig_next_diff_loop = QtCore.Signal()
+    sig_start_acquisition = QtCore.Signal(bool)
 
     # External signals eg for GUI module
     spectrum_fit_updated_Signal = QtCore.Signal(np.ndarray, dict, str)
@@ -86,6 +87,7 @@ class SpectrumLogic(GenericLogic):
         self._save_logic = self.savelogic()
 
         self.sig_next_diff_loop.connect(self._loop_differential_spectrum)
+        self.sig_start_acquisition.connect(self._do_spectrum_acquisition)
         self.sig_specdata_updated.emit()
 
     def on_deactivate(self):
@@ -125,6 +127,14 @@ class SpectrumLogic(GenericLogic):
         """
         # Clear any previous fit
         self.fc.clear_result()
+        
+        self.sig_start_acquisition.emit(background)
+
+    def _do_spectrum_acquisition(self, background):
+        """ Do the spectrum acquisition in a separate thread to prevent QUDI from "hanging" during exposure.
+
+        @param bool bg: Whether this is a background spectrum.
+        """
 
         if background:
             self._spectrum_background = netobtain(self._spectrometer_device.recordSpectrum())
