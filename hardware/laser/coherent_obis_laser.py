@@ -140,7 +140,14 @@ class OBISLaser(Base, SimpleLaserInterface):
 
         @param float power: desired laser power in watts
         """
-        self._communicate('SOUR:POW:LEV:IMM:AMPL {}'.format(power))
+        minpower, maxpower = self.get_power_range()
+
+        if power < minpower:
+            self.log.error('Cannot set laser power to {}, value is too low.')
+        elif power > maxpower:
+            self.log.error('Cannot set laser power to {}, value is too high.')
+        else:
+            self._communicate('SOUR:POW:LEV:IMM:AMPL {}'.format(power))
 
     def get_current_unit(self):
         """ Get unit for laser current.
