@@ -77,7 +77,7 @@ class RedPitaya(Base, GenScannerInterface):
         self.rp_s.tx_txt('ACQ:BUF:SIZE?')
         self._buffer_size = int(self.rp_s.rx_txt())
 
-        self.x_path_volt = 0
+        self.x_path_volt = [0]
         self._scan_state = None
 
         # handle all the parameters given by the config
