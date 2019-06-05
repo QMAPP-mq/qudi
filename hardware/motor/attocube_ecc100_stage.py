@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-This file contains the hardware control for a NT-MDT piezo stage.
-
-N.B. NT-MDT Nova Px control software must be running.
-
-N.B. Nova Px software must be revision 18579 (3.4.0) or newer.
+This file contains the hardware control for a Attocube ECC100 piezo stage.
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -34,67 +30,31 @@ from collections import OrderedDict
 from core.module import Base, ConfigOption
 from interface.motor_interface import MotorInterface
 
+from ctypes import (c_int, c_int32, c_int16, c_uint32, c_int64, 
+                    c_byte, c_ubyte, c_short, c_double, cdll, pointer, 
+                    byref)
 
-class PiezoStageNTMDT(Base, MotorInterface):
 
-    """ Hardware module for communicating with NT-MDT piezo scanning stages
-    over USB (via the NovaSDK dll). 
+import numpy as np
+from collections import namedtuple
+
+
+class PiezoStageATTOCUBE(Base, MotorInterface):
+
+    """ Hardware module for communicating with Attocube ECC100 piezo scanning stages
+    over USB (via the Attocube dll). 
     
-    It uses the VB script from the documentation.
-    
-    unstable: Matt van Breugel
+    unstable: Reece Roberts and Guillermo Munoz
 
     Example configuration:
     ```
-    # ntmdt_stage:
-    #     module.Class: 'motor.ntmdt_piezo_stage.PiezoStageNTMDT'
-    #     axis_labels:
-    #         - x
-    #         - y
-    #         - z
-    #         - tube_x
-    #         - tube_y
-    #         - tube_z
-    #     x:
-    #         device_id: 1
-    #         channel: 0
-    #         constraints:
-    #             pos_min: 0e-6
-    #             pos_max: 100e-6
-    #     y:
-    #         device_id: 1
-    #         channel: 1
-    #         constraints:
-    #             pos_min: 0e-6
-    #             pos_max: 100e-6
-    #     z:
-    #         device_id: 1
-    #         channel: 2
-    #         constraints:
-    #             pos_min: 0e-6
-    #             pos_max: 6e-6
-    #     tube_x:
-    #         device_id: 0
-    #         channel: 0
-    #         constraints:
-    #             pos_min: 0e-6
-    #             pos_max: 100e-6
-    #     tube_y:
-    #         device_id: 0
-    #         channel: 0
-    #         constraints:
-    #             pos_min: 0e-6
-    #             pos_max: 100e-6
-    #     tube_z:
-    #         device_id: 0
-    #         channel: 0
-    #         constraints:
-    #             pos_min: 0e-6
-    #             pos_max: 6e-6
+        TODO: write an example configuration
     ```
     """
-    _modclass = 'PiezoStageNTMDT'
+    _modclass = 'PiezoStageATTOCUBE'
     _modtype = 'hardware'
+
+    _device_id = ConfigOption('device_id', missing='error')
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -107,32 +67,44 @@ class PiezoStageNTMDT(Base, MotorInterface):
         if platform.architecture()[0] == '64bit':
             path_dll = os.path.join(os.path.abspath(''),
                                     'thirdparty',
-                                    'nt_mdt',
-                                    'NovaSDK_x64.dll'
+                                    'attocube',
+                                    'ECC100_DLL',
+                                    'Win_64Bit',
+                                    'lib',
+                                    'ecc.dll'
                                     )
         elif platform.architecture()[0] == '32bit':
             path_dll = os.path.join(os.path.abspath(''),
                                     'thirdparty',
-                                    'nt_mdt',
-                                    'NovaSDK.dll'
+                                    'attocube',
+                                    'ECC100_DLL',
+                                    'Win_32Bit',
+                                    'lib',
+                                    'ecc.dll'
                                     )
         else:
-            self.log.error('Unknown platform, cannot load the Nova SDK dll.')
+            self.log.error('Unknown platform, cannot load the ECC100 dll.')
 
-        self._novadll = ctypes.windll.LoadLibrary(path_dll)
+        self._eccdll = ctypes.WinDLL(path_dll)
         
         time.sleep(1)
 
         self._configured_constraints = self.get_constraints()
+
+        
+
+        _eccdev = AttoCubeECC100(device_id = _device_id, debug=True)
         
         if self._check_connection():
-            self.log.info('Nova Px handshake successful')
+            self.log.info('ECC100 handshake successful')
             self._set_servo_state(True)
             return 0
         else:
-            self.log.error('I cannot connect to Nova Px')
+            self.log.error('I cannot connect to ECC100 and all three ECS5050 stages')
             return 1
 
+    
+     
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
             @return: error code (0:OK, -1:error)
@@ -145,7 +117,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         @return dict: dict with constraints for the sequence generation and GUI
 
-        Provides all the constraints for the xyz stage  and rot stage (like total
+        Provides all the constraints for the xyz stage and rot stage (like total
         movement, velocity, ...)
         Each constraint is a tuple of the form
             (min_value, max_value, stepsize)
@@ -542,7 +514,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         @param string command : VBScript code to be executed
         """
 
-        self._novadll.RunScriptText(command.encode())
+        self._eccdll.RunScriptText(command.encode())
 
     def _run_script_text_thread(self, command):
         """ Execute a command in a Nova Px in a separate thread
@@ -553,7 +525,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         @param string command : VBScript code to be executed
         """
 
-        self._novadll.RunScriptTextThread(command.encode())
+        self._eccdll.RunScriptTextThread(command.encode())
 
     def _get_shared_float(self, variable):
         """ Retreive a shared data variable of type float from Nova Px
@@ -566,8 +538,8 @@ class PiezoStageNTMDT(Base, MotorInterface):
         outbuf = ctypes.c_double()
         buflen = ctypes.c_int()
 
-        self._novadll.GetSharedData(variable.encode(), None, ctypes.byref(buflen))  # get the required buffer size
-        self._novadll.GetSharedData(variable.encode(), ctypes.byref(outbuf), ctypes.byref(buflen))  # fill the buffer
+        self._eccdll.GetSharedData(variable.encode(), None, ctypes.byref(buflen))  # get the required buffer size
+        self._eccdll.GetSharedData(variable.encode(), ctypes.byref(outbuf), ctypes.byref(buflen))  # fill the buffer
 
         return outbuf.value
 
@@ -577,7 +549,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         @param string variable : The variable must have already been created
         """
 
-        self._novadll.ResetSharedData(variable.encode())
+        self._eccdll.ResetSharedData(variable.encode())
 
     def _update_gui(self):
         """ Update the Nova Px graphical user unterface
@@ -589,18 +561,16 @@ class PiezoStageNTMDT(Base, MotorInterface):
         self._run_script_text(command)
 
     def _check_connection(self):
-        """ Set and get a shared variable to check the connection with Nova Px
+        """ Check that all three stages are connected and match the ECS5050 linear actuator.
 
         @returns bool success : True if values match
         """
-
-        command = 'SetSharedDataVal "test_connection", 1.61803398875, "F64", 8'
-        self._run_script_text(command)
-        if self._get_shared_float('test_connection') == 1.61803398875:
-            self._reset_shared_data('test_connection')
-            return True
+        if _eccdev.read_actor_info(0) == ('ECS5050', 'ECC_actorLinear') and _eccdev.read_actor_info(1) == ('ECS5050', 'ECC_actorLinear') and _eccdev.read_actor_info(2) == ('ECS5050', 'ECC_actorLinear'):
+            return True 
         else:
             return False
+
+
 
 ########################## Message Box #########################################
 
@@ -611,7 +581,7 @@ class PiezoStageNTMDT(Base, MotorInterface):
         """
 
         command = 'msgbox "{message}"'.format(message=message)
-        self._novadll.RunScriptText(command.encode())
+        self._eccdll.RunScriptText(command.encode())
 
 ########################## Thermal Controls ####################################
 
@@ -715,3 +685,459 @@ class PiezoStageNTMDT(Base, MotorInterface):
 
         self._run_script_text_thread(command)
         time.sleep(0.1)
+
+
+############################ Class file of attocube control #############################
+class AttoCubeECC100(object):
+    
+    def __init__(self, device_num=0, device_id = None, debug=False):
+        self.debug = debug
+        self.device_num = device_num
+        
+        if self.debug:
+            print("Initializing AttoCubeECC100 device ", device_num)
+        
+        #self.num_devices = ecc.ECC_Check()
+        self.dev_list = ecc_enumerate()
+        
+        # if device_id is defined, find the appropriate device_num
+        if device_id is not None:
+            dev_id_found = False
+            for dev in self.dev_list:
+                if dev.dev_id == device_id:
+                    self.device_num = dev.dev_num
+                    self.device_id = dev.dev_id
+                    dev_id_found = True
+            if not dev_id_found:
+                ## no device based on ID found
+                raise IOError("AttoCubeECC100 No Device found based on device_id={}".format(device_id))
+        else:
+            self.device_id = self.dev_list[self.device_num].dev_id
+                    
+        assert 0 <= self.device_num < len(self.dev_list), "Attocube device num out of range: {} of {}".format(self.device_num, len(self.dev_list))
+
+        # check if device is locked
+        assert not self.dev_list[self.device_num].dev_locked
+        
+        # Connect to Device
+        self.devhandle = c_uint32()
+        handle_err(ecc.ECC_Connect(self.device_num,byref(self.devhandle)))
+
+        self.device_id = self.read_device_id()
+        
+        
+    def close(self):
+        handle_err(ecc.ECC_Close(self.devhandle))
+
+
+    def read_actor_info(self, axis):
+        return self.read_actor_name(axis), self.read_actor_type(axis)
+    
+    def read_actor_name(self,axis):
+        actor_name = ctypes.create_string_buffer(20)
+        handle_err(ecc.ECC_getActorName(
+                            self.devhandle,
+                            axis, # Int32 axis
+                            byref(actor_name), # char * name
+                            ))
+        return actor_name.value.decode('ascii').strip()
+    
+    def read_actor_type(self,axis):
+        actor_type_id = c_int32()
+        handle_err(ecc.ECC_getActorType(
+                            self.devhandle,
+                            axis, # Int32 axis
+                            byref(actor_type_id) #ECC_actorType * type (enum)
+                            ))
+        return ECC_ACTOR_TYPES[actor_type_id.value]
+
+    def read_device_id(self):
+        dev_id = ctypes.c_int32()
+        handle_err(ecc.ECC_controlDeviceId(self.devhandle, byref(dev_id), False))
+        return dev_id.value
+
+    def read_enable_axis(self, axis):
+        cenable = c_int32()
+        handle_err(ecc.ECC_controlOutput(self.devhandle,
+                                 axis, #axis
+                                 byref(cenable), #Bln32 * enable,
+                                 0, # read
+                                 ))
+        return cenable.value
+        
+    def enable_axis(self, axis, enable=True):
+        cenable = c_int32(int(enable))
+        handle_err(ecc.ECC_controlOutput(self.devhandle,
+                                 axis, #axis
+                                 byref(cenable), #Bln32 * enable,
+                                 1, # set
+                                 ))
+        
+    def read_enable_closedloop_axis(self, axis):
+        cenable = c_int32()
+        handle_err(ecc.ECC_controlMove(self.devhandle,
+                                 axis, #axis
+                                 byref(cenable), #Bln32 * enable,
+                                 0, # read
+                                 ))
+        return cenable.value
+        
+    def enable_closedloop_axis(self, axis, enable=True):
+        cenable = c_int32(int(enable))
+        handle_err(ecc.ECC_controlMove(self.devhandle,
+                                 axis, #axis
+                                 byref(cenable), #Bln32 * enable,
+                                 1, # set
+                                 ))
+
+
+    def single_step(self, axis, direction=True):
+        """direction True (or >0): forward, False (or <=0): backward"""
+        backward= (direction <= 0)
+        #backward: Selects the desired direction. False triggers a forward step, true a backward step.  
+        handle_err(ecc.ECC_setSingleStep(self.devhandle, # device handle
+                                 axis,  # axis
+                                 int(backward))) #backward (direction control)
+
+    def single_step_forward(self, axis):
+        self.single_step(axis, True)
+    def single_step_backward(self, axis):
+        self.single_step(axis, False)
+
+
+    def read_position_axis(self, axis):
+        """returns position in mm, device speaks nm
+        """
+        pos = c_int32()
+        handle_err(ecc.ECC_getPosition( 
+                                self.devhandle, #Int32 deviceHandle,
+                                axis, #Int32 axis,
+                                byref(pos))) #Int32* position );
+        return pos.value*1e-6
+
+
+    def is_electrically_connected(self, axis):
+        """Connected status.
+        Retrieves the connected status. Indicates whether an actor is eletrically connected to the controller.
+        """
+        connected = c_int32()
+        handle_err(ecc.ECC_getStatusConnected(
+                                self.devhandle,
+                                axis,
+                                byref(connected)))
+        return bool(connected.value)
+
+    def read_reference_position(self, axis):
+        """returns position in mm, device speaks nm
+        """
+        refpos = c_int32()
+        handle_err(ecc.ECC_getReferencePosition(
+                                self.devhandle,
+                                axis, #Int32 axis
+                                byref(refpos), #Int32* reference
+                                ))
+        return refpos.value*1e-6
+
+    def read_reference_status(self, axis):
+        """
+        Reference status.
+        Retrieves the status of the reference position. It may be valid or invalid.
+        """
+        valid = c_int32()
+        handle_err(ecc.ECC_getStatusReference(
+                                  self.devhandle,
+                                  axis,
+                                  byref(valid)))
+        return bool(valid.value)
+    
+    def read_target_range_axis(self, axis):
+        raise NotImplementedError()
+    
+    def write_target_position_axis(self, axis, target_pos):
+        """ position in mm, device speaks nm
+        """
+        tpos = c_int32(int(target_pos*1e6))
+        handle_err(ecc.ECC_controlTargetPosition(
+                            self.devhandle,
+                            axis, #Int32 axis
+                            byref(tpos), # Int32* target
+                            1, #Bln32 set
+                            ))
+        time.sleep(0.000010)
+        return tpos.value*1e-6
+                   
+    def read_target_position_axis(self, axis):
+        tpos = c_int32()
+        handle_err(ecc.ECC_controlTargetPosition(
+                            self.devhandle,
+                            axis, #Int32 axis
+                            byref(tpos), # Int32* target
+                            0, #Bln32 set
+                            ))
+        if self.debug: print('ecc100 read_target_position_axis', axis, tpos.value)
+
+        return tpos.value*1e-6
+    
+    def read_target_status(self, axis):
+        """
+        Target status. 
+        Retrieves the target status. Indicates whether the actual 
+        position is within the target range.
+        """
+        target_status = c_uint32()
+        handle_err(ecc.ECC_getStatusTargetRange(
+                            self.devhandle,
+                            axis, #Int32 axis
+                            byref(target_status), # Bln32* target                            
+                            ))
+        return bool(target_status.value)
+
+    def read_eot_back_status(self, axis):
+        """
+        Target status. 
+        Retrieves eot end of travel status (pro).
+        """
+        eot_status = c_uint32()
+        handle_err(ecc.ECC_getStatusEotBkwd(
+                            self.devhandle,
+                            axis, #Int32 axis
+                            byref(eot_status), # Bln32* target                            
+                            ))
+        return bool(eot_status.value)
+
+    def read_eot_forward_status(self, axis):
+        """
+        Target status. 
+        Retrieves eot end of travel status (pro).
+        """
+        eot_status = c_uint32()
+        handle_err(ecc.ECC_getStatusEotFwd(
+                            self.devhandle,
+                            axis, #Int32 axis
+                            byref(eot_status), # Bln32* target                            
+                            ))
+        return bool(eot_status.value)
+
+    def read_eot_stop_status(self, axis):
+        """
+        Target status. 
+        Retrieves eot end of travel status (pro).
+        """
+        eot_status = c_uint32()
+        handle_err(ecc.ECC_controlEotOutputDeactive(
+                            self.devhandle,
+                            axis, #Int32 axis
+                            byref(eot_status), # Bln32* target  
+                            0, #set                          
+                            ))
+        return bool(eot_status.value)
+    
+    def enable_eot_stop(self, axis, enable):
+        """
+        Target status. 
+        Retrieves eot end of travel status (pro).
+        """
+        eot_status = c_uint32(enable)
+        handle_err(ecc.ECC_controlEotOutputDeactive(
+                            self.devhandle,
+                            axis, #Int32 axis
+                            byref(eot_status), # Bln32* target  
+                            1, #set                          
+                            ))
+        return bool(eot_status.value)
+
+    def read_enable_eot_stop(self, axis ):
+        """
+        Target status. 
+        Retrieves eot end of travel status (pro).
+        """
+        eot_status = c_uint32()
+        handle_err(ecc.ECC_controlEotOutputDeactive(
+                            self.devhandle,
+                            axis, #Int32 axis
+                            byref(eot_status), # Bln32* target  
+                            0, #set                          
+                            ))
+        return bool(eot_status.value)
+
+    def read_frequency(self, axis):
+        """returns Frequency in Hz, device speaks mHz"""
+        freq = c_int32()
+        handle_err(ecc.ECC_controlFrequency(
+                            self.devhandle,
+                            axis, #Int32 axis
+                            byref(freq), #Int32* frequency
+                            0, # Bln32 set
+                            ))
+        return freq.value*1e-3
+    
+    def write_frequency(self,axis, frequency):
+        """freq: Frequency in mHz"""
+        freq = c_int32(int(frequency*1e3))
+        handle_err(ecc.ECC_controlFrequency(
+                            self.devhandle,
+                            axis, #Int32 axis
+                            byref(freq), #Int32* frequency
+                            1, # Bln32 set
+                            ))
+        return freq.value*1e-3
+        
+    def read_openloop_voltage(self, axis):
+        """ Read open loop analog voltage adjustment
+        
+        returns voltage in V, unit speaks uV
+        
+        requires Pro version
+        """
+        ol_volt = c_int32()
+        handle_err(ecc.ECC_controlFixOutputVoltage(
+                            self.devhandle,
+                            axis,
+                            byref(ol_volt),# Int32 * voltage
+                            0, #set
+                            ))
+        return ol_volt.value*1e-6
+    
+    def write_openloop_voltage(self, axis, voltage):
+        """ Write open loop analog voltage adjustment
+            voltage in V, unit speaks uV
+        """
+        ol_volt = c_int32(voltage*1e6)
+        handle_err(ecc.ECC_controlFixOutputVoltage(
+                            self.devhandle,
+                            axis,
+                            byref(ol_volt),# Int32 * voltage
+                            1, #set
+                            ))
+        return ol_volt.value*1e-6
+
+    def enable_ext_trigger(self, axis):
+        raise NotImplementedError()
+
+    def start_continuous_motion(self, axis, direction):
+        """
+        + 1 continuous motion start in Forward (+) direction
+        - 1 continuous motion start in Backward (-) direction
+        0   stop continuous motion
+        
+        Int32 NCB_API ECC_controlContinousFwd( Int32 deviceHandle,
+                                       Int32 axis,
+                                       Bln32* enable,
+                                       Bln32 set );
+        """
+        c_enable = c_int32(1) # true to start motion
+        if direction > 0:
+            handle_err(ecc.ECC_controlContinousFwd(self.devhandle, axis, byref(c_enable), 1))
+        elif direction < 0:
+            handle_err(ecc.ECC_controlContinousBkwd(self.devhandle, axis, byref(c_enable), 1))
+        else:
+            self.stop_continous_motion(axis)
+        
+    def stop_continous_motion(self, axis):
+        
+        """The parameter "false" stops all movement of the axis regardless its direction.
+        """
+        c_enable = c_int32(0) # stop motion
+        handle_err(ecc.ECC_controlContinousFwd(self.devhandle, axis, byref(c_enable), 1))
+
+
+    def read_continuous_motion(self, axis):
+        """ returns +1, 0, or -1
+         + 1 continuous motion happening in Forward  (+) direction
+         - 1 continuous motion happening in Backward (-) direction
+           0 continuous motion stopped
+        """
+
+        c_enable = c_int32()
+        handle_err(ecc.ECC_controlContinousFwd(self.devhandle,
+                                 axis, #axis
+                                 byref(c_enable), #Bln32 * enable,
+                                 0, # read
+                                 ))
+        if c_enable.value:
+            return +1
+        
+        c_enable = c_int32()
+        handle_err(ecc.ECC_controlContinousBkwd(self.devhandle,
+                                 axis, #axis
+                                 byref(c_enable), #Bln32 * enable,
+                                 0, # read
+                                 ))
+        if c_enable.value:
+            return -1
+        
+        return 0
+        
+    
+    def read_enable_auto_update_reference(self, axis):
+        c_enable = c_int32()
+        handle_err(ecc.ECC_controlReferenceAutoUpdate(self.devhandle,
+                                 axis, #axis
+                                 byref(c_enable), #Bln32 * enable,
+                                 0, # read
+                                 ))
+        return c_enable.value
+        
+    def enable_auto_update_reference(self, axis, enable=True):
+        c_enable = c_int32(enable)
+        handle_err(ecc.ECC_controlReferenceAutoUpdate(self.devhandle,
+                                 axis, #axis
+                                 byref(c_enable), #Bln32 * enable,
+                                 1, # set
+                                 ))
+        return c_enable.value
+        
+    def read_enable_auto_reset_reference(self, axis):
+        c_enable = c_int32()
+        handle_err(ecc.ECC_controlAutoReset(self.devhandle,
+                                 axis, #axis
+                                 byref(c_enable), #Bln32 * enable,
+                                 0, # read
+                                 ))
+        return c_enable.value
+        
+    def enable_auto_reset_reference(self, axis, enable=True):
+        c_enable = c_int32(enable)
+        handle_err(ecc.ECC_controlAutoReset(self.devhandle,
+                                 axis, #axis
+                                 byref(c_enable), #Bln32 * enable,
+                                 1, # set
+                                 ))
+        return c_enable.value
+        
+    def read_step_voltage(self, axis):
+        """
+        Control amplitude in V, device uses mV
+        Read the amplitude of the actuator signal.
+        """
+        ampl = c_int32()
+        handle_err(ecc.ECC_controlAmplitude(
+                            self.devhandle,
+                            axis, # Int32 axis
+                            byref(ampl), #Int32* amplitude
+                            0, #set
+                            ))
+        return ampl.value*1e-3
+        
+    def write_step_voltage(self, axis, volts=30):
+        """
+        Control amplitude in V, device uses mV
+        Read the amplitude of the actuator signal.
+        """
+        ampl = c_int32(int(volts*1e3))
+        handle_err(ecc.ECC_controlAmplitude(
+                            self.devhandle,
+                            axis, # Int32 axis
+                            byref(ampl), #Int32* amplitude
+                            1, #set
+                            ))
+        return ampl.value*1e-3
+        
+    
+    def reset_axis(self,axis):
+        """
+        Reset position.
+        Resets the actual position to zero and marks the reference position as invalid.
+        
+        """
+        handle_err(ecc.ECC_setReset(self.devhandle, axis))
