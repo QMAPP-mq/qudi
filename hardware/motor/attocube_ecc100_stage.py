@@ -34,10 +34,14 @@ from ctypes import (c_int, c_int32, c_int16, c_uint32, c_int64,
                     c_byte, c_ubyte, c_short, c_double, cdll, pointer, 
                     byref)
 
+from collections import namedtuple
+
+
 
 import numpy as np
 from collections import namedtuple
 
+_EccDevInfo = namedtuple("EccDevInfo", ("dev_num", "dev_id", "dev_locked"))
 
 class PiezoStageATTOCUBE(Base, MotorInterface):
 
@@ -54,7 +58,8 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
     _modclass = 'PiezoStageATTOCUBE'
     _modtype = 'hardware'
 
-    _device_id = ConfigOption('device_id', missing='error')
+    #_device_id = ConfigOption('device_id', missing='error')
+    _device_id = 13635907
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -64,52 +69,65 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
 
             @return: error code (0:OK, -1:error)
         """
-        if platform.architecture()[0] == '64bit':
-            path_dll = os.path.join(os.path.abspath(''),
-                                    'thirdparty',
-                                    'attocube',
-                                    'ECC100_DLL',
-                                    'Win_64Bit',
-                                    'lib',
-                                    'ecc.dll'
-                                    )
-        elif platform.architecture()[0] == '32bit':
-            path_dll = os.path.join(os.path.abspath(''),
-                                    'thirdparty',
-                                    'attocube',
-                                    'ECC100_DLL',
-                                    'Win_32Bit',
-                                    'lib',
-                                    'ecc.dll'
-                                    )
-        else:
-            self.log.error('Unknown platform, cannot load the ECC100 dll.')
 
-        self._eccdll = ctypes.WinDLL(path_dll)
-        
-        time.sleep(1)
 
         self._configured_constraints = self.get_constraints()
 
-        
-
-        _eccdev = AttoCubeECC100(device_id = _device_id, debug=True)
+        self._eccdev = AttoCubeECC100(device_id = self._device_id, debug=False)
         
         if self._check_connection():
             self.log.info('ECC100 handshake successful')
             self._set_servo_state(True)
+            
+            #Defining the target postion to be (0,0,0)
+            _eccdev.write_target_position_axis(0,0)
+            _eccdev.write_target_position_axis(1,0)
+            _eccdev.write_target_position_axis(2,0)
+
+            #Enabling closed loop servos to turn on, this will move you to the last defined position (write_target_position_axis).
+            _eccdev.enable_closedloop_axis(0,1)
+            _eccdev.enable_closedloop_axis(1,1)
+            _eccdev.enable_closedloop_axis(2,1)
+
+            #Move ro -500um
+
+            #Move to +500um
+
+            #Ensure we have green light on reference.
+            
+            #Read Reference. (If reference not found either error or do bigger scan.)
+
+            #Move to reference.
+
+            #Reset Reference
+
+            #Move to real (0,0,0)
+
             return 0
+            
+
+
+
         else:
             self.log.error('I cannot connect to ECC100 and all three ECS5050 stages')
             return 1
 
-    
+        
      
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
             @return: error code (0:OK, -1:error)
         """
-        self._set_servo_state(False)
+        #Defining the target postion to be (0,0,0)
+        _eccdev.write_target_position_axis(0,0)
+        _eccdev.write_target_position_axis(1,0)
+        _eccdev.write_target_position_axis(2,0)
+
+        #Turning off closed loop servos.
+        _eccdev.enable_closedloop_axis(0,0)
+        _eccdev.enable_closedloop_axis(1,0)
+        _eccdev.enable_closedloop_axis(2,0)
+        _eccdev.close()
         return 0
 
     def get_constraints(self):
@@ -124,72 +142,106 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
         """
         constraints = OrderedDict()
 
-        config = self.getConfiguration()
-
         axis0 = {}
-        axis0['label'] = 'x'
-        axis0['scanner'] = config['x']['device_id']
-        axis0['channel'] = config['x']['channel']
-        axis0['pos_min'] = config['x']['constraints']['pos_min']
-        axis0['pos_max'] = config['x']['constraints']['pos_max']
+        axis0['label'] = 'x' # name is just as a sanity included
+        axis0['channel'] = 0
+        axis0['unit'] = 'm'                 # the SI units
+        axis0['pos_min'] = -0.014
+        axis0['pos_max'] = 0.010  # that is basically the traveling range
+        
 
         axis1 = {}
-        axis1['label'] = 'y'
-        axis1['scanner'] = config['y']['device_id']
-        axis1['channel'] = config['y']['channel']
-        axis1['pos_min'] = config['y']['constraints']['pos_min']
-        axis1['pos_max'] = config['y']['constraints']['pos_max']
+        axis1['label'] = 'y' # name is just as a sanity included
+        axis1['channel'] = 1
+        axis1['unit'] = 'm'                 # the SI units
+        axis1['pos_min'] = -0.014
+        axis1['pos_max'] = 0.010  # that is basically the traveling range
 
         axis2 = {}
-        axis2['label'] = 'z'
-        axis2['scanner'] = config['z']['device_id']
-        axis2['channel'] = config['z']['channel']
-        axis2['pos_min'] = config['z']['constraints']['pos_min']
-        axis2['pos_max'] = config['z']['constraints']['pos_max']
-
-        #  check if the user has specified they have the 'tube' scanner
-        if [s for s in config['axis_labels'] if 'tube' in s]:
-
-                axis3 = {}
-                axis3['label'] = 'tube_x'
-                axis3['scanner'] = config['tube_x']['device_id']
-                axis3['channel'] = config['tube_x']['channel']
-                axis3['pos_min'] = config['tube_x']['constraints']['pos_min']
-                axis3['pos_max'] = config['tube_x']['constraints']['pos_max']
-
-                axis4 = {}
-                axis4['label'] = 'tube_y'
-                axis4['scanner'] = config['tube_y']['device_id']
-                axis4['channel'] = config['tube_y']['channel']
-                axis4['pos_min'] = config['tube_y']['constraints']['pos_min']
-                axis4['pos_max'] = config['tube_y']['constraints']['pos_max']
-
-                axis5 = {}
-                axis5['label'] = 'tube_z'
-                axis5['scanner'] = config['tube_z']['device_id']
-                axis5['channel'] = config['tube_z']['channel']
-                axis5['pos_min'] = config['tube_z']['constraints']['pos_min']
-                axis5['pos_max'] = config['tube_z']['constraints']['pos_max']
+        axis2['label'] = 'z' # name is just as a sanity included
+        axis1['channel'] = 2
+        axis2['unit'] = 'm'                 # the SI units
+        axis2['pos_min'] = -0.014
+        axis2['pos_max'] = 0.010  # that is basically the traveling range
 
         # assign the parameter container for x to a name which will identify it
         constraints[axis0['label']] = axis0
         constraints[axis1['label']] = axis1
         constraints[axis2['label']] = axis2
 
-        #  check if the user has specified they have the 'tube' scanner
-        if [s for s in config['axis_labels'] if 'tube' in s]:
-            constraints[axis3['label']] = axis3
-            constraints[axis4['label']] = axis4
-            constraints[axis5['label']] = axis5
-
-        if axis0['scanner'] != axis1['scanner']:
-            self.log.warning('Your x and y axes are configured as different devices, is this correct?')
-
-        if [s for s in config['axis_labels'] if 'tube' in s]:
-            if axis3['scanner'] != axis4['scanner']:
-                self.log.warning('Your x and y tube axes are configured as different devices, is this correct?')
-
         return constraints
+
+
+###################################
+
+        # constraints = OrderedDict()
+
+        # config = self.getConfiguration()
+
+        # axis0 = {}
+        # axis0['label'] = 'x'
+        # axis0['scanner'] = config['x']['device_id']
+        # axis0['channel'] = config['x']['channel']
+        # axis0['pos_min'] = config['x']['constraints']['pos_min']
+        # axis0['pos_max'] = config['x']['constraints']['pos_max']
+
+        # axis1 = {}
+        # axis1['label'] = 'y'
+        # axis1['scanner'] = config['y']['device_id']
+        # axis1['channel'] = config['y']['channel']
+        # axis1['pos_min'] = config['y']['constraints']['pos_min']
+        # axis1['pos_max'] = config['y']['constraints']['pos_max']
+
+        # axis2 = {}
+        # axis2['label'] = 'z'
+        # axis2['scanner'] = config['z']['device_id']
+        # axis2['channel'] = config['z']['channel']
+        # axis2['pos_min'] = config['z']['constraints']['pos_min']
+        # axis2['pos_max'] = config['z']['constraints']['pos_max']
+
+        # #  check if the user has specified they have the 'tube' scanner
+        # if [s for s in config['axis_labels'] if 'tube' in s]:
+
+        #         axis3 = {}
+        #         axis3['label'] = 'tube_x'
+        #         axis3['scanner'] = config['tube_x']['device_id']
+        #         axis3['channel'] = config['tube_x']['channel']
+        #         axis3['pos_min'] = config['tube_x']['constraints']['pos_min']
+        #         axis3['pos_max'] = config['tube_x']['constraints']['pos_max']
+
+        #         axis4 = {}
+        #         axis4['label'] = 'tube_y'
+        #         axis4['scanner'] = config['tube_y']['device_id']
+        #         axis4['channel'] = config['tube_y']['channel']
+        #         axis4['pos_min'] = config['tube_y']['constraints']['pos_min']
+        #         axis4['pos_max'] = config['tube_y']['constraints']['pos_max']
+
+        #         axis5 = {}
+        #         axis5['label'] = 'tube_z'
+        #         axis5['scanner'] = config['tube_z']['device_id']
+        #         axis5['channel'] = config['tube_z']['channel']
+        #         axis5['pos_min'] = config['tube_z']['constraints']['pos_min']
+        #         axis5['pos_max'] = config['tube_z']['constraints']['pos_max']
+
+        # # assign the parameter container for x to a name which will identify it
+        # constraints[axis0['label']] = axis0
+        # constraints[axis1['label']] = axis1
+        # constraints[axis2['label']] = axis2
+
+        # #  check if the user has specified they have the 'tube' scanner
+        # if [s for s in config['axis_labels'] if 'tube' in s]:
+        #     constraints[axis3['label']] = axis3
+        #     constraints[axis4['label']] = axis4
+        #     constraints[axis5['label']] = axis5
+
+        # if axis0['scanner'] != axis1['scanner']:
+        #     self.log.warning('Your x and y axes are configured as different devices, is this correct?')
+
+        # if [s for s in config['axis_labels'] if 'tube' in s]:
+        #     if axis3['scanner'] != axis4['scanner']:
+        #         self.log.warning('Your x and y tube axes are configured as different devices, is this correct?')
+
+        # return constraints
 
     def move_rel(self, param_dict):
         """ Move the stage in given direction (relative movement)
@@ -229,22 +281,10 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
 
         for axis in ['x', 'y', 'z']:
             if axis in param_dict.keys():
-                scanner = self._configured_constraints[axis]['scanner']
                 channel = self._configured_constraints[axis]['channel']
                 to_position = param_dict[axis]
-                self._do_move_abs(axis, scanner, channel, to_position)
+                _eccdev.write_target_position_axis(channel, to_position)
                 time.sleep(0.1)
-
-        #  check if the user has specified they have the 'tube' scanner
-        if [s for s in self._configured_constraints if 'tube' in s]:
-
-            for axis in ['tube_x', 'tube_y', 'tube_z']:
-                if axis in param_dict.keys():
-                    scanner = self._configured_constraints[axis]['scanner']
-                    channel = self._configured_constraints[axis]['channel']
-                    to_position = param_dict[axis]
-                    self._do_move_abs(axis, scanner, channel, to_position)
-                    time.sleep(0.1)
 
         # # Use this code to populate the returned parmeter dictionary, 
         # # it has been removed to speed-up scanning.
@@ -562,6 +602,7 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
 
     def _check_connection(self):
         """ Check that all three stages are connected and match the ECS5050 linear actuator.
+        This function will return false if any of the three ECS5050 stages are not connected. Or if another stage is connected.
 
         @returns bool success : True if values match
         """
@@ -686,20 +727,63 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
         self._run_script_text_thread(command)
         time.sleep(0.1)
 
-
-############################ Class file of attocube control #############################
+    ##########################################################
+    ##################Attocube Stuff #########################
+    
 class AttoCubeECC100(object):
     
     def __init__(self, device_num=0, device_id = None, debug=False):
         self.debug = debug
         self.device_num = device_num
+
+        
+
+        if platform.architecture()[0] == '64bit':
+            path_dll = os.path.join(os.path.abspath(''),
+                                    'thirdparty',
+                                    'attocube',
+                                    'ECC100_DLL',
+                                    'Win_64Bit',
+                                    'lib',
+                                    'ecc.dll'
+                                    )
+        elif platform.architecture()[0] == '32bit':
+            path_dll = os.path.join(os.path.abspath(''),
+                                    'thirdparty',
+                                    'attocube',
+                                    'ECC100_DLL',
+                                    'Win_32Bit',
+                                    'lib',
+                                    'ecc.dll'
+                                    )
+        else:
+            self.log.error('Unknown platform, cannot load the ECC100 dll.')
+        
+        self.ecc = ctypes.WinDLL(path_dll)
+        
+        time.sleep(1)
         
         if self.debug:
             print("Initializing AttoCubeECC100 device ", device_num)
         
         #self.num_devices = ecc.ECC_Check()
-        self.dev_list = ecc_enumerate()
+        #self.dev_list = self.ecc_enumerate()
         
+        num_devices = self.ecc.ECC_Check(0)
+        self.dev_list = []
+        for i in range(num_devices):        
+            ## Int32 NCB_API ECC_getDeviceInfo( Int32 deviceNo, Int32 * devId, Bln32 * locked );
+            dev_id = ctypes.c_int32()
+            locked = ctypes.c_int32()
+            self.ecc.ECC_getDeviceInfo( i, ctypes.byref(dev_id), ctypes.byref(locked) );
+            self.dev_list.append(_EccDevInfo( i, dev_id.value, locked.value))
+            print( i, dev_id.value, locked.value)
+        
+        print(self.dev_list)
+
+
+
+
         # if device_id is defined, find the appropriate device_num
         if device_id is not None:
             dev_id_found = False
@@ -721,13 +805,13 @@ class AttoCubeECC100(object):
         
         # Connect to Device
         self.devhandle = c_uint32()
-        handle_err(ecc.ECC_Connect(self.device_num,byref(self.devhandle)))
+        ecc.ECC_Connect(self.device_num,byref(self.devhandle))
 
         self.device_id = self.read_device_id()
         
         
     def close(self):
-        handle_err(ecc.ECC_Close(self.devhandle))
+        self.handle_err(self.ecc.ECC_Close(self.devhandle))
 
 
     def read_actor_info(self, axis):
@@ -735,7 +819,7 @@ class AttoCubeECC100(object):
     
     def read_actor_name(self,axis):
         actor_name = ctypes.create_string_buffer(20)
-        handle_err(ecc.ECC_getActorName(
+        self.handle_err(ecc.ECC_getActorName(
                             self.devhandle,
                             axis, # Int32 axis
                             byref(actor_name), # char * name
@@ -744,7 +828,7 @@ class AttoCubeECC100(object):
     
     def read_actor_type(self,axis):
         actor_type_id = c_int32()
-        handle_err(ecc.ECC_getActorType(
+        self.handle_err(ecc.ECC_getActorType(
                             self.devhandle,
                             axis, # Int32 axis
                             byref(actor_type_id) #ECC_actorType * type (enum)
@@ -753,12 +837,12 @@ class AttoCubeECC100(object):
 
     def read_device_id(self):
         dev_id = ctypes.c_int32()
-        handle_err(ecc.ECC_controlDeviceId(self.devhandle, byref(dev_id), False))
+        self.handle_err(ecc.ECC_controlDeviceId(self.devhandle, byref(dev_id), False))
         return dev_id.value
 
     def read_enable_axis(self, axis):
         cenable = c_int32()
-        handle_err(ecc.ECC_controlOutput(self.devhandle,
+        self.handle_err(ecc.ECC_controlOutput(self.devhandle,
                                  axis, #axis
                                  byref(cenable), #Bln32 * enable,
                                  0, # read
@@ -767,7 +851,7 @@ class AttoCubeECC100(object):
         
     def enable_axis(self, axis, enable=True):
         cenable = c_int32(int(enable))
-        handle_err(ecc.ECC_controlOutput(self.devhandle,
+        self.handle_err(ecc.ECC_controlOutput(self.devhandle,
                                  axis, #axis
                                  byref(cenable), #Bln32 * enable,
                                  1, # set
@@ -775,7 +859,7 @@ class AttoCubeECC100(object):
         
     def read_enable_closedloop_axis(self, axis):
         cenable = c_int32()
-        handle_err(ecc.ECC_controlMove(self.devhandle,
+        self.handle_err(ecc.ECC_controlMove(self.devhandle,
                                  axis, #axis
                                  byref(cenable), #Bln32 * enable,
                                  0, # read
@@ -784,7 +868,7 @@ class AttoCubeECC100(object):
         
     def enable_closedloop_axis(self, axis, enable=True):
         cenable = c_int32(int(enable))
-        handle_err(ecc.ECC_controlMove(self.devhandle,
+        self.handle_err(ecc.ECC_controlMove(self.devhandle,
                                  axis, #axis
                                  byref(cenable), #Bln32 * enable,
                                  1, # set
@@ -795,7 +879,7 @@ class AttoCubeECC100(object):
         """direction True (or >0): forward, False (or <=0): backward"""
         backward= (direction <= 0)
         #backward: Selects the desired direction. False triggers a forward step, true a backward step.  
-        handle_err(ecc.ECC_setSingleStep(self.devhandle, # device handle
+        self.handle_err(ecc.ECC_setSingleStep(self.devhandle, # device handle
                                  axis,  # axis
                                  int(backward))) #backward (direction control)
 
@@ -809,7 +893,7 @@ class AttoCubeECC100(object):
         """returns position in mm, device speaks nm
         """
         pos = c_int32()
-        handle_err(ecc.ECC_getPosition( 
+        self.handle_err(ecc.ECC_getPosition( 
                                 self.devhandle, #Int32 deviceHandle,
                                 axis, #Int32 axis,
                                 byref(pos))) #Int32* position );
@@ -821,7 +905,7 @@ class AttoCubeECC100(object):
         Retrieves the connected status. Indicates whether an actor is eletrically connected to the controller.
         """
         connected = c_int32()
-        handle_err(ecc.ECC_getStatusConnected(
+        self.handle_err(ecc.ECC_getStatusConnected(
                                 self.devhandle,
                                 axis,
                                 byref(connected)))
@@ -831,7 +915,7 @@ class AttoCubeECC100(object):
         """returns position in mm, device speaks nm
         """
         refpos = c_int32()
-        handle_err(ecc.ECC_getReferencePosition(
+        self.handle_err(ecc.ECC_getReferencePosition(
                                 self.devhandle,
                                 axis, #Int32 axis
                                 byref(refpos), #Int32* reference
@@ -844,7 +928,7 @@ class AttoCubeECC100(object):
         Retrieves the status of the reference position. It may be valid or invalid.
         """
         valid = c_int32()
-        handle_err(ecc.ECC_getStatusReference(
+        self.handle_err(ecc.ECC_getStatusReference(
                                   self.devhandle,
                                   axis,
                                   byref(valid)))
@@ -857,7 +941,7 @@ class AttoCubeECC100(object):
         """ position in mm, device speaks nm
         """
         tpos = c_int32(int(target_pos*1e6))
-        handle_err(ecc.ECC_controlTargetPosition(
+        self.handle_err(ecc.ECC_controlTargetPosition(
                             self.devhandle,
                             axis, #Int32 axis
                             byref(tpos), # Int32* target
@@ -868,7 +952,7 @@ class AttoCubeECC100(object):
                    
     def read_target_position_axis(self, axis):
         tpos = c_int32()
-        handle_err(ecc.ECC_controlTargetPosition(
+        self.handle_err(ecc.ECC_controlTargetPosition(
                             self.devhandle,
                             axis, #Int32 axis
                             byref(tpos), # Int32* target
@@ -885,7 +969,7 @@ class AttoCubeECC100(object):
         position is within the target range.
         """
         target_status = c_uint32()
-        handle_err(ecc.ECC_getStatusTargetRange(
+        self.handle_err(ecc.ECC_getStatusTargetRange(
                             self.devhandle,
                             axis, #Int32 axis
                             byref(target_status), # Bln32* target                            
@@ -898,7 +982,7 @@ class AttoCubeECC100(object):
         Retrieves eot end of travel status (pro).
         """
         eot_status = c_uint32()
-        handle_err(ecc.ECC_getStatusEotBkwd(
+        self.handle_err(ecc.ECC_getStatusEotBkwd(
                             self.devhandle,
                             axis, #Int32 axis
                             byref(eot_status), # Bln32* target                            
@@ -911,7 +995,7 @@ class AttoCubeECC100(object):
         Retrieves eot end of travel status (pro).
         """
         eot_status = c_uint32()
-        handle_err(ecc.ECC_getStatusEotFwd(
+        self.handle_err(ecc.ECC_getStatusEotFwd(
                             self.devhandle,
                             axis, #Int32 axis
                             byref(eot_status), # Bln32* target                            
@@ -924,7 +1008,7 @@ class AttoCubeECC100(object):
         Retrieves eot end of travel status (pro).
         """
         eot_status = c_uint32()
-        handle_err(ecc.ECC_controlEotOutputDeactive(
+        self.handle_err(ecc.ECC_controlEotOutputDeactive(
                             self.devhandle,
                             axis, #Int32 axis
                             byref(eot_status), # Bln32* target  
@@ -938,7 +1022,7 @@ class AttoCubeECC100(object):
         Retrieves eot end of travel status (pro).
         """
         eot_status = c_uint32(enable)
-        handle_err(ecc.ECC_controlEotOutputDeactive(
+        self.handle_err(ecc.ECC_controlEotOutputDeactive(
                             self.devhandle,
                             axis, #Int32 axis
                             byref(eot_status), # Bln32* target  
@@ -952,7 +1036,7 @@ class AttoCubeECC100(object):
         Retrieves eot end of travel status (pro).
         """
         eot_status = c_uint32()
-        handle_err(ecc.ECC_controlEotOutputDeactive(
+        self.handle_err(ecc.ECC_controlEotOutputDeactive(
                             self.devhandle,
                             axis, #Int32 axis
                             byref(eot_status), # Bln32* target  
@@ -963,7 +1047,7 @@ class AttoCubeECC100(object):
     def read_frequency(self, axis):
         """returns Frequency in Hz, device speaks mHz"""
         freq = c_int32()
-        handle_err(ecc.ECC_controlFrequency(
+        self.handle_err(ecc.ECC_controlFrequency(
                             self.devhandle,
                             axis, #Int32 axis
                             byref(freq), #Int32* frequency
@@ -974,7 +1058,7 @@ class AttoCubeECC100(object):
     def write_frequency(self,axis, frequency):
         """freq: Frequency in mHz"""
         freq = c_int32(int(frequency*1e3))
-        handle_err(ecc.ECC_controlFrequency(
+        self.handle_err(ecc.ECC_controlFrequency(
                             self.devhandle,
                             axis, #Int32 axis
                             byref(freq), #Int32* frequency
@@ -990,7 +1074,7 @@ class AttoCubeECC100(object):
         requires Pro version
         """
         ol_volt = c_int32()
-        handle_err(ecc.ECC_controlFixOutputVoltage(
+        self.handle_err(ecc.ECC_controlFixOutputVoltage(
                             self.devhandle,
                             axis,
                             byref(ol_volt),# Int32 * voltage
@@ -1003,7 +1087,7 @@ class AttoCubeECC100(object):
             voltage in V, unit speaks uV
         """
         ol_volt = c_int32(voltage*1e6)
-        handle_err(ecc.ECC_controlFixOutputVoltage(
+        self.handle_err(ecc.ECC_controlFixOutputVoltage(
                             self.devhandle,
                             axis,
                             byref(ol_volt),# Int32 * voltage
@@ -1027,9 +1111,9 @@ class AttoCubeECC100(object):
         """
         c_enable = c_int32(1) # true to start motion
         if direction > 0:
-            handle_err(ecc.ECC_controlContinousFwd(self.devhandle, axis, byref(c_enable), 1))
+            self.handle_err(ecc.ECC_controlContinousFwd(self.devhandle, axis, byref(c_enable), 1))
         elif direction < 0:
-            handle_err(ecc.ECC_controlContinousBkwd(self.devhandle, axis, byref(c_enable), 1))
+            self.handle_err(ecc.ECC_controlContinousBkwd(self.devhandle, axis, byref(c_enable), 1))
         else:
             self.stop_continous_motion(axis)
         
@@ -1038,7 +1122,7 @@ class AttoCubeECC100(object):
         """The parameter "false" stops all movement of the axis regardless its direction.
         """
         c_enable = c_int32(0) # stop motion
-        handle_err(ecc.ECC_controlContinousFwd(self.devhandle, axis, byref(c_enable), 1))
+        self.handle_err(ecc.ECC_controlContinousFwd(self.devhandle, axis, byref(c_enable), 1))
 
 
     def read_continuous_motion(self, axis):
@@ -1049,7 +1133,7 @@ class AttoCubeECC100(object):
         """
 
         c_enable = c_int32()
-        handle_err(ecc.ECC_controlContinousFwd(self.devhandle,
+        self.handle_err(ecc.ECC_controlContinousFwd(self.devhandle,
                                  axis, #axis
                                  byref(c_enable), #Bln32 * enable,
                                  0, # read
@@ -1058,7 +1142,7 @@ class AttoCubeECC100(object):
             return +1
         
         c_enable = c_int32()
-        handle_err(ecc.ECC_controlContinousBkwd(self.devhandle,
+        self.handle_err(ecc.ECC_controlContinousBkwd(self.devhandle,
                                  axis, #axis
                                  byref(c_enable), #Bln32 * enable,
                                  0, # read
@@ -1071,7 +1155,7 @@ class AttoCubeECC100(object):
     
     def read_enable_auto_update_reference(self, axis):
         c_enable = c_int32()
-        handle_err(ecc.ECC_controlReferenceAutoUpdate(self.devhandle,
+        self.handle_err(ecc.ECC_controlReferenceAutoUpdate(self.devhandle,
                                  axis, #axis
                                  byref(c_enable), #Bln32 * enable,
                                  0, # read
@@ -1080,7 +1164,7 @@ class AttoCubeECC100(object):
         
     def enable_auto_update_reference(self, axis, enable=True):
         c_enable = c_int32(enable)
-        handle_err(ecc.ECC_controlReferenceAutoUpdate(self.devhandle,
+        self.handle_err(ecc.ECC_controlReferenceAutoUpdate(self.devhandle,
                                  axis, #axis
                                  byref(c_enable), #Bln32 * enable,
                                  1, # set
@@ -1089,7 +1173,7 @@ class AttoCubeECC100(object):
         
     def read_enable_auto_reset_reference(self, axis):
         c_enable = c_int32()
-        handle_err(ecc.ECC_controlAutoReset(self.devhandle,
+        self.handle_err(ecc.ECC_controlAutoReset(self.devhandle,
                                  axis, #axis
                                  byref(c_enable), #Bln32 * enable,
                                  0, # read
@@ -1098,7 +1182,7 @@ class AttoCubeECC100(object):
         
     def enable_auto_reset_reference(self, axis, enable=True):
         c_enable = c_int32(enable)
-        handle_err(ecc.ECC_controlAutoReset(self.devhandle,
+        self.handle_err(ecc.ECC_controlAutoReset(self.devhandle,
                                  axis, #axis
                                  byref(c_enable), #Bln32 * enable,
                                  1, # set
@@ -1111,7 +1195,7 @@ class AttoCubeECC100(object):
         Read the amplitude of the actuator signal.
         """
         ampl = c_int32()
-        handle_err(ecc.ECC_controlAmplitude(
+        self.handle_err(ecc.ECC_controlAmplitude(
                             self.devhandle,
                             axis, # Int32 axis
                             byref(ampl), #Int32* amplitude
@@ -1125,7 +1209,7 @@ class AttoCubeECC100(object):
         Read the amplitude of the actuator signal.
         """
         ampl = c_int32(int(volts*1e3))
-        handle_err(ecc.ECC_controlAmplitude(
+        self.handle_err(ecc.ECC_controlAmplitude(
                             self.devhandle,
                             axis, # Int32 axis
                             byref(ampl), #Int32* amplitude
@@ -1140,4 +1224,28 @@ class AttoCubeECC100(object):
         Resets the actual position to zero and marks the reference position as invalid.
         
         """
-        handle_err(ecc.ECC_setReset(self.devhandle, axis))
+        self.handle_err(ecc.ECC_setReset(self.devhandle, axis))
+
+    def handle_err(retcode):
+        if retcode != 0:
+            raise IOError('error')
+        return retcode
+    # def ecc_enumerate():
+    #     #'check for number of connected devices'
+    #     num_devices = ecc.ECC_Check()
+    #     ecc_devices = []
+    #     for i in range(num_devices):        
+    #         ## Int32 NCB_API ECC_getDeviceInfo( Int32 deviceNo, Int32 * devId, Bln32 * locked );
+    #         dev_id = ctypes.c_int32()
+    #         locked = ctypes.c_int32()
+    #         ecc.ECC_getDeviceInfo( i, ctypes.byref(dev_id), ctypes.byref(locked) );
+    #         ecc_devices.append(EccDevInfo( i, dev_id.value, locked.value))
+    #         ##print( i, dev_id.value, locked.value)
+    #     return ecc_devices   
+    
+    
+#ecc_infos = np.ones(10, dtype=c_uint32)
+#num_devices = ecc.ECC_Check(ecc_infos.ctypes)
+
+#print repr(num_devices)
+#print ecc_infos
