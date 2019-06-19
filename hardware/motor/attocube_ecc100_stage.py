@@ -81,11 +81,7 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
             
             self._set_servo_state(True)
             
-            #Enabling closed loop servos to turn on, this will move you to the last defined position (write_target_position_axis).
-            self._eccdev.enable_closedloop_axis(0,1)
-            self._eccdev.enable_closedloop_axis(1,1)
-            self._eccdev.enable_closedloop_axis(2,1)
-            
+           
             #Defining the target postion to be (0,0,0)
             self._eccdev.write_target_position_axis(0,0)
             self._eccdev.write_target_position_axis(1,0)
@@ -163,7 +159,7 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
 
         axis2 = {}
         axis2['label'] = 'z' # name is just as a sanity included
-        axis1['channel'] = 2
+        axis2['channel'] = 2
         axis2['unit'] = 'm'                 # the SI units
         axis2['pos_min'] = -0.014
         axis2['pos_max'] = 0.010  # that is basically the traveling range
@@ -246,6 +242,17 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
         #         self.log.warning('Your x and y tube axes are configured as different devices, is this correct?')
 
         # return constraints
+    
+    def _check_connection(self):
+        """ Check that all three stages are connected and match the ECS5050 linear actuator.
+        This function will return false if any of the three ECS5050 stages are not connected. Or if another stage is connected.
+
+        @returns bool success : True if values match
+        """
+        if self._eccdev.read_actor_info(0) == ('ECS5050', 'ECC_actorLinear') and self._eccdev.read_actor_info(1) == ('ECS5050', 'ECC_actorLinear') and self._eccdev.read_actor_info(2) == ('ECS5050', 'ECC_actorLinear'):
+            return True
+        else:
+            return False
 
     def move_rel(self, param_dict):
         """ Move the stage in given direction (relative movement)
@@ -275,6 +282,7 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
 
         @return dict pos: dictionary with the current axis position
         """
+        #{'x':x_pos, 'y':y_pos,'z':z_pos}
 
         invalid_axis = set(param_dict)-set(self._configured_constraints)
 
@@ -287,52 +295,64 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
             if axis in param_dict.keys():
                 channel = self._configured_constraints[axis]['channel']
                 to_position = param_dict[axis]
-                self._eccdev.write_target_position_axis(channel, to_position)
-                time.sleep(0.1)
+                if to_position < self._configured_constraints[axis]['pos_min']:
+                    self.log.warning('Desired position in {axis} is out of range'
+                                .format(axis=axis))
+                elif to_position > self._configured_constraints[axis]['pos_max']:
+                    self.log.warning('Desired position in {axis} is out of range'
+                                .format(axis=axis))
+
+                else:            
+                    self._eccdev.write_target_position_axis(channel, to_position)
+                    time.sleep(0.1)
 
         # # Use this code to populate the returned parmeter dictionary, 
-        # # it has been removed to speed-up scanning.
-        # self.get_pos()
-        # time.sleep(0.1)
-        # param_dict = self.get_pos()
+        # # it can be removed to speed-up scanning.
+        #self.get_pos()
+        #time.sleep(0.1)
+        #param_dict = self.get_pos()
 
-        self._update_gui()
+        #self._update_gui()
         return param_dict
 
     def abort(self):
         """Stops movement of the stage
-
-        Nova Px software must be revision 18659 or newer for this feature.
-
         @return int: error code (0:OK, -1:error)
-        """
-        scanners = []
-
-        for axis in set(self._configured_constraints):
-            if self._configured_constraints[axis]['scanner'] not in scanners:
-                scanners.append(self._configured_constraints[axis]['scanner'])
-
-        for scanner in scanners:
-            self._emergency_interrupt(scanner)
-
-        status = 0
-
-        for scanner in scanners:
-            # CInt(Abs(Value))
-            command = ('Sc{scanner}Mv = GetParam(tScanner, cStatus, {scanner})\n\n'
-                       'Sc{scanner}Mv = CInt(Abs(Sc{scanner}Mv))\n\n'  # bool to int
-                       'SetSharedDataVal "shared_Sc{scanner}Mv", Sc{scanner}Mv, "F64", 8'
-                       .format(scanner=scanner))
-                       
-            self._run_script_text(command)
-            time.sleep(0.1)
-            status += self._get_shared_float('shared_Sc{scanner}Mv'.format(scanner=scanner))
-            self._reset_shared_data('shared_Sc{scanner}Mv'.format(axis=axis))
-            time.sleep(0.1)
         
-        self._update_gui()
+        """
+        self._eccdev.stop_continous_motion(0)
+        self._eccdev.stop_continous_motion(1)
+        self._eccdev.stop_continous_motion(2)
 
-        return status
+        # This function turns off the servos which must be re-enabled before the scanner will operate.
+
+        # scanners = []
+
+        # for axis in set(self._configured_constraints):
+        #     if self._configured_constraints[axis]['scanner'] not in scanners:
+        #         scanners.append(self._configured_constraints[axis]['scanner'])
+
+        # for scanner in scanners:
+        #     self._emergency_interrupt(scanner)
+
+        # status = 0
+
+        # for scanner in scanners:
+        #     # CInt(Abs(Value))
+        #     command = ('Sc{scanner}Mv = GetParam(tScanner, cStatus, {scanner})\n\n'
+        #                'Sc{scanner}Mv = CInt(Abs(Sc{scanner}Mv))\n\n'  # bool to int
+        #                'SetSharedDataVal "shared_Sc{scanner}Mv", Sc{scanner}Mv, "F64", 8'
+        #                .format(scanner=scanner))
+                       
+        #     self._run_script_text(command)
+        #     time.sleep(0.1)
+        #     status += self._get_shared_float('shared_Sc{scanner}Mv'.format(scanner=scanner))
+        #     self._reset_shared_data('shared_Sc{scanner}Mv'.format(axis=axis))
+        #     time.sleep(0.1)
+        
+        # self._update_gui()
+
+        return 0
 
     def get_pos(self, param_list=None):
         """ Gets current position of the stage arms
@@ -346,43 +366,14 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
         @return dict: with keys being the axis labels and item the current
                       position.
         """
+
         param_dict = {}
-        
+
+
         for axis in ['x', 'y', 'z']:
-                scanner = self._configured_constraints[axis]['scanner']
-                channel = self._configured_constraints[axis]['channel']
 
-                command = ('{axis}Pos = GetParam(tScanner, scPosition, {scanner}, {channel})\n\n'
-                        'SetSharedDataVal "shared_{axis}Pos", {axis}Pos, "F64", 8'
-                        .format(axis=axis, channel=channel, scanner=scanner))
-
-                self._run_script_text(command)
-                time.sleep(0.1)
-                param_dict[axis] = self._get_shared_float('shared_{axis}Pos'.format(axis=axis))  *1e-6
-                # NT-MDT scanner communication in microns
-                time.sleep(0.1)
-
-                # reset shared data values
-                self._reset_shared_data('shared_{axis}Pos'.format(axis=axis))
-                time.sleep(0.1)
-
-        #  check if the user has specified they have the 'tube' scanner
-        if [s for s in self._configured_constraints if 'tube' in s]:
-
-            for axis in ['tube_x', 'tube_y', 'tube_z']:
-                scanner = self._configured_constraints[axis]['scanner']
-                channel = self._configured_constraints[axis]['channel']
-
-                command = ('{axis}Pos = GetParam(tScanner, scPosition, {scanner}, {channel})\n\n'
-                        'SetSharedDataVal "shared_{axis}Pos", {axis}Pos, "F64", 8'
-                        .format(axis=axis, channel=channel, scanner=scanner))
-
-                self._run_script_text(command)
-                time.sleep(0.1)
-                param_dict[axis] = self._get_shared_float('shared_{axis}Pos'.format(axis=axis))  *1e-6
-                # NT-MDT scanner communication in microns
-                time.sleep(0.1)
-                self._reset_shared_data('shared_{axis}Pos'.format(axis=axis))
+                channel = self._configured_constraints[axis]['channel']                 
+                param_dict[axis]=self._eccdev.read_position_axis(channel) 
                 time.sleep(0.1)
 
         if param_list:
@@ -392,6 +383,48 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
             return param_dict
         else:
             return param_dict
+                
+        
+        # for axis in ['x', 'y', 'z']:
+        #         scanner = self._configured_constraints[axis]['scanner']
+        #         channel = self._configured_constraints[axis]['channel']
+
+        #         command = ('{axis}Pos = GetParam(tScanner, scPosition, {scanner}, {channel})\n\n'
+        #                 'SetSharedDataVal "shared_{axis}Pos", {axis}Pos, "F64", 8'
+        #                 .format(axis=axis, channel=channel, scanner=scanner))
+
+        #         self._run_script_text(command)
+        #         time.sleep(0.1)
+        #         param_dict[axis] = self._get_shared_float('shared_{axis}Pos'.format(axis=axis))  *1e-6
+        #         # NT-MDT scanner communication in microns
+        #         time.sleep(0.1)
+
+        #         # reset shared data values
+        #         self._reset_shared_data('shared_{axis}Pos'.format(axis=axis))
+        #         time.sleep(0.1)
+
+        # #  check if the user has specified they have the 'tube' scanner
+        # if [s for s in self._configured_constraints if 'tube' in s]:
+
+        #     for axis in ['tube_x', 'tube_y', 'tube_z']:
+        #         scanner = self._configured_constraints[axis]['scanner']
+        #         channel = self._configured_constraints[axis]['channel']
+
+        #         command = ('{axis}Pos = GetParam(tScanner, scPosition, {scanner}, {channel})\n\n'
+        #                 'SetSharedDataVal "shared_{axis}Pos", {axis}Pos, "F64", 8'
+        #                 .format(axis=axis, channel=channel, scanner=scanner))
+
+        #         self._run_script_text(command)
+        #         time.sleep(0.1)
+        #         param_dict[axis] = self._get_shared_float('shared_{axis}Pos'.format(axis=axis))  *1e-6
+        #         # NT-MDT scanner communication in microns
+        #         time.sleep(0.1)
+        #         self._reset_shared_data('shared_{axis}Pos'.format(axis=axis))
+        #         time.sleep(0.1)
+
+
+
+
 
     def get_status(self, param_list=None):
         """ Get the status of the position
@@ -457,7 +490,23 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
 
 ########################## internal methods ####################################
 
-    def _do_move_abs(self, axis, scanner, channel, to_pos):
+    # def _do_move_abs(self, axis, scanner, channel, to_pos):
+    #     """ Internal method for absolute axis move in meters
+
+    #     @param string axis  : name of the axis to be moved
+    #            int channel  : channel of the axis to be moved 
+    #            float to_pos : desired position in meters
+    #     """
+
+    #     if not(self._configured_constraints[axis]['pos_min'] <= to_pos <= self._configured_constraints[axis]['pos_max']):
+    #         self.log.warning('Cannot make the movement of the {axis} axis'
+    #                          'since the border [{min},{max}] would be crossed! Ignore command!'
+    #                          .format(axis=axis, min=self._configured_constraints[axis]['pos_min'], max=self._configured_constraints[axis]['pos_max']))
+    #     else:
+    #         self._write_axis_move(axis, scanner, channel, to_pos)
+       
+    
+    def _do_move_abs(self, axis, channel, to_pos):
         """ Internal method for absolute axis move in meters
 
         @param string axis  : name of the axis to be moved
@@ -470,9 +519,33 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
                              'since the border [{min},{max}] would be crossed! Ignore command!'
                              .format(axis=axis, min=self._configured_constraints[axis]['pos_min'], max=self._configured_constraints[axis]['pos_max']))
         else:
-            self._write_axis_move(axis, scanner, channel, to_pos)
+            self._write_axis_move(axis, channel, to_pos)
+   
 
-    def _write_axis_move(self, axis, scanner, channel, to_pos):
+
+    # def _write_axis_move(self, axis, scanner, channel, to_pos):
+   
+    #     """ Internal method to move a specified axis
+
+    #     @param string axis  : name of the axis to be moved
+    #            int channel  : channel of the axis to be moved 
+    #            float to_pos : desired position in meters
+    #     """
+
+    #     to_pos = to_pos /1e-9  # Attocube communication in nanometers
+
+    #     command = ('SetParam tScanner, scPosition, {scanner}, {channel}, {position}\n'
+    #                 'Do\n'
+    #                 'idle\n'
+    #                 'Loop Until GetParam(tScanner, cStatus, {scanner}) = False'
+    #                 .format(channel=channel, position=to_pos, scanner=scanner))
+     
+
+    #     self._run_script_text(command)
+    #     time.sleep(0.1)
+
+    def _write_axis_move(self, axis, channel, to_pos):
+   
         """ Internal method to move a specified axis
 
         @param string axis  : name of the axis to be moved
@@ -480,16 +553,19 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
                float to_pos : desired position in meters
         """
 
-        to_pos = to_pos /1e-6  # NT-MDT scanner communication in microns
+        to_pos = to_pos /1e-9  # Attocube communication in nanometers
 
-        command = ('SetParam tScanner, scPosition, {scanner}, {channel}, {position}\n'
+        command = ('{channel}, {position}\n'
                     'Do\n'
                     'idle\n'
                     'Loop Until GetParam(tScanner, cStatus, {scanner}) = False'
-                    .format(channel=channel, position=to_pos, scanner=scanner))
+                    .format(channel=channel, position=to_pos))
+     
 
         self._run_script_text(command)
         time.sleep(0.1)
+
+
 
 ########################## Feedback Methods ####################################
 
@@ -498,123 +574,11 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
 
         @param bool to_state : desired state of the feedback servos
         """
-
-        self._set_servo_state_xy(self._configured_constraints['x']['scanner'], to_state)
-        time.sleep(0.5)
-        self._update_gui()
-
-        #  not required, but will catch an odd configuration
-        self._set_servo_state_xy(self._configured_constraints['y']['scanner'], to_state)
-        time.sleep(0.5)
-        self._update_gui()
-
-        self._set_servo_state_z(self._configured_constraints['z']['scanner'], to_state)
-        time.sleep(0.5)
-        self._update_gui()
-
-        #  check if the user has specified they have the 'tube' scanner
-        if [s for s in self._configured_constraints if 'tube' in s]:
-            
-            self._set_servo_state_xy(self._configured_constraints['tube_x']['scanner'], to_state)
-            time.sleep(0.5)
-            self._update_gui()
-
-            #  not required, but will catch an odd configuration
-            self._set_servo_state_xy(self._configured_constraints['tube_y']['scanner'], to_state)
-            time.sleep(0.5)
-            self._update_gui()
-
-            self._set_servo_state_z(self._configured_constraints['tube_z']['scanner'], to_state)
-            time.sleep(0.5)
-            self._update_gui()
-
-    def _set_servo_state_xy(self, scanner, to_state):
-        """ Internal method to enable/disable XY closed loop feedback
-
-        @param int scanner   : the scanner number
-               bool to_state : the desired state of the feedback loop
-        """
-
-        command =   ('SetParam tScanner, cParam, {scanner}, XYCLState, {to_state}'
-                    .format(scanner=scanner, to_state=int(to_state)))  # bool to int
-        self._run_script_text(command)
-
-    def _set_servo_state_z(self, scanner, to_state):
-        """ Internal method to enable/disable Z closed loop feedback
-
-        @param int scanner   : the scanner number
-               bool to_state : the desired state of the feedback loop
-        """
-
-        command =   ('SetParam tScanner, cParam, {scanner}, ZCLState, {to_state}'
-                    .format(scanner=scanner, to_state=int(to_state)))  # bool to int
-        self._run_script_text(command)
-
-########################## Nova PX Communication ###############################
-
-    def _run_script_text(self, command):
-        """ Execute a command in Nova Px
-
-        @param string command : VBScript code to be executed
-        """
-
-        self._eccdll.RunScriptText(command.encode())
-
-    def _run_script_text_thread(self, command):
-        """ Execute a command in a Nova Px in a separate thread
-
-        This function can be used to interrupt a running process. Nova Px 
-        software must be revision 18659 or newer for this function.
-
-        @param string command : VBScript code to be executed
-        """
-
-        self._eccdll.RunScriptTextThread(command.encode())
-
-    def _get_shared_float(self, variable):
-        """ Retreive a shared data variable of type float from Nova Px
-
-        @param string variable : The variable must have already been created
-
-        @returns float value : The value of variable
-        """
-
-        outbuf = ctypes.c_double()
-        buflen = ctypes.c_int()
-
-        self._eccdll.GetSharedData(variable.encode(), None, ctypes.byref(buflen))  # get the required buffer size
-        self._eccdll.GetSharedData(variable.encode(), ctypes.byref(outbuf), ctypes.byref(buflen))  # fill the buffer
-
-        return outbuf.value
-
-    def _reset_shared_data(self, variable):
-        """ Reset a shared data variable
-
-        @param string variable : The variable must have already been created
-        """
-
-        self._eccdll.ResetSharedData(variable.encode())
-
-    def _update_gui(self):
-        """ Update the Nova Px graphical user unterface
-
-        this operation is noted to be "not threadsafe" in the original documentation
-        """
-
-        command = 'Perform tGlobal, gGUIUpdate'
-        self._run_script_text(command)
-
-    def _check_connection(self):
-        """ Check that all three stages are connected and match the ECS5050 linear actuator.
-        This function will return false if any of the three ECS5050 stages are not connected. Or if another stage is connected.
-
-        @returns bool success : True if values match
-        """
-        if self._eccdev.read_actor_info(0) == ('ECS5050', 'ECC_actorLinear') and self._eccdev.read_actor_info(1) == ('ECS5050', 'ECC_actorLinear') and self._eccdev.read_actor_info(2) == ('ECS5050', 'ECC_actorLinear'):
-            return True 
-        else:
-            return False
-
+    #Enabling closed loop servos to turn on, this will move you to the last defined position (write_target_position_axis).
+        self._eccdev.enable_closedloop_axis(0,to_state)
+        self._eccdev.enable_closedloop_axis(1,to_state)
+        self._eccdev.enable_closedloop_axis(2,to_state)
+        time.sleep(0.1)
 
 
 ########################## Message Box #########################################
@@ -860,37 +824,37 @@ class AttoCubeECC100(object):
         
     def enable_axis(self, axis, enable=True):
         cenable = c_int32(int(enable))
-        self.handle_err(self.ecc.ECC_controlOutput(self.devhandle,
+        self.ecc.ECC_controlOutput(self.devhandle,
                                  axis, #axis
                                  byref(cenable), #Bln32 * enable,
                                  1, # set
-                                 ))
+                                 )
         
     def read_enable_closedloop_axis(self, axis):
         cenable = c_int32()
-        self.handle_err(self.ecc.ECC_controlMove(self.devhandle,
+        self.ecc.ECC_controlMove(self.devhandle,
                                  axis, #axis
                                  byref(cenable), #Bln32 * enable,
                                  0, # read
-                                 ))
+                                 )
         return cenable.value
         
     def enable_closedloop_axis(self, axis, enable=True):
         cenable = c_int32(int(enable))
-        self.handle_err(self.ecc.ECC_controlMove(self.devhandle,
+        self.ecc.ECC_controlMove(self.devhandle,
                                  axis, #axis
                                  byref(cenable), #Bln32 * enable,
                                  1, # set
-                                 ))
+                                 )
 
 
     def single_step(self, axis, direction=True):
         """direction True (or >0): forward, False (or <=0): backward"""
         backward= (direction <= 0)
         #backward: Selects the desired direction. False triggers a forward step, true a backward step.  
-        self.handle_err(self.ecc.ECC_setSingleStep(self.devhandle, # device handle
+        self.ecc.ECC_setSingleStep(self.devhandle, # device handle
                                  axis,  # axis
-                                 int(backward))) #backward (direction control)
+                                 int(backward)) #backward (direction control)
 
     def single_step_forward(self, axis):
         self.single_step(axis, True)
@@ -899,14 +863,14 @@ class AttoCubeECC100(object):
 
 
     def read_position_axis(self, axis):
-        """returns position in mm, device speaks nm
+        """returns position in m, device speaks nm
         """
         pos = c_int32()
-        self.handle_err(self.ecc.ECC_getPosition( 
+        self.ecc.ECC_getPosition( 
                                 self.devhandle, #Int32 deviceHandle,
                                 axis, #Int32 axis,
-                                byref(pos))) #Int32* position );
-        return pos.value*1e-6
+                                byref(pos)) #Int32* position );
+        return pos.value*1e-9
 
 
     def is_electrically_connected(self, axis):
@@ -947,17 +911,17 @@ class AttoCubeECC100(object):
         raise NotImplementedError()
     
     def write_target_position_axis(self, axis, target_pos):
-        """ position in mm, device speaks nm
+        """ position in m, device speaks nm
         """
-        tpos = c_int32(int(target_pos*1e6))
-        self.handle_err(self.ecc.ECC_controlTargetPosition(
+        tpos = c_int32(int(target_pos*1e9))
+        self.ecc.ECC_controlTargetPosition(
                             self.devhandle,
                             axis, #Int32 axis
                             byref(tpos), # Int32* target
                             1, #Bln32 set
-                            ))
+                            )
         time.sleep(0.000010)
-        return tpos.value*1e-6
+        return tpos.value*1e-9
                    
     def read_target_position_axis(self, axis):
         tpos = c_int32()
@@ -1131,7 +1095,7 @@ class AttoCubeECC100(object):
         """The parameter "false" stops all movement of the axis regardless its direction.
         """
         c_enable = c_int32(0) # stop motion
-        self.handle_err(self.ecc.ECC_controlContinousFwd(self.devhandle, axis, byref(c_enable), 1))
+        self.ecc.ECC_controlContinousFwd(self.devhandle, axis, byref(c_enable), 1)
 
 
     def read_continuous_motion(self, axis):
