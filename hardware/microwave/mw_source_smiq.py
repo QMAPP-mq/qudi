@@ -162,7 +162,7 @@ class MicrowaveSmiq(Base, MicrowaveInterface):
         self._gpib_connection.write('OUTP:STAT OFF')
         self._gpib_connection.write('*WAI')
         discard = self._gpib_connection.query('OUTP:STAT?')
-        while int(float(self._gpib_connection.query('OUTP:STAT?').strip('\r'))) != 0:
+        while self._gpib_connection.query('OUTP:STAT?').strip('\r') != '0\n':
             time.sleep(0.2)
 
         if mode == 'list':
