@@ -98,7 +98,7 @@ class MicrowaveSmiq(Base, MicrowaveInterface):
         self._gpib_connection.write(command_str)
         self._gpib_connection.write('*WAI')
         discard = self._gpib_connection.query('*OPC?')
-        while int(float(self._gpib_connection.query('*OPC?').strip('\r'))) != 1:
+        while self._gpib_connection.query('*OPC?').strip('\r'))) != '1\n':
             time.sleep(0.2)
         return
 
