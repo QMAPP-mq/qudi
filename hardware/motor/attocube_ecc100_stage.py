@@ -122,6 +122,7 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
         self._eccdev.write_target_position_axis(0,0)
         self._eccdev.write_target_position_axis(1,0)
         self._eccdev.write_target_position_axis(2,0)
+        time.sleep(0.1)
 
         #Turning off closed loop servos.
         self._eccdev.enable_closedloop_axis(0,0)
