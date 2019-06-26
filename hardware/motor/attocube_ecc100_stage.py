@@ -80,28 +80,50 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
             self.log.info('ECC100 handshake successful')
             
             self._set_servo_state(True)
-            
+            # self._eccdev.enable_closedloop_axis(0,1)
+            # self._eccdev.enable_closedloop_axis(1,1)
+            # self._eccdev.enable_closedloop_axis(2,1)
            
             #Defining the target postion to be (0,0,0)
             self._eccdev.write_target_position_axis(0,0)
             self._eccdev.write_target_position_axis(1,0)
             self._eccdev.write_target_position_axis(2,0)
 
+            while abs(self.get_pos()['x'])>0.00001 or abs(self.get_pos()['y'])>0.00001 or abs(self.get_pos()['z'])>0.00001 :
+                time.sleep(0.1)
 
+            self.move_abs({'x':5e-3,'y':5e-3,'z':5e-3})
+            while abs(self.get_pos()['x'])<4.95e-3 or abs(self.get_pos()['y'])<4.95e-3 or abs(self.get_pos()['z'])<4.95e-3 :
+                time.sleep(0.1)
 
+            self.move_abs({'x':-5e-3,'y':-5e-3,'z':-5e-3})
+            while self.get_pos()['x']>-4.95e-3 or self.get_pos()['y']>-4.95e-3 or self.get_pos()['z']>-4.95e-3 :
+                time.sleep(0.1)    
             #Move ro -500um
 
+            self.move_abs({'x':0,'y':0,'z':0})
+            while abs(self.get_pos()['x'])>0.00001 or abs(self.get_pos()['y'])>0.00001 or abs(self.get_pos()['z'])>0.00001 :
+                time.sleep(0.1)
+
             #Move to +500um
+            if self._eccdev.read_reference_status(0)*self._eccdev.read_reference_status(1)*self._eccdev.read_reference_status(2)==1:
+                x_ref = self._eccdev.read_reference_position(0)
+                y_ref = self._eccdev.read_reference_position(1)
+                z_ref = self._eccdev.read_reference_position(2)
+                self.move_abs({'x':x_ref,'y':y_ref,'z':z_ref})
+                while abs(self.get_pos()['x']-x_ref)>0.000001 or abs(self.get_pos()['y']-y_ref)>0.000001 or abs(self.get_pos()['z']-z_ref)>0.000001 :
+                    time.sleep(0.1)
+            else:
+                print('Reference not found')
 
-            #Ensure we have green light on reference.
-            
-            #Read Reference. (If reference not found either error or do bigger scan.)
+            self._eccdev.enable_auto_reset_reference(0,1)
+            self._eccdev.enable_auto_reset_reference(1,1)
+            self._eccdev.enable_auto_reset_reference(2,1)
 
-            #Move to reference.
+            self.move_abs({'x':0,'y':0,'z':0})
+            while abs(self.get_pos()['x'])>0.00001 or abs(self.get_pos()['y'])>0.00001 or abs(self.get_pos()['z'])>0.00001 :
+                time.sleep(0.1)
 
-            #Reset Reference
-
-            #Move to real (0,0,0)
 
             return 0
             
@@ -122,7 +144,8 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
         self._eccdev.write_target_position_axis(0,0)
         self._eccdev.write_target_position_axis(1,0)
         self._eccdev.write_target_position_axis(2,0)
-        time.sleep(0.1)
+        while abs(self.get_pos()['x'])>0.00001 or abs(self.get_pos()['y'])>0.00001 or abs(self.get_pos()['z'])>0.00001 :
+            time.sleep(0.1)
 
         #Turning off closed loop servos.
         self._eccdev.enable_closedloop_axis(0,0)
@@ -507,20 +530,20 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
     #         self._write_axis_move(axis, scanner, channel, to_pos)
        
     
-    def _do_move_abs(self, axis, channel, to_pos):
-        """ Internal method for absolute axis move in meters
+    # def _do_move_abs(self, axis, channel, to_pos):
+    #     """ Internal method for absolute axis move in meters
 
-        @param string axis  : name of the axis to be moved
-               int channel  : channel of the axis to be moved 
-               float to_pos : desired position in meters
-        """
+    #     @param string axis  : name of the axis to be moved
+    #            int channel  : channel of the axis to be moved 
+    #            float to_pos : desired position in meters
+    #     """
 
-        if not(self._configured_constraints[axis]['pos_min'] <= to_pos <= self._configured_constraints[axis]['pos_max']):
-            self.log.warning('Cannot make the movement of the {axis} axis'
-                             'since the border [{min},{max}] would be crossed! Ignore command!'
-                             .format(axis=axis, min=self._configured_constraints[axis]['pos_min'], max=self._configured_constraints[axis]['pos_max']))
-        else:
-            self._write_axis_move(axis, channel, to_pos)
+    #     if not(self._configured_constraints[axis]['pos_min'] <= to_pos <= self._configured_constraints[axis]['pos_max']):
+    #         self.log.warning('Cannot make the movement of the {axis} axis'
+    #                          'since the border [{min},{max}] would be crossed! Ignore command!'
+    #                          .format(axis=axis, min=self._configured_constraints[axis]['pos_min'], max=self._configured_constraints[axis]['pos_max']))
+    #     else:
+    #         self._write_axis_move(axis, channel, to_pos)
    
 
 
@@ -545,26 +568,26 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
     #     self._run_script_text(command)
     #     time.sleep(0.1)
 
-    def _write_axis_move(self, axis, channel, to_pos):
+    # def _write_axis_move(self, axis, channel, to_pos):
    
-        """ Internal method to move a specified axis
+    #     """ Internal method to move a specified axis
 
-        @param string axis  : name of the axis to be moved
-               int channel  : channel of the axis to be moved 
-               float to_pos : desired position in meters
-        """
+    #     @param string axis  : name of the axis to be moved
+    #            int channel  : channel of the axis to be moved 
+    #            float to_pos : desired position in meters
+    #     """
 
-        to_pos = to_pos /1e-9  # Attocube communication in nanometers
+    #     to_pos = to_pos /1e-9  # Attocube communication in nanometers
 
-        command = ('{channel}, {position}\n'
-                    'Do\n'
-                    'idle\n'
-                    'Loop Until GetParam(tScanner, cStatus, {scanner}) = False'
-                    .format(channel=channel, position=to_pos))
+    #     command = ('{channel}, {position}\n'
+    #                 'Do\n'
+    #                 'idle\n'
+    #                 'Loop Until GetParam(tScanner, cStatus, {scanner}) = False'
+    #                 .format(channel=channel, position=to_pos))
      
 
-        self._run_script_text(command)
-        time.sleep(0.1)
+    #     self._run_script_text(command)
+    #     time.sleep(0.1)
 
 
 
@@ -584,117 +607,117 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
 
 ########################## Message Box #########################################
 
-    def _make_message(self, message):
-        """ Make a message box appear in Noxa Px. Use for debugging.
+    # def _make_message(self, message):
+    #     """ Make a message box appear in Noxa Px. Use for debugging.
 
-        @param string message : Message to be displayed in a box.
-        """
+    #     @param string message : Message to be displayed in a box.
+    #     """
 
-        command = 'msgbox "{message}"'.format(message=message)
-        self._eccdll.RunScriptText(command.encode())
+    #     command = 'msgbox "{message}"'.format(message=message)
+    #     self._eccdll.RunScriptText(command.encode())
 
 ########################## Thermal Controls ####################################
 
-    def _toggle_heating(self, to_state):
-        """ Enable or disable the stage heater
+    # def _toggle_heating(self, to_state):
+    #     """ Enable or disable the stage heater
 
-        @param bool to_state : The desired state of the heater
-        """
+    #     @param bool to_state : The desired state of the heater
+    #     """
 
-        command =   ('SetParam tThermoController, thHeatingEnabled, {state}'
-                    .format(to_state=int(to_state)))  # 0 - off, 1 - on
-        self._run_script_text(command)
+    #     command =   ('SetParam tThermoController, thHeatingEnabled, {state}'
+    #                 .format(to_state=int(to_state)))  # 0 - off, 1 - on
+    #     self._run_script_text(command)
 
-    def _set_temperature_setpoint(self, setpoint):
-        """ Set the temperature setpoint of the heater
+    # def _set_temperature_setpoint(self, setpoint):
+    #     """ Set the temperature setpoint of the heater
 
-        @param float setpoint : The desired temperature setpoint
-        """
+    #     @param float setpoint : The desired temperature setpoint
+    #     """
 
-        command =   ('SetParam tThermoController, thSetPoint, {temp}'
-                    .format(temp=setpoint))
-        self._run_script_text(command)
+    #     command =   ('SetParam tThermoController, thSetPoint, {temp}'
+    #                 .format(temp=setpoint))
+    #     self._run_script_text(command)
 
-    def _get_heater_power(self):
-        """ Get the current heater power in %
+    # def _get_heater_power(self):
+    #     """ Get the current heater power in %
 
-        @returns float power : The current heater power in %
-        """
+    #     @returns float power : The current heater power in %
+    #     """
 
-        command = ('ThPower = GetParam(tThermoController, thPower)\n\n'
-                    'SetSharedDataVal "shared_ThPower", ThPower, "F64", 8'
-                    )
+    #     command = ('ThPower = GetParam(tThermoController, thPower)\n\n'
+    #                 'SetSharedDataVal "shared_ThPower", ThPower, "F64", 8'
+    #                 )
 
-        self._run_script_text(command)
-        time.sleep(0.1)
-        power = self._get_shared_float('shared_ThPower')
-        # NT-MDT scanner communication in %
-        time.sleep(0.1)
+    #     self._run_script_text(command)
+    #     time.sleep(0.1)
+    #     power = self._get_shared_float('shared_ThPower')
+    #     # NT-MDT scanner communication in %
+    #     time.sleep(0.1)
 
-        self._reset_shared_data('shared_ThPower')
-        time.sleep(0.1)
+    #     self._reset_shared_data('shared_ThPower')
+    #     time.sleep(0.1)
 
-        return power
+    #     return power
 
-    def _get_temperature(self, channel_list=None):
-        """ Get the current temperature value
+    # def _get_temperature(self, channel_list=None):
+    #     """ Get the current temperature value
 
-        @param list channel_list : optional, if a specific temperature of a channel
-                                   is desired, then the labels of the needed
-                                   channel should be passed in the channel_list.
-                                   If nothing is passed, then the temperatures of
-                                   all channels are returned.
+    #     @param list channel_list : optional, if a specific temperature of a channel
+    #                                is desired, then the labels of the needed
+    #                                channel should be passed in the channel_list.
+    #                                If nothing is passed, then the temperatures of
+    #                                all channels are returned.
 
-        @return dict : with keys being the channel labels and item the current
-                       temperature.
-        """
+    #     @return dict : with keys being the channel labels and item the current
+    #                    temperature.
+    #     """
 
-        for channel in channel_list:
-            channel = str(channel)  # convert ints to strings
+    #     for channel in channel_list:
+    #         channel = str(channel)  # convert ints to strings
 
-        channel_dict = {}
+    #     channel_dict = {}
         
-        for channel in ['1', '2', '3']:
+    #     for channel in ['1', '2', '3']:
 
-            command = ('T{channel} = GetParam(tThermoController, thT{channel}CurValue)\n\n'
-                       'SetSharedDataVal "shared_T{channel}", T{channel}, "F64", 8'
-                       .format(channel=channel))
+    #         command = ('T{channel} = GetParam(tThermoController, thT{channel}CurValue)\n\n'
+    #                    'SetSharedDataVal "shared_T{channel}", T{channel}, "F64", 8'
+    #                    .format(channel=channel))
 
-            self._run_script_text(command)
-            time.sleep(0.1)
-            channel_dict[channel] = self._get_shared_float('shared_T{channel}'.format(channel=channel))
-            # NT-MDT scanner communication in celcius
-            time.sleep(0.1)
+    #         self._run_script_text(command)
+    #         time.sleep(0.1)
+    #         channel_dict[channel] = self._get_shared_float('shared_T{channel}'.format(channel=channel))
+    #         # NT-MDT scanner communication in celcius
+    #         time.sleep(0.1)
 
-        for channel in ['1', '2', '3']:  # reset shared data values
-            self._reset_shared_data('shared_T{channel}'.format(channel=channel))
-            time.sleep(0.1)
+    #     for channel in ['1', '2', '3']:  # reset shared data values
+    #         self._reset_shared_data('shared_T{channel}'.format(channel=channel))
+    #         time.sleep(0.1)
 
-        if channel_list:
-            for channel in list(set(channel_dict.keys()) - set(channel_list)):  # channels not in channel_list
-                del channel_dict[channel]
-            return channel_dict
-        else:
-            return channel_dict
+    #     if channel_list:
+    #         for channel in list(set(channel_dict.keys()) - set(channel_list)):  # channels not in channel_list
+    #             del channel_dict[channel]
+    #         return channel_dict
+    #     else:
+    #         return channel_dict
 
 ########################## Interrupt Movement ##################################
 
-    def _emergency_interrupt(self, scanner):
-        """ Abort motion of a scanners
+    # def _emergency_interrupt(self, scanner):
+    #     """ Abort motion of a scanners
 
-        To abort the movement of a scanner in motion, the command must be 
-        called in a separate thread. See self._run_script_text_thread.
+    #     To abort the movement of a scanner in motion, the command must be 
+    #     called in a separate thread. See self._run_script_text_thread.
 
-        @param int scanner : The scanner to be stopped
-        """
+    #     @param int scanner : The scanner to be stopped
+    #     """
 
-        self.log.warning('Aborting the motion of NT-MDT scanner {scanner}'.format(scanner=scanner))
+    #     self.log.warning('Aborting the motion of NT-MDT scanner {scanner}'.format(scanner=scanner))
 
-        command = ('Perform tScanner, scStop, {scanner}'
-                    .format(scanner=scanner))
+    #     command = ('Perform tScanner, scStop, {scanner}'
+    #                 .format(scanner=scanner))
 
-        self._run_script_text_thread(command)
-        time.sleep(0.1)
+    #     self._run_script_text_thread(command)
+    #     time.sleep(0.1)
 
     ##########################################################
     ##################Attocube Stuff #########################
@@ -879,22 +902,22 @@ class AttoCubeECC100(object):
         Retrieves the connected status. Indicates whether an actor is eletrically connected to the controller.
         """
         connected = c_int32()
-        self.handle_err(self.ecc.ECC_getStatusConnected(
+        self.ecc.ECC_getStatusConnected(
                                 self.devhandle,
                                 axis,
-                                byref(connected)))
+                                byref(connected))
         return bool(connected.value)
 
     def read_reference_position(self, axis):
         """returns position in mm, device speaks nm
         """
         refpos = c_int32()
-        self.handle_err(self.ecc.ECC_getReferencePosition(
+        self.ecc.ECC_getReferencePosition(
                                 self.devhandle,
                                 axis, #Int32 axis
                                 byref(refpos), #Int32* reference
-                                ))
-        return refpos.value*1e-6
+                                )
+        return refpos.value*1e-9
 
     def read_reference_status(self, axis):
         """
@@ -902,10 +925,10 @@ class AttoCubeECC100(object):
         Retrieves the status of the reference position. It may be valid or invalid.
         """
         valid = c_int32()
-        self.handle_err(self.ecc.ECC_getStatusReference(
+        self.ecc.ECC_getStatusReference(
                                   self.devhandle,
                                   axis,
-                                  byref(valid)))
+                                  byref(valid))
         return bool(valid.value)
     
     def read_target_range_axis(self, axis):
@@ -926,15 +949,15 @@ class AttoCubeECC100(object):
                    
     def read_target_position_axis(self, axis):
         tpos = c_int32()
-        self.handle_err(self.ecc.ECC_controlTargetPosition(
+        self.ecc.ECC_controlTargetPosition(
                             self.devhandle,
                             axis, #Int32 axis
                             byref(tpos), # Int32* target
                             0, #Bln32 set
-                            ))
+                            )
         if self.debug: print('ecc100 read_target_position_axis', axis, tpos.value)
 
-        return tpos.value*1e-6
+        return tpos.value*1e-9
     
     def read_target_status(self, axis):
         """
@@ -943,11 +966,11 @@ class AttoCubeECC100(object):
         position is within the target range.
         """
         target_status = c_uint32()
-        self.handle_err(self.ecc.ECC_getStatusTargetRange(
+        self.ecc.ECC_getStatusTargetRange(
                             self.devhandle,
                             axis, #Int32 axis
                             byref(target_status), # Bln32* target                            
-                            ))
+                            )
         return bool(target_status.value)
 
     def read_eot_back_status(self, axis):
@@ -956,11 +979,11 @@ class AttoCubeECC100(object):
         Retrieves eot end of travel status (pro).
         """
         eot_status = c_uint32()
-        self.handle_err(self.ecc.ECC_getStatusEotBkwd(
+        self.ecc.ECC_getStatusEotBkwd(
                             self.devhandle,
                             axis, #Int32 axis
                             byref(eot_status), # Bln32* target                            
-                            ))
+                            )
         return bool(eot_status.value)
 
     def read_eot_forward_status(self, axis):
@@ -969,11 +992,11 @@ class AttoCubeECC100(object):
         Retrieves eot end of travel status (pro).
         """
         eot_status = c_uint32()
-        self.handle_err(self.ecc.ECC_getStatusEotFwd(
+        self.ecc.ECC_getStatusEotFwd(
                             self.devhandle,
                             axis, #Int32 axis
                             byref(eot_status), # Bln32* target                            
-                            ))
+                            )
         return bool(eot_status.value)
 
     def read_eot_stop_status(self, axis):
@@ -982,12 +1005,12 @@ class AttoCubeECC100(object):
         Retrieves eot end of travel status (pro).
         """
         eot_status = c_uint32()
-        self.handle_err(self.ecc.ECC_controlEotOutputDeactive(
+        self.ecc.ECC_controlEotOutputDeactive(
                             self.devhandle,
                             axis, #Int32 axis
                             byref(eot_status), # Bln32* target  
                             0, #set                          
-                            ))
+                            )
         return bool(eot_status.value)
     
     def enable_eot_stop(self, axis, enable):
@@ -996,12 +1019,12 @@ class AttoCubeECC100(object):
         Retrieves eot end of travel status (pro).
         """
         eot_status = c_uint32(enable)
-        self.handle_err(self.ecc.ECC_controlEotOutputDeactive(
+        self.ecc.ECC_controlEotOutputDeactive(
                             self.devhandle,
                             axis, #Int32 axis
                             byref(eot_status), # Bln32* target  
                             1, #set                          
-                            ))
+                            )
         return bool(eot_status.value)
 
     def read_enable_eot_stop(self, axis ):
@@ -1010,34 +1033,34 @@ class AttoCubeECC100(object):
         Retrieves eot end of travel status (pro).
         """
         eot_status = c_uint32()
-        self.handle_err(self.ecc.ECC_controlEotOutputDeactive(
+        self.ecc.ECC_controlEotOutputDeactive(
                             self.devhandle,
                             axis, #Int32 axis
                             byref(eot_status), # Bln32* target  
                             0, #set                          
-                            ))
+                            )
         return bool(eot_status.value)
 
     def read_frequency(self, axis):
         """returns Frequency in Hz, device speaks mHz"""
         freq = c_int32()
-        self.handle_err(self.ecc.ECC_controlFrequency(
+        self.ecc.ECC_controlFrequency(
                             self.devhandle,
                             axis, #Int32 axis
                             byref(freq), #Int32* frequency
                             0, # Bln32 set
-                            ))
+                            )
         return freq.value*1e-3
     
     def write_frequency(self,axis, frequency):
         """freq: Frequency in mHz"""
         freq = c_int32(int(frequency*1e3))
-        self.handle_err(self.ecc.ECC_controlFrequency(
+        self.ecc.ECC_controlFrequency(
                             self.devhandle,
                             axis, #Int32 axis
                             byref(freq), #Int32* frequency
                             1, # Bln32 set
-                            ))
+                            )
         return freq.value*1e-3
         
     def read_openloop_voltage(self, axis):
@@ -1048,12 +1071,12 @@ class AttoCubeECC100(object):
         requires Pro version
         """
         ol_volt = c_int32()
-        self.handle_err(self.ecc.ECC_controlFixOutputVoltage(
+        self.ecc.ECC_controlFixOutputVoltage(
                             self.devhandle,
                             axis,
                             byref(ol_volt),# Int32 * voltage
                             0, #set
-                            ))
+                            )
         return ol_volt.value*1e-6
     
     def write_openloop_voltage(self, axis, voltage):
@@ -1061,12 +1084,12 @@ class AttoCubeECC100(object):
             voltage in V, unit speaks uV
         """
         ol_volt = c_int32(voltage*1e6)
-        self.handle_err(self.ecc.ECC_controlFixOutputVoltage(
+        self.ecc.ECC_controlFixOutputVoltage(
                             self.devhandle,
                             axis,
                             byref(ol_volt),# Int32 * voltage
                             1, #set
-                            ))
+                            )
         return ol_volt.value*1e-6
 
     def enable_ext_trigger(self, axis):
@@ -1085,9 +1108,9 @@ class AttoCubeECC100(object):
         """
         c_enable = c_int32(1) # true to start motion
         if direction > 0:
-            self.handle_err(self.ecc.ECC_controlContinousFwd(self.devhandle, axis, byref(c_enable), 1))
+            self.ecc.ECC_controlContinousFwd(self.devhandle, axis, byref(c_enable), 1)
         elif direction < 0:
-            self.handle_err(self.ecc.ECC_controlContinousBkwd(self.devhandle, axis, byref(c_enable), 1))
+            self.ecc.ECC_controlContinousBkwd(self.devhandle, axis, byref(c_enable), 1)
         else:
             self.stop_continous_motion(axis)
         
@@ -1107,20 +1130,20 @@ class AttoCubeECC100(object):
         """
 
         c_enable = c_int32()
-        self.handle_err(self.ecc.ECC_controlContinousFwd(self.devhandle,
+        self.ecc.ECC_controlContinousFwd(self.devhandle,
                                  axis, #axis
                                  byref(c_enable), #Bln32 * enable,
                                  0, # read
-                                 ))
+                                 )
         if c_enable.value:
             return +1
         
         c_enable = c_int32()
-        self.handle_err(self.ecc.ECC_controlContinousBkwd(self.devhandle,
+        self.ecc.ECC_controlContinousBkwd(self.devhandle,
                                  axis, #axis
                                  byref(c_enable), #Bln32 * enable,
                                  0, # read
-                                 ))
+                                 )
         if c_enable.value:
             return -1
         
@@ -1129,38 +1152,38 @@ class AttoCubeECC100(object):
     
     def read_enable_auto_update_reference(self, axis):
         c_enable = c_int32()
-        self.handle_err(self.ecc.ECC_controlReferenceAutoUpdate(self.devhandle,
+        self.ecc.ECC_controlReferenceAutoUpdate(self.devhandle,
                                  axis, #axis
                                  byref(c_enable), #Bln32 * enable,
                                  0, # read
-                                 ))
+                                 )
         return c_enable.value
         
     def enable_auto_update_reference(self, axis, enable=True):
         c_enable = c_int32(enable)
-        self.handle_err(self.ecc.ECC_controlReferenceAutoUpdate(self.devhandle,
+        self.ecc.ECC_controlReferenceAutoUpdate(self.devhandle,
                                  axis, #axis
                                  byref(c_enable), #Bln32 * enable,
                                  1, # set
-                                 ))
+                                 )
         return c_enable.value
         
     def read_enable_auto_reset_reference(self, axis):
         c_enable = c_int32()
-        self.handle_err(self.ecc.ECC_controlAutoReset(self.devhandle,
+        self.ecc.ECC_controlAutoReset(self.devhandle,
                                  axis, #axis
                                  byref(c_enable), #Bln32 * enable,
                                  0, # read
-                                 ))
+                                 )
         return c_enable.value
         
     def enable_auto_reset_reference(self, axis, enable=True):
         c_enable = c_int32(enable)
-        self.handle_err(self.ecc.ECC_controlAutoReset(self.devhandle,
+        self.ecc.ECC_controlAutoReset(self.devhandle,
                                  axis, #axis
                                  byref(c_enable), #Bln32 * enable,
                                  1, # set
-                                 ))
+                                 )
         return c_enable.value
         
     def read_step_voltage(self, axis):
@@ -1169,12 +1192,12 @@ class AttoCubeECC100(object):
         Read the amplitude of the actuator signal.
         """
         ampl = c_int32()
-        self.handle_err(self.ecc.ECC_controlAmplitude(
+        self.ecc.ECC_controlAmplitude(
                             self.devhandle,
                             axis, # Int32 axis
                             byref(ampl), #Int32* amplitude
                             0, #set
-                            ))
+                            )
         return ampl.value*1e-3
         
     def write_step_voltage(self, axis, volts=30):
@@ -1183,12 +1206,12 @@ class AttoCubeECC100(object):
         Read the amplitude of the actuator signal.
         """
         ampl = c_int32(int(volts*1e3))
-        self.handle_err(self.ecc.ECC_controlAmplitude(
+        self.ecc.ECC_controlAmplitude(
                             self.devhandle,
                             axis, # Int32 axis
                             byref(ampl), #Int32* amplitude
                             1, #set
-                            ))
+                            )
         return ampl.value*1e-3
         
     
@@ -1198,12 +1221,13 @@ class AttoCubeECC100(object):
         Resets the actual position to zero and marks the reference position as invalid.
         
         """
-        self.handle_err(self.ecc.ECC_setReset(self.devhandle, axis))
+        self.ecc.ECC_setReset(self.devhandle, axis)
 
     def handle_err(retcode):
         if retcode != 0:
             raise IOError('error')
         return retcode
+
     # def ecc_enumerate():
     #     #'check for number of connected devices'
     #     num_devices = ecc.ECC_Check()
