@@ -326,7 +326,7 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
 
                 else:            
                     self._eccdev.write_target_position_axis(channel, to_position)
-                    time.sleep(0.1)
+                    #time.sleep(0.1)
 
         # # Use this code to populate the returned parmeter dictionary, 
         # # it can be removed to speed-up scanning.
