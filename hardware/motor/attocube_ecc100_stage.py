@@ -58,8 +58,6 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
     _modclass = 'PiezoStageATTOCUBE'
     _modtype = 'hardware'
 
-    #_device_id = ConfigOption('device_id', missing='error')
-    #_device_id = 13635907
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
