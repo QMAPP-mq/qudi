@@ -55,8 +55,10 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
         # 2: dual channel for apd_0 and apd_1
         if self._sum_channels:
             self._mode = 1
+            self._channel_apd = self._sum_channels
         elif self._channel_apd_1 is None:
             self._mode = 0
+            self._channel_apd = self._channel_apd_0
         else:
             self._mode = 2
 
@@ -142,7 +144,7 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
 
     def get_counter_channels(self):
         if self._mode < 2:
-            return self._channel_apd
+            return [self._channel_apd]
         else:
             return [self._channel_apd_0, self._channel_apd_1]
 
