@@ -334,8 +334,60 @@ class PiezoStageATTOCUBE(Base, MotorInterface):
         #time.sleep(0.1)
         #param_dict = self.get_pos()
 
+
+           
         #self._update_gui()
         return param_dict
+
+    def move_abs_confirm(self, param_dict=None):
+        """Move the stage to absolute position
+
+        @param dict param_dict: dictionary, which passes all the relevant
+                                parameters, which should be changed. Usage:
+                                 {'axis_label': <the-abs-pos-value>}.
+                                 'axis_label' must correspond to a label given
+                                 to one of the axis.
+                                The values for the axes are in meter,
+                                the value for the rotation is in degrees.
+
+        @return dict pos: dictionary with the current axis position
+        """
+        #{'x':x_pos, 'y':y_pos,'z':z_pos}
+
+        invalid_axis = set(param_dict)-set(self._configured_constraints)
+
+        if invalid_axis:
+            for axis in invalid_axis:      
+                self.log.warning('Desired axis {axis} is undefined'
+                                .format(axis=axis))
+
+        for axis in ['x', 'y', 'z']:
+            if axis in param_dict.keys():
+                channel = self._configured_constraints[axis]['channel']
+                to_position = param_dict[axis]
+                if to_position < self._configured_constraints[axis]['pos_min']:
+                    self.log.warning('Desired position in {axis} is out of range'
+                                .format(axis=axis))
+                elif to_position > self._configured_constraints[axis]['pos_max']:
+                    self.log.warning('Desired position in {axis} is out of range'
+                                .format(axis=axis))
+
+                else:            
+                    self._eccdev.write_target_position_axis(channel, to_position)
+                    #time.sleep(0.1)
+
+        # # Use this code to populate the returned parmeter dictionary, 
+        # # it can be removed to speed-up scanning.
+        #self.get_pos()
+        #time.sleep(0.1)
+        #param_dict = self.get_pos()
+                        
+        while abs(self.get_pos()['x']-param_dict['x'])>0.000001 or abs(self.get_pos()['y']-param_dict['y'])>0.000001 or abs(self.get_pos()['z']-param_dict['z'])>0.000001 :
+            time.sleep(0.001)
+
+           
+        #self._update_gui()
+        return param_dict    
 
     def abort(self):
         """Stops movement of the stage

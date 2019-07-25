@@ -130,7 +130,7 @@ class PiezoAttoScannerInterfuse(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-
+        self.set_dwell_delay(1./clock_frequency)
         #return self._scanner_hw.set_up_scanner_clock(clock_frequency=clock_frequency, clock_channel=clock_channel)
         return 0
 
@@ -170,6 +170,26 @@ class PiezoAttoScannerInterfuse(Base, ConfocalScannerInterface):
         move_dict['z'] = z
 
         self._stage_hw.move_abs(move_dict)
+        return 0
+
+    def scanner_set_position_confirm(self, x = None, y = None, z = None, a = None):
+        """Move stage to x, y, z, a (where a is the fourth voltage channel).
+        This is a direct pass-through to the scanner HW
+
+        @param float x: postion in x-direction (volts)
+        @param float y: postion in y-direction (volts)
+        @param float z: postion in z-direction (volts)
+        @param float a: postion in a-direction (volts)
+
+        @return int: error code (0:OK, -1:error)
+        """
+
+        move_dict = {}
+        move_dict['x'] = x
+        move_dict['y'] = y
+        move_dict['z'] = z
+
+        self._stage_hw.move_abs_confirm(move_dict)
         return 0
 
     def get_scanner_position(self):
@@ -223,8 +243,10 @@ class PiezoAttoScannerInterfuse(Base, ConfocalScannerInterface):
 
         for i in range(self._line_length):
             coords = line_path[:, i]
-            self.scanner_set_position(x=coords[0], y=coords[1], z=coords[2], a=coords[3])
-
+            if i == 0:
+                self.scanner_set_position_confirm(x=coords[0], y=coords[1], z=coords[2], a=coords[3])
+            else:
+                self.scanner_set_position(x=coords[0], y=coords[1], z=coords[2], a=coords[3])
             # dwell to accumulate count data
             time.sleep(self._dwell_delay)
             # record count data
