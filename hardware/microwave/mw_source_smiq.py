@@ -75,8 +75,8 @@ class MicrowaveSmiq(Base, MicrowaveInterface):
                            ''.format(self._gpib_address))
             raise
 
+        self._clear_buffer()
         self.log.info('MWSMIQ initialised and connected to hardware.')
-        discard = self._gpib_connection.query('*IDN?').strip('\r').split(',')[1]
         self.model = self._gpib_connection.query('*IDN?').strip('\r').split(',')[1]
         self._command_wait('*CLS')
         self._command_wait('*RST')
@@ -88,6 +88,16 @@ class MicrowaveSmiq(Base, MicrowaveInterface):
         #self.rm.close()
         return
 
+    def _clear_buffer(self):
+        while self._gpib_connection.bytes_in_buffer > 1:
+            discard = self._gpib_connection.read()
+
+    def _run_command(self, command_str):
+        self._gpib_connection.write(command_str)
+        while self._gpib_connection.bytes_in_buffer > 1:
+            discard = self._gpib_connection.read()
+            print('I ran command {} and had to discard the GPIB response: {}'.format(command_str, discard))
+
     def _command_wait(self, command_str):
         """
         Writes the command in command_str via GPIB and waits until the device has finished
@@ -95,10 +105,9 @@ class MicrowaveSmiq(Base, MicrowaveInterface):
 
         @param command_str: The command to be written
         """
-        self._gpib_connection.write(command_str)
-        self._gpib_connection.write('*WAI')
-        discard = self._gpib_connection.query('*OPC?')
-        while self._gpib_connection.query('*OPC?').strip('\r'))) != '1\n':
+        self._run_command(command_str)
+        self._run_command('*WAI')
+        while self._gpib_connection.query('*OPC?').strip('\r') != '1\n':
             time.sleep(0.2)
         return
 
@@ -159,9 +168,8 @@ class MicrowaveSmiq(Base, MicrowaveInterface):
         if mode == 'list':
             self._command_wait(':FREQ:MODE CW')
 
-        self._gpib_connection.write('OUTP:STAT OFF')
-        self._gpib_connection.write('*WAI')
-        discard = self._gpib_connection.query('OUTP:STAT?')
+        self._run_command('OUTP:STAT OFF')
+        self._run_command('*WAI')
         while self._gpib_connection.query('OUTP:STAT?').strip('\r') != '0\n':
             time.sleep(0.2)
 
@@ -177,9 +185,7 @@ class MicrowaveSmiq(Base, MicrowaveInterface):
 
         @return str, bool: mode ['cw', 'list', 'sweep'], is_running [True, False]
         """
-        discard = self._gpib_connection.query('OUTP:STAT?')
         is_running = bool(int(float(self._gpib_connection.query('OUTP:STAT?').strip('\r'))))
-        discard = self._gpib_connection.query(':FREQ:MODE?')
         mode = self._gpib_connection.query(':FREQ:MODE?').strip('\r').strip('\n').lower()
         if mode == 'swe':
             mode = 'sweep'
@@ -193,11 +199,9 @@ class MicrowaveSmiq(Base, MicrowaveInterface):
         """
         mode, dummy = self.get_status()
         if mode == 'list':
-            discard = self._gpib_connection.query(':LIST:POW?')
             return float(self._gpib_connection.query(':LIST:POW?').strip('\r'))
         else:
             # This case works for cw AND sweep mode
-            discard = self._gpib_connection.query(':POW?')
             return float(self._gpib_connection.query(':POW?').strip('\r'))
 
     def get_frequency(self):
@@ -211,21 +215,18 @@ class MicrowaveSmiq(Base, MicrowaveInterface):
         """
         mode, is_running = self.get_status()
         if 'cw' in mode:
-            discard = self._gpib_connection.query(':FREQ?')
             return_val = float(self._gpib_connection.query(':FREQ?').strip('\r'))
         elif 'sweep' in mode:
-            discard = self._gpib_connection.query(':FREQ:STAR?')
             start = float(self._gpib_connection.query(':FREQ:STAR?').strip('\r'))
-            discard = self._gpib_connection.query(':FREQ:STOP?')
             stop = float(self._gpib_connection.query(':FREQ:STOP?').strip('\r'))
-            discard = self._gpib_connection.query(':SWE:STEP?')
             step = float(self._gpib_connection.query(':SWE:STEP?').strip('\r'))
             return_val = [start+step, stop, step]
         elif 'list' in mode:
             # Exclude first frequency entry (duplicate due to trigger issues)
-            discard = self._gpib_connection.query(':LIST:FREQ?')
             frequency_str = self._gpib_connection.query(':LIST:FREQ?').strip('\r').split(',', 1)[1]
             return_val = np.array([float(freq) for freq in frequency_str.split(',')])
+        else:
+            print(mode, is_running)
         return return_val
 
     def cw_on(self):
@@ -245,8 +246,8 @@ class MicrowaveSmiq(Base, MicrowaveInterface):
         if current_mode != 'cw':
             self._command_wait(':FREQ:MODE CW')
 
-        self._gpib_connection.write(':OUTP:STAT ON')
-        self._gpib_connection.write('*WAI')
+        self._run_command(':OUTP:STAT ON')
+        self._run_command('*WAI')
         dummy, is_running = self.get_status()
         while not is_running:
             time.sleep(0.2)
@@ -331,8 +332,8 @@ class MicrowaveSmiq(Base, MicrowaveInterface):
         if mode != 'cw':
             self.set_cw()
 
-        self._gpib_connection.write(":LIST:SEL 'QUDI'")
-        self._gpib_connection.write('*WAI')
+        self._run_command(":LIST:SEL 'QUDI'")
+        self._run_command('*WAI')
 
         # Set list frequencies
         if frequency is not None:
@@ -340,15 +341,15 @@ class MicrowaveSmiq(Base, MicrowaveInterface):
             for f in frequency[:-1]:
                 s += ' {0:f},'.format(f)
             s += ' {0:f}'.format(frequency[-1])
-            self._gpib_connection.write(':LIST:FREQ' + s)
-            self._gpib_connection.write('*WAI')
-            self._gpib_connection.write(':LIST:MODE STEP')
-            self._gpib_connection.write('*WAI')
+            self._run_command(':LIST:FREQ' + s)
+            self._run_command('*WAI')
+            self._run_command(':LIST:MODE STEP')
+            self._run_command('*WAI')
 
         # Set list power
         if power is not None:
-            self._gpib_connection.write(':LIST:POW {0:f}'.format(power))
-            self._gpib_connection.write('*WAI')
+            self._run_command(':LIST:POW {0:f}'.format(power))
+            self._run_command('*WAI')
 
         self._command_wait(':TRIG1:LIST:SOUR EXT')
 
@@ -388,7 +389,7 @@ class MicrowaveSmiq(Base, MicrowaveInterface):
         if current_mode != 'sweep':
             self._command_wait(':FREQ:MODE SWEEP')
 
-        self._gpib_connection.write(':OUTP:STAT ON')
+        self._run_command(':OUTP:STAT ON')
         dummy, is_running = self.get_status()
         while not is_running:
             time.sleep(0.2)
@@ -414,17 +415,17 @@ class MicrowaveSmiq(Base, MicrowaveInterface):
             self._command_wait(':FREQ:MODE SWEEP')
 
         if (start is not None) and (stop is not None) and (step is not None):
-            self._gpib_connection.write(':SWE:MODE STEP')
-            self._gpib_connection.write(':SWE:SPAC LIN')
-            self._gpib_connection.write('*WAI')
-            self._gpib_connection.write(':FREQ:START {0:f}'.format(start - step))
-            self._gpib_connection.write(':FREQ:STOP {0:f}'.format(stop))
-            self._gpib_connection.write(':SWE:STEP:LIN {0:f}'.format(step))
-            self._gpib_connection.write('*WAI')
+            self._run_command(':SWE:MODE STEP')
+            self._run_command(':SWE:SPAC LIN')
+            self._run_command('*WAI')
+            self._run_command(':FREQ:START {0:f}'.format(start - step))
+            self._run_command(':FREQ:STOP {0:f}'.format(stop))
+            self._run_command(':SWE:STEP:LIN {0:f}'.format(step))
+            self._run_command('*WAI')
 
         if power is not None:
-            self._gpib_connection.write(':POW {0:f}'.format(power))
-            self._gpib_connection.write('*WAI')
+            self._run_command(':POW {0:f}'.format(power))
+            self._run_command('*WAI')
 
         self._command_wait(':TRIG1:SWE:SOUR EXT')
 
@@ -466,7 +467,6 @@ class MicrowaveSmiq(Base, MicrowaveInterface):
         if edge is not None:
             self._command_wait(':TRIG1:SLOP {0}'.format(edge))
 
-        discard = self._gpib_connection.query(':TRIG1:SLOP?')
         polarity = self._gpib_connection.query(':TRIG1:SLOP?').strip('\r')
         if 'NEG' in polarity:
             return TriggerEdge.FALLING, timing
@@ -486,6 +486,6 @@ class MicrowaveSmiq(Base, MicrowaveInterface):
         # The manual trigger functionality was not tested for this device!
         # Might not work well! Please check that!
 
-        self._gpib_connection.write('*TRG')
+        self._run_command('*TRG')
         time.sleep(self._FREQ_SWITCH_SPEED)  # that is the switching speed
         return 0
