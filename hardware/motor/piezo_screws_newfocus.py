@@ -65,9 +65,8 @@ class PiezoScrewsNF(Base, MotorInterface):
             @return int error code (0:OK, -1:error)
         """
 
-        # TODO: get these from config
-        self.vendor_id = 0x104d
-        self.product_id = 0x4000
+        self.vendor_id = ConfigOption('vendorID', 0x104d, missing='warn')
+        self.product_id = ConfigOption('productID' ,0x4000, missing='warn')
 
         # find our device
         self.dev = usb.core.find(idVendor=self.vendor_id, idProduct=self.product_id)
