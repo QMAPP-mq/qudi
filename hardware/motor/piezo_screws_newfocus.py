@@ -228,6 +228,13 @@ class PiezoScrewsNF(Base, MotorInterface):
         @return dict : dictionary with the current axis positions
         """
 
+        invalid_axis = set(param_dict)-set(self._configured_constraints)
+
+        if invalid_axis:
+            for axis in invalid_axis:      
+                self.log.warning('Desired axis {axis} is undefined'
+                                .format(axis=axis))
+
         # TODO: there must be a better way to do this
 
         axis_numbers = []
@@ -262,6 +269,13 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         @return dict : dictionary with the current axis positions
         """
+
+        invalid_axis = set(param_dict)-set(self._configured_constraints)
+
+        if invalid_axis:
+            for axis in invalid_axis:      
+                self.log.warning('Desired axis {axis} is undefined'
+                                .format(axis=axis))
 
         # TODO: there must be a better way to do this
 
@@ -310,6 +324,14 @@ class PiezoScrewsNF(Base, MotorInterface):
         @return dict pos_dict : with keys being the axis labels and item the current
                                 position.
         """
+
+        if param_dict is not None:
+            invalid_axis = set(param_dict)-set(self._configured_constraints)
+
+            if invalid_axis:
+                for axis in invalid_axis:      
+                    self.log.warning('Desired axis {axis} is undefined'
+                                    .format(axis=axis))
 
         # TODO: there must be a better way to do this
         
@@ -363,6 +385,14 @@ class PiezoScrewsNF(Base, MotorInterface):
                                    Bit 0: Ready Bit 1: On target Bit 2: Reference drive active Bit 3: Joystick ON
                                    Bit 4: Macro running Bit 5: Motor OFF Bit 6: Brake ON Bit 7: Drive current active
         """
+
+        if param_dict is not None:
+            invalid_axis = set(param_dict)-set(self._configured_constraints)
+
+            if invalid_axis:
+                for axis in invalid_axis:      
+                    self.log.warning('Desired axis {axis} is undefined'
+                                    .format(axis=axis))
 
         axis_numbers = []
         status_dict = {}
