@@ -67,15 +67,15 @@ class PiezoScrewsNF(Base, MotorInterface):
     eol_write = b"\r"
     eol_read = b"\r\n"
 
-    # x_axis_channel = 1
-    # y_axis_channel = 2
-    z_axis_channel = 3
-    # x_axis_min = 0
-    # x_axis_max = 26e-3
-    # y_axis_min = 0
-    # y_axis_max = 26e-3
-    z_axis_min = 0
-    z_axis_max = 26e-3
+    # # x_axis_channel = 1
+    # # y_axis_channel = 2
+    # z_axis_channel = 3
+    # # x_axis_min = 0
+    # # x_axis_max = 26e-3
+    # # y_axis_min = 0
+    # # y_axis_max = 26e-3
+    # z_axis_min = 0
+    # z_axis_max = 26e-3
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -127,27 +127,28 @@ class PiezoScrewsNF(Base, MotorInterface):
         assert self.ep_in is not None
         assert self.ep_in.wMaxPacketSize == 64
 
-        # get the config for this device. #need to figure out how to call nested config
-        config = self.getConfiguration()
+        # # get the config for this device. #need to figure out how to call nested config
+        # config = self.getConfiguration()
 
-        for axis_label in config['axis_labels']:
-            if axis_label == 'x':
-                self.x_axis_channel = config[axis_label]['channel']
-                self.x_axis_min = config[axis_label]['constraints']['pos_min']
-                self.x_axis_max = config[axis_label]['constraints']['pos_max']
-            if axis_label == 'y':
-                self.y_axis_channel = config[axis_label]['channel']
-                self.y_axis_min = config[axis_label]['constraints']['pos_min']
-                self.y_axis_max = config[axis_label]['constraints']['pos_max']
-            if axis_label == 'z':
-                self.z_axis_channel = config[axis_label]['channel']
-                self.z_axis_min = config[axis_label]['constraints']['pos_min']
-                self.z_axis_max = config[axis_label]['constraints']['pos_max']
+        # for axis_label in config['axis_labels']:
+        #     if axis_label == 'x':
+        #         self.x_axis_channel = config[axis_label]['channel']
+        #         self.x_axis_min = config[axis_label]['constraints']['pos_min']
+        #         self.x_axis_max = config[axis_label]['constraints']['pos_max']
+        #     if axis_label == 'y':
+        #         self.y_axis_channel = config[axis_label]['channel']
+        #         self.y_axis_min = config[axis_label]['constraints']['pos_min']
+        #         self.y_axis_max = config[axis_label]['constraints']['pos_max']
+        #     if axis_label == 'z':
+        #         self.z_axis_channel = config[axis_label]['channel']
+        #         self.z_axis_min = config[axis_label]['constraints']['pos_min']
+        #         self.z_axis_max = config[axis_label]['constraints']['pos_max']
 
-        self._go_to_original_home()
+        self._configured_constraints = self.get_constraints()
+
+        # self._go_to_original_home()  # may reimplement later
 
         return 0
-
 
     def on_deactivate(self):
         """ Deactivate of the hardware module.
@@ -177,37 +178,45 @@ class PiezoScrewsNF(Base, MotorInterface):
 
             @return dict constraints : dict with constraints for the screws
         """
-        
-        # TODO: read this from config
 
         constraints = OrderedDict()
 
+        config = self.getConfiguration()
+
         axis0 = {}
         axis0['label'] = 'x'
-        axis0['pos_min'] = self.x_axis_min
-        axis0['pos_max'] = self.x_axis_max
+        axis0['channel'] = config['x']['channel']
+        axis0['pos_min'] = config['x']['constraints']['pos_min']
+        axis0['pos_max'] = config['x']['constraints']['pos_max']
 
-        axis1 = {}
-        axis1['label'] = 'y'
-        axis1['pos_min'] = self.y_axis_min
-        axis1['pos_max'] = self.y_axis_max
+        if 'y' in config['axis_labels']:
+            axis1 = {}
+            axis1['label'] = 'x'
+            axis1['channel'] = config['y']['channel']
+            axis1['pos_min'] = config['y']['constraints']['pos_min']
+            axis1['pos_max'] = config['y']['constraints']['pos_max']
 
-        axis2 = {}
-        axis2['label'] = 'z'
-        axis2['pos_min'] = self.z_axis_min
-        axis2['pos_max'] = self.z_axis_max
+        if 'z' in config['axis_labels']:
+            axis2 = {}
+            axis2['label'] = 'z'
+            axis2['pos_min'] = self.z_axis_min
+            axis2['pos_max'] = self.z_axis_max
 
         # assign the parameter container for x to a name which will identify it
         constraints[axis0['label']] = axis0
-        constraints[axis1['label']] = axis1
-        constraints[axis2['label']] = axis2
+
+        if 'y' in config['axis_labels']:
+            constraints[axis1['label']] = axis1
+        
+        if 'z' in config['axis_labels']:
+            constraints[axis2['label']] = axis2
 
         return constraints
 
     def move_rel(self, param_dict):
         """ Move the stage in given direction (relative movement)
 
-        TODO: currently in steps, but shoudl be in distance
+        TODO: currently in steps, but should be in distance
 
         @param dict param_dict : dictionary, which passes all the relevant
                                  parameters, which should be changed. Usage:
@@ -279,7 +288,6 @@ class PiezoScrewsNF(Base, MotorInterface):
         log_file.close()
 
         # return move_pos_dict
-
 
     def abort(self):
         """Stop movement of the stage with no deceleration
@@ -684,7 +692,6 @@ class PiezoScrewsNF(Base, MotorInterface):
         """
 
         v = self._ask('VA?', axis)
-        # print (v)
         return v
 
     def _set_home(self, axis, pos):
@@ -736,5 +743,5 @@ class PiezoScrewsNF(Base, MotorInterface):
     def _on_scan_done(self):
         """ Query if the scan is complete
         """
-        if scan_done == True: # TODO scan_don is undefined
+        if scan_done == True: # TODO scan_done is undefined
             self._print_to_log()
