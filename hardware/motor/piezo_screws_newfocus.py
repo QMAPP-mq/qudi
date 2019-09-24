@@ -38,6 +38,27 @@ class PiezoScrewsNF(Base, MotorInterface):
 
     This module has been developed for the New Focus picomotor controller model 8742
     but probably works with any New Focus controller with a comparible command set.
+
+    Example configuration:
+    ```
+    # nf_screws:
+    #     module.Class: 'motor.piezo_screws_newfocus.PiezoScrewsNF'
+    #     vendorID: 0x104d
+    #     productID: 0x4000
+    #     axis_labels:
+    #         - x
+    #         - y
+    #     x:
+    #         channel: 0
+    #         constraints:
+    #             pos_min: 0
+    #             pos_max: 26e-3
+    #     y:
+    #         channel: 1
+    #         constraints:
+    #             pos_min: 0
+    #             pos_max: 26e-3
+    ```
     """
 
     _modclass = 'PiezoScrewsNF'
