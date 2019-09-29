@@ -587,12 +587,14 @@ class PiezoScrewsNF(Base, MotorInterface):
         """
 
         # TODO: implement this
-        constraints = self.get_constraints()
+
         #self.log.info(axis + 'MA{0}'.format(int(move*1e8)))
-        if not(constraints[axis]['pos_min'] <= move <= constraints[axis]['pos_max']):
+        if not(self._configured_constraints[axis]['pos_min'] <= move <= self._configured_constraints[axis]['pos_max']):
             self.log.warning('Cannot make the movement of the axis "{0}"'
                              'since the border [{1},{2}] would be crossed! Ignore command!'
-                             ''.format(axis, constraints[axis]['pos_min'], constraints[axis]['pos_max']))
+                             ''.format(axis,
+                                       self._configured_constraints[axis]['pos_min'],
+                                       self._configured_constraints[axis]['pos_max']))
         else:
             self._write_xyz(axis, 'MA{0}'.format(int(move * 1e7)))  # 1e7 to convert meter to SI units
             #self._write_xyz(axis, 'MP')
