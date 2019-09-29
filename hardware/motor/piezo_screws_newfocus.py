@@ -13,8 +13,6 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-This module is inspired by the work of Robert TODO
-
 You should have received a copy of the GNU General Public License
 along with Qudi. If not, see <http://www.gnu.org/licenses/>.
 
@@ -38,34 +36,56 @@ class PiezoScrewsNF(Base, MotorInterface):
 
     This module has been developed for the New Focus picomotor controller model 8742
     but probably works with any New Focus controller with a comparible command set.
+
+    Example configuration:
+    ```
+    # nf_screws:
+    #     module.Class: 'motor.piezo_screws_newfocus.PiezoScrewsNF'
+    #     vendorID: 0x104d
+    #     productID: 0x4000
+    #     axis_labels:
+    #         - x
+    #         - y
+    #     x:
+    #         channel: 0
+    #         constraints:
+    #             pos_min: 0
+    #             pos_max: 26e-3
+    #     y:
+    #         channel: 1
+    #         constraints:
+    #             pos_min: 0
+    #             pos_max: 26e-3
+    ```
     """
+
     _modclass = 'PiezoScrewsNF'
     _modtype = 'hardware'
 
     eol_write = b"\r"
     eol_read = b"\r\n"
 
-    # x_axis_channel = 1
-    # y_axis_channel = 2
-    z_axis_channel = 3
-    # x_axis_min = 0
-    # x_axis_max = 26e-3
-    # y_axis_min = 0
-    # y_axis_max = 26e-3
-    z_axis_min = 0
-    z_axis_max = 26e-3
+    # # x_axis_channel = 1
+    # # y_axis_channel = 2
+    # z_axis_channel = 3
+    # # x_axis_min = 0
+    # # x_axis_max = 26e-3
+    # # y_axis_min = 0
+    # # y_axis_max = 26e-3
+    # z_axis_min = 0
+    # z_axis_max = 26e-3
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     def on_activate(self):
-        """ Initialisation performed during activation of the module.
-        @return: error code
+        """ Initialisae the hardware module.
+
+            @return int error code (0:OK, -1:error)
         """
 
-        # TODO: get these from config
-        self.vendor_id = 0x104d
-        self.product_id = 0x4000
+        self.vendor_id = ConfigOption('vendorID', 0x104d, missing='warn')
+        self.product_id = ConfigOption('productID' ,0x4000, missing='warn')
 
         # find our device
         self.dev = usb.core.find(idVendor=self.vendor_id, idProduct=self.product_id)
@@ -105,31 +125,33 @@ class PiezoScrewsNF(Base, MotorInterface):
         assert self.ep_in is not None
         assert self.ep_in.wMaxPacketSize == 64
 
-        # get the config for this device. #need to figure out how to call nested config
-        config = self.getConfiguration()
+        # # get the config for this device. #need to figure out how to call nested config
+        # config = self.getConfiguration()
 
-        for axis_label in config['axis_labels']:
-            if axis_label == 'x':
-                self.x_axis_channel = config[axis_label]['channel']
-                self.x_axis_min = config[axis_label]['constraints']['pos_min']
-                self.x_axis_max = config[axis_label]['constraints']['pos_max']
-            if axis_label == 'y':
-                self.y_axis_channel = config[axis_label]['channel']
-                self.y_axis_min = config[axis_label]['constraints']['pos_min']
-                self.y_axis_max = config[axis_label]['constraints']['pos_max']
-            if axis_label == 'z':
-                self.z_axis_channel = config[axis_label]['channel']
-                self.z_axis_min = config[axis_label]['constraints']['pos_min']
-                self.z_axis_max = config[axis_label]['constraints']['pos_max']
+        # for axis_label in config['axis_labels']:
+        #     if axis_label == 'x':
+        #         self.x_axis_channel = config[axis_label]['channel']
+        #         self.x_axis_min = config[axis_label]['constraints']['pos_min']
+        #         self.x_axis_max = config[axis_label]['constraints']['pos_max']
+        #     if axis_label == 'y':
+        #         self.y_axis_channel = config[axis_label]['channel']
+        #         self.y_axis_min = config[axis_label]['constraints']['pos_min']
+        #         self.y_axis_max = config[axis_label]['constraints']['pos_max']
+        #     if axis_label == 'z':
+        #         self.z_axis_channel = config[axis_label]['channel']
+        #         self.z_axis_min = config[axis_label]['constraints']['pos_min']
+        #         self.z_axis_max = config[axis_label]['constraints']['pos_max']
 
-        self._go_to_original_home()
+        self._configured_constraints = self.get_constraints()
+
+        # self._go_to_original_home()  # may reimplement later
 
         return 0
 
-
     def on_deactivate(self):
-        """ Deinitialisation performed during deactivation of the module.
-        @return: error code
+        """ Deactivate of the hardware module.
+        
+            @return int error code (0:OK, -1:error)
         """
 
         for i in range(1, 5):  # 1, 2, 3, 4
@@ -146,55 +168,72 @@ class PiezoScrewsNF(Base, MotorInterface):
     def get_constraints(self):
         """ Retrieve the hardware constrains from the motor device.
 
-        @return dict: dict with constraints for the sequence generation and GUI
+            Provides all the constraints for the xyz stage  and rot stage (like total
+            movement, velocity, ...)
+            
+            Each constraint is a tuple of the form
+                (min_value, max_value, stepsize)
 
-        Provides all the constraints for the xyz stage  and rot stage (like total
-        movement, velocity, ...)
-        Each constraint is a tuple of the form
-            (min_value, max_value, stepsize)
+            @return dict constraints : dict with constraints for the screws
         """
-        # TODO: read this from config
 
         constraints = OrderedDict()
 
+        config = self.getConfiguration()
+
         axis0 = {}
         axis0['label'] = 'x'
-        axis0['pos_min'] = self.x_axis_min
-        axis0['pos_max'] = self.x_axis_max
+        axis0['channel'] = config['x']['channel']
+        axis0['pos_min'] = config['x']['constraints']['pos_min']
+        axis0['pos_max'] = config['x']['constraints']['pos_max']
 
-        axis1 = {}
-        axis1['label'] = 'y'
-        axis1['pos_min'] = self.y_axis_min
-        axis1['pos_max'] = self.y_axis_max
+        if 'y' in config['axis_labels']:
+            axis1 = {}
+            axis1['label'] = 'x'
+            axis1['channel'] = config['y']['channel']
+            axis1['pos_min'] = config['y']['constraints']['pos_min']
+            axis1['pos_max'] = config['y']['constraints']['pos_max']
 
-        axis2 = {}
-        axis2['label'] = 'z'
-        axis2['pos_min'] = self.z_axis_min
-        axis2['pos_max'] = self.z_axis_max
+        if 'z' in config['axis_labels']:
+            axis2 = {}
+            axis2['label'] = 'z'
+            axis2['pos_min'] = self.z_axis_min
+            axis2['pos_max'] = self.z_axis_max
 
         # assign the parameter container for x to a name which will identify it
         constraints[axis0['label']] = axis0
-        constraints[axis1['label']] = axis1
-        constraints[axis2['label']] = axis2
+
+        if 'y' in config['axis_labels']:
+            constraints[axis1['label']] = axis1
+        
+        if 'z' in config['axis_labels']:
+            constraints[axis2['label']] = axis2
 
         return constraints
 
     def move_rel(self, param_dict):
-        """Moves stage in given direction (relative movement)
+        """ Move the stage in given direction (relative movement)
 
-        TODO: currently in steps, but shoudl be in distance
+        TODO: currently in steps, but should be in distance
 
-        @param dict param_dict: dictionary, which passes all the relevant
-                                parameters, which should be changed. Usage:
+        @param dict param_dict : dictionary, which passes all the relevant
+                                 parameters, which should be changed. Usage:
                                  {'axis_label': <the-abs-pos-value>}.
                                  'axis_label' must correspond to a label given
                                  to one of the axis.
 
 
-        @return dict pos: dictionary with the current magnet position
+        @return dict : dictionary with the current axis positions
         """
 
-         # TODO: there must be a better way to do this
+        invalid_axis = set(param_dict)-set(self._configured_constraints)
+
+        if invalid_axis:
+            for axis in invalid_axis:      
+                self.log.warning('Desired axis {axis} is undefined'
+                                .format(axis=axis))
+
+        # TODO: there must be a better way to do this
 
         axis_numbers = []
 
@@ -217,18 +256,24 @@ class PiezoScrewsNF(Base, MotorInterface):
         # return self.get_pos()
 
     def move_abs(self, param_dict):
-        """Moves stage to absolute position
+        """ Move stage to absolute position
 
-        @param dict param_dict: dictionary, which passes all the relevant
-                                parameters, which should be changed. Usage:
+        @param dict param_dict : dictionary, which passes all the relevant
+                                 parameters, which should be changed. Usage:
                                  {'axis_label': <the-abs-pos-value>}.
                                  'axis_label' must correspond to a label given
                                  to one of the axis.
-                                The values for the axes are in meter,
-                                the value for the rotation is in degrees.
+                                 The values for the axes are in meters,
 
-        @return dict pos: dictionary with the current axis position
+        @return dict : dictionary with the current axis positions
         """
+
+        invalid_axis = set(param_dict)-set(self._configured_constraints)
+
+        if invalid_axis:
+            for axis in invalid_axis:      
+                self.log.warning('Desired axis {axis} is undefined'
+                                .format(axis=axis))
 
         # TODO: there must be a better way to do this
 
@@ -256,27 +301,36 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         # return move_pos_dict
 
-
     def abort(self):
-        """Stops movement of the stage with no deceleration
+        """Stop movement of the stage with no deceleration
 
-        @return int: error code (0:OK, -1:error)
+        @return int error code (0:OK, -1:error)
         """
+
         self._abort()
         return 0
 
     def get_pos(self, param_dict = None):
-        """ Gets current position of the stage arms
+        """ Get the current position of the screws
 
-        @param list param_list: optional, if a specific position of an axis
-                                is desired, then the labels of the needed
-                                axis should be passed in the param_list.
-                                If nothing is passed, then the positions of
-                                all axes are returned.
+        @param list param_list : optional, if a specific position of an axis
+                                 is desired, then the labels of the needed
+                                 axis should be passed in the param_list.
+                                 If nothing is passed, then the positions of
+                                 all axes are returned.
 
-        @return dict: with keys being the axis labels and item the current
-                      position.
+        @return dict pos_dict : with keys being the axis labels and item the current
+                                position.
         """
+
+        if param_dict is not None:
+            invalid_axis = set(param_dict)-set(self._configured_constraints)
+
+            if invalid_axis:
+                for axis in invalid_axis:      
+                    self.log.warning('Desired axis {axis} is undefined'
+                                    .format(axis=axis))
+
         # TODO: there must be a better way to do this
         
         axis_numbers = []
@@ -318,17 +372,25 @@ class PiezoScrewsNF(Base, MotorInterface):
     def get_status(self, param_dict):
         """ Get the status of the position
 
-        @param list param_list: optional, if a specific status of an axis
-                                is desired, then the labels of the needed
-                                axis should be passed in the param_list.
-                                If nothing is passed, then from each axis the
-                                status is asked.
+        @param list param_list : optional, if a specific status of an axis
+                                 is desired, then the labels of the needed
+                                 axis should be passed in the param_list.
+                                 If nothing is passed, then from each axis the
+                                 status is asked.
 
-        @return dict: with the axis label as key and the status number as item.
-        The meaning of the return value is:
-        Bit 0: Ready Bit 1: On target Bit 2: Reference drive active Bit 3: Joystick ON
-        Bit 4: Macro running Bit 5: Motor OFF Bit 6: Brake ON Bit 7: Drive current active
+        @return dict status_dict : with the axis label as key and the status number as item.
+                                   The meaning of the return value is:
+                                   Bit 0: Ready Bit 1: On target Bit 2: Reference drive active Bit 3: Joystick ON
+                                   Bit 4: Macro running Bit 5: Motor OFF Bit 6: Brake ON Bit 7: Drive current active
         """
+
+        if param_dict is not None:
+            invalid_axis = set(param_dict)-set(self._configured_constraints)
+
+            if invalid_axis:
+                for axis in invalid_axis:      
+                    self.log.warning('Desired axis {axis} is undefined'
+                                    .format(axis=axis))
 
         axis_numbers = []
         status_dict = {}
@@ -355,7 +417,7 @@ class PiezoScrewsNF(Base, MotorInterface):
         return status_dict
 
     def calibrate(self, param_list=None):
-        """ Calibrates the stage.
+        """ Calibrate the stage.
 
         @param dict param_list: param_list: optional, if a specific calibration
                                 of an axis is desired, then the labels of the
@@ -368,21 +430,24 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         @return dict pos: dictionary with the current position of the axis
         """
+        self.log.warning('Function not supported')
+
         pos = {}
 
         return pos
 
     def get_velocity(self, param_dict):
-        """ Gets the current velocity for all connected axes in m/s.
+        """ Get the current velocity for all connected axes in m/s.
 
-        @param list param_list: optional, if a specific velocity of an axis
-                                    is desired, then the labels of the needed
-                                    axis should be passed as the param_list.
-                                    If nothing is passed, then from each axis the
-                                    velocity is asked.
+        @param list param_list : optional, if a specific velocity of an axis
+                                 is desired, then the labels of the needed
+                                 axis should be passed as the param_list.
+                                 If nothing is passed, then from each axis the
+                                 velocity is asked.
 
         @return dict : with the axis label as key and the velocity as item.
         """
+
         axis_numbers = []
         velocity_dict = {}
 
@@ -410,13 +475,13 @@ class PiezoScrewsNF(Base, MotorInterface):
     def set_velocity(self, param_dict):
         """ Write new value for velocity in m/s.
 
-        @param dict param_dict: dictionary, which passes all the relevant
-                                    parameters, which should be changed. Usage:
-                                     {'axis_label': <the-velocity-value>}.
-                                     'axis_label' must correspond to a label given
-                                     to one of the axis.
+        @param dict param_dict : dictionary, which passes all the relevant
+                                 parameters, which should be changed. Usage:
+                                 {'axis_label': <the-velocity-value>}.
+                                 'axis_label' must correspond to a label given
+                                 to one of the axis.
 
-        @return dict param_dict2: dictionary with the updated axis velocity
+        @return dict : dictionary with the updated axis velocity
         """
 
         # TODO: there must be a better way to do this
@@ -441,61 +506,35 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         return self.get_velocity()
 
-########################## internal methods ##################################
-
-    def _do_move_abs(self, axis, move):
-        """internal method for the absolute move in meter
-
-        @param axis string: name of the axis that should be moved
-
-        @param float move: desired position in meter
-
-        @return str axis: axis which is moved
-                move float: absolute position to move to
-        """
-        # TODO: implement this
-        constraints = self.get_constraints()
-        #self.log.info(axis + 'MA{0}'.format(int(move*1e8)))
-        if not(constraints[axis]['pos_min'] <= move <= constraints[axis]['pos_max']):
-            self.log.warning('Cannot make the movement of the axis "{0}"'
-                             'since the border [{1},{2}] would be crossed! Ignore command!'
-                             ''.format(axis, constraints[axis]['pos_min'], constraints[axis]['pos_max']))
-        else:
-            self._write_xyz(axis, 'MA{0}'.format(int(move * 1e7)))  # 1e7 to convert meter to SI units
-            #self._write_xyz(axis, 'MP')
-        return axis, move
-
-    def _set_servo_state(self, to_state):
-        """internal method enabling / disabling the servos
-
-        @param bool to_state: desired state of the servos
-        """
-        # this is an open-loop device
-        return 1
-
-########################## extra internal methods ###############################################################
+########################## instrument communication ###########################
 
     def _writeline(self, cmd):
+        """ Write a command to the device
+
+            @param str cmd : few-letter command
         """
-        """
+
         self.ep_out.write(cmd.encode() + self.eol_write)
         
     def _readline(self):
+        """ Read a response from the device
+
+            @return str r : the device response
         """
-        """
+
         r = self.ep_in.read(64).tobytes()
         assert r.endswith(self.eol_read)
         r = r[:-2].decode()
         return r
 
     def _fmt_cmd(self, cmd, xx=None, *nn):
-        """ Format a command.
+        """ Format a command
 
-        Args:
-            cmd (str): few-letter command
-            xx (int, optional for some commands): Motor channel
-            nn (multiple int, optional): additional parameters
+            @param str cmd : few-letter command
+                   int xx  : motor channel (optional for some commands)
+                   int nn  : additional parameters (multiple int, optional)
         """
+
         if xx is not None:
             cmd = "{:d}".format(xx) + cmd
         if nn:
@@ -503,8 +542,15 @@ class PiezoScrewsNF(Base, MotorInterface):
         return cmd
 
     def _ask(self, cmd, xx=None, *nn):
+        """ Query the device
+
+            @param str cmd : few-letter command
+                   int xx  : motor channel (optional for some commands)
+                   int nn  : additional parameters (multiple int, optional)
+
+            @return str : the device response
         """
-        """
+
         cmd = self._fmt_cmd(cmd, xx, *nn)
         self._writeline(cmd)
         time.sleep(0.1)
@@ -513,13 +559,54 @@ class PiezoScrewsNF(Base, MotorInterface):
     def _do(self, cmd, xx=None, *nn):
         """ Format and send a command to the device
 
-        See Also:
-            :meth:`fmt_cmd`: for the formatting and additional
-                parameters.
+            @param str cmd : few-letter command
+                   int xx  : motor channel (optional for some commands)
+                   int nn  : additional parameters (multiple int, optional)
+
+            See Also:
+                :meth:`fmt_cmd`: for the formatting and additional
+                    parameters.
         """
+
         cmd = self._fmt_cmd(cmd, xx, *nn)
         assert len(cmd) < 64
         self._writeline(cmd)
+
+########################## internal methods ###################################
+
+    def _do_move_abs(self, axis, move):
+        """ Internal method for the absolute move in meter
+
+        @param str axis   : name of the axis that should be moved
+               float move : desired position in meter
+
+        @return str axis   : axis which is moved
+                float move : absolute position to move to
+        """
+
+        # TODO: implement this
+
+        #self.log.info(axis + 'MA{0}'.format(int(move*1e8)))
+        if not(self._configured_constraints[axis]['pos_min'] <= move <= self._configured_constraints[axis]['pos_max']):
+            self.log.warning('Cannot make the movement of the axis "{0}"'
+                             'since the border [{1},{2}] would be crossed! Ignore command!'
+                             ''.format(axis,
+                                       self._configured_constraints[axis]['pos_min'],
+                                       self._configured_constraints[axis]['pos_max']))
+        else:
+            self._write_xyz(axis, 'MA{0}'.format(int(move * 1e7)))  # 1e7 to convert meter to SI units
+            #self._write_xyz(axis, 'MP')
+        return axis, move
+
+    def _set_servo_state(self, to_state):
+        """ Internal method enabling / disabling the servos
+
+        @param bool to_state: desired state of the servos
+        """
+
+        self.log.warning('This is an open loop device')
+
+        return 1
 
     def _on_target(self, axis):
         """
@@ -528,8 +615,12 @@ class PiezoScrewsNF(Base, MotorInterface):
         return bool(self._ask('MD?', axis))
 
     def _move_rel_axis(self, axis, distance):
+        """ Move a device axis relatively from current position
+
+            @param int axis       : axis to be acted upon
+                   float distance : distance to be moved
         """
-        """
+        
         steps = int(float(distance)/float(0.00000003))
         self._do('PR', axis, steps)
 
@@ -545,8 +636,12 @@ class PiezoScrewsNF(Base, MotorInterface):
             # value = self._on_target(axis)
     
     def _move_abs_axis(self, axis, distance):
+        """ Move a device axis to an absolute position
+
+            @param int axis       : axis to be acted upon
+                   float distance : distance to be moved
         """
-        """
+        
         steps = int(float(distance)/float(0.00000003))
         self._do('PA', axis, steps)
 
@@ -562,7 +657,11 @@ class PiezoScrewsNF(Base, MotorInterface):
             # value = self._on_target(axis)
         
     def _get_pos_axis(self, axis):
-        """
+        """ Get the position of a specified axis
+
+            @param int axis : axis to be acted upon
+
+            @return float : axis position
         """
         # target_position = self._ask('PA?',axis)
         # relative_position = self._ask('PR?',axis)
@@ -574,23 +673,34 @@ class PiezoScrewsNF(Base, MotorInterface):
         return actual_position_in_SI
 
     def _set_velocity_axis(self, axis, velocity):
+        """ Set the velovity of an axis
+
+            @param int axis       : axis to be acted upon
+                   float velocity : desired axis velocity
         """
-        """
+
         self._do('VA', axis, velocity)
    
-    def _abort(self): 
+    def _abort(self):
+        """ Emergency abort movement (no deceleration)
         """
-        """
+
         self._do('AB')
 
     def _stop(self, axis):
+        """ Stop movement of the device
         """
-        """
+
         self._do('ST', xx=axis)
 
-    def _done(self, axis):
+    def _done(self, axis): #created by Jarrod to get the status of the motor
+        """ Get the status of the motor
+
+            @param int axis : axis to be queried
+
+            @return int error code (0:OK, -1:error)
         """
-        """
+
         # value = int(self._ask('MD?', xx=axis))
         value = self._on_target(axis)
         #cycle = 0
@@ -605,21 +715,30 @@ class PiezoScrewsNF(Base, MotorInterface):
             # print (d)
             return 0
 
-    def _ask_velocity(self, axis): 
+    def _ask_velocity(self, axis):
+        """ Get the motor velocity
+
+            @param int axis : axis to be queried
         """
-        """
+
         v = self._ask('VA?', axis)
-        # print (v)
         return v
 
-    def _set_home(self, axis, position): 
+    def _set_home(self, axis, pos):
+        """ Set the home position
+
+            @param int axis  : axis to be queried
+                   float pos : desired home position
         """
-        """
-        self._do('DH', axis, position)
+
+        self._do('DH', axis, pos)
     
     def _check_home(self):
+        """ Get the home position ('ET phone home..')
+
+            @return dict home_dict : contains home position of each axis
         """
-        """
+
         # read_log =  open("hardware/motor/newfocusdatalog.txt", "r+")
         home_dict = eval(open("hardware/motor/newfocusdatalog.txt").read())
         # read_log.close
@@ -631,18 +750,18 @@ class PiezoScrewsNF(Base, MotorInterface):
         return home_dict
 
     def _home_dictionary(self):
+        """ TODO What is this?
+        """
         self._check_home()
 
     def _print_to_log(self):
+        """ Print positional information to a log file
         """
-        """
+
         log_file = open("hardware/motor/newfocusdatalog.txt", "w")
         log_file.write(str(self.get_pos({'x','y','z'})))
         log_file.close()
 
-    def _go_to_original_home(self):
-        """
-        """
         self._check_home()
         self.move_rel(self._check_home())
         self._set_home(self.x_axis_channel, 0)
@@ -652,9 +771,7 @@ class PiezoScrewsNF(Base, MotorInterface):
         self._print_to_log()
 
     def _on_scan_done(self):
+        """ Query if the scan is complete
         """
-        """
-        if scan_done == True:
+        if scan_done == True: # TODO scan_done is undefined
             self._print_to_log()
-
-
