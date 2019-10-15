@@ -200,7 +200,7 @@ class FastComtec(Base, FastCounterInterface):
         """ Initialisation performed during activation of the module.
         """
 
-        self.dll = ctypes.windll.LoadLibrary('C:\Windows\System32\DMCS6.dll')
+        self.dll = ctypes.windll.LoadLibrary('C:\Windows\System32\LMCS6.dll')
         if self.gated:
             self.change_sweep_mode(gated=True)
         else:
