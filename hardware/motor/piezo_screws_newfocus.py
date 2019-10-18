@@ -232,7 +232,7 @@ class PiezoScrewsNF(Base, MotorInterface):
         @return dict : dictionary with the current axis positions
         """
 
-        invalid_axis = set(param_dict)-set(self._configured_constraints)
+        invalid_axis = set(param_dict)-set(self._configured_constraints['axis_labels'])
 
         if invalid_axis:
             for axis in invalid_axis:      
@@ -274,7 +274,7 @@ class PiezoScrewsNF(Base, MotorInterface):
         @return dict : dictionary with the current axis positions
         """
 
-        invalid_axis = set(param_dict)-set(self._configured_constraints)
+        invalid_axis = set(param_dict)-set(self._configured_constraints['axis_labels'])
 
         if invalid_axis:
             for axis in invalid_axis:      
@@ -334,7 +334,7 @@ class PiezoScrewsNF(Base, MotorInterface):
         """
 
         if param_dict is not None:
-            invalid_axis = set(param_dict)-set(self._configured_constraints)
+            invalid_axis = set(param_dict)-set(self._configured_constraints['axis_labels'])
 
             if invalid_axis:
                 for axis in invalid_axis:      
@@ -345,56 +345,67 @@ class PiezoScrewsNF(Base, MotorInterface):
         
         pos_dict = {}
 
-        if param_dict is not None:
-            for axis_label in param_dict:
-                if 'x' in axis_label:
-                    if 'x' in self._configured_constraints['axis_labels']:
-                        axis = self._configured_constraints['x']['channel']
-                        value = int(self._ask('MD?', xx= axis))
-                        while value == 0:
-                            time.sleep(0.0005)
-                            value = int(self._ask('MD?', xx= axis))
-                        pos_dict['x'] = self._get_pos_axis(axis)
-                if 'y' in axis_label:
-                    if 'y' in self._configured_constraints['axis_labels']:
-                        axis = self._configured_constraints['y']['channel']
-                        value = int(self._ask('MD?', xx= axis))
-                        while value == 0:
-                            time.sleep(0.0005)
-                            value = int(self._ask('MD?', xx= axis))
-                        pos_dict['y'] = self._get_pos_axis(axis)
-                if 'z' in axis_label:
-                    if 'z' in self._configured_constraints['axis_labels']:
-                        axis = self._configured_constraints['z']['channel']
-                        value = int(self._ask('MD?', xx= axis))
-                        while value == 0:
-                            time.sleep(0.0005)
-                            value = int(self._ask('MD?', xx= axis))
-                        pos_dict['z'] = self._get_pos_axis(axis)
-        else:
-            if 'x' in self._configured_constraints['axis_labels']:
-                        axis = self._configured_constraints['x']['channel']
-                        value = int(self._ask('MD?', xx= axis))
-                        while value == 0:
-                            time.sleep(0.0005)
-                            value = int(self._ask('MD?', xx= axis))
-                        pos_dict['x'] = self._get_pos_axis(axis)
+        if param_dict is None:
+            param_dict = self._configured_constraints['axis_labels']
 
-            if 'y' in self._configured_constraints['axis_labels']:
-                        axis = self._configured_constraints['y']['channel']
-                        value = int(self._ask('MD?', xx= axis))
-                        while value == 0:
-                            time.sleep(0.0005)
-                            value = int(self._ask('MD?', xx= axis))
-                        pos_dict['y'] = self._get_pos_axis(axis)
+        for axis_label in param_dict:
+            axis_channel = self._configured_constraints[axis_label]['channel']
+            value = int(self._ask('MD?', xx = axis_channel))
+            while value == 0:
+                time.sleep(0.0005)
+                value = int(self._ask('MD?', xx = axis))
+            pos_dict[axis_label] = self._get_pos_axis(axis_channel)
 
-            if 'z' in self._configured_constraints['axis_labels']:
-                        axis = self._configured_constraints['z']['channel']
-                        value = int(self._ask('MD?', xx= axis))
-                        while value == 0:
-                            time.sleep(0.0005)
-                            value = int(self._ask('MD?', xx= axis))
-                        pos_dict['z'] = self._get_pos_axis(axis)
+        # if param_dict is not None:
+        #     for axis_label in param_dict:
+        #         if 'x' in axis_label:
+        #             if 'x' in self._configured_constraints['axis_labels']:
+        #                 axis = self._configured_constraints['x']['channel']
+        #                 value = int(self._ask('MD?', xx= axis))
+        #                 while value == 0:
+        #                     time.sleep(0.0005)
+        #                     value = int(self._ask('MD?', xx= axis))
+        #                 pos_dict['x'] = self._get_pos_axis(axis)
+        #         if 'y' in axis_label:
+        #             if 'y' in self._configured_constraints['axis_labels']:
+        #                 axis = self._configured_constraints['y']['channel']
+        #                 value = int(self._ask('MD?', xx= axis))
+        #                 while value == 0:
+        #                     time.sleep(0.0005)
+        #                     value = int(self._ask('MD?', xx= axis))
+        #                 pos_dict['y'] = self._get_pos_axis(axis)
+        #         if 'z' in axis_label:
+        #             if 'z' in self._configured_constraints['axis_labels']:
+        #                 axis = self._configured_constraints['z']['channel']
+        #                 value = int(self._ask('MD?', xx= axis))
+        #                 while value == 0:
+        #                     time.sleep(0.0005)
+        #                     value = int(self._ask('MD?', xx= axis))
+        #                 pos_dict['z'] = self._get_pos_axis(axis)
+        # else:
+        #     if 'x' in self._configured_constraints['axis_labels']:
+        #                 axis = self._configured_constraints['x']['channel']
+        #                 value = int(self._ask('MD?', xx= axis))
+        #                 while value == 0:
+        #                     time.sleep(0.0005)
+        #                     value = int(self._ask('MD?', xx= axis))
+        #                 pos_dict['x'] = self._get_pos_axis(axis)
+
+        #     if 'y' in self._configured_constraints['axis_labels']:
+        #                 axis = self._configured_constraints['y']['channel']
+        #                 value = int(self._ask('MD?', xx= axis))
+        #                 while value == 0:
+        #                     time.sleep(0.0005)
+        #                     value = int(self._ask('MD?', xx= axis))
+        #                 pos_dict['y'] = self._get_pos_axis(axis)
+
+        #     if 'z' in self._configured_constraints['axis_labels']:
+        #                 axis = self._configured_constraints['z']['channel']
+        #                 value = int(self._ask('MD?', xx= axis))
+        #                 while value == 0:
+        #                     time.sleep(0.0005)
+        #                     value = int(self._ask('MD?', xx= axis))
+        #                 pos_dict['z'] = self._get_pos_axis(axis)
 
         return pos_dict
 
@@ -414,7 +425,7 @@ class PiezoScrewsNF(Base, MotorInterface):
         """
 
         if param_dict is not None:
-            invalid_axis = set(param_dict)-set(self._configured_constraints)
+            invalid_axis = set(param_dict)-set(self._configured_constraints['axis_labels'])
 
             if invalid_axis:
                 for axis in invalid_axis:      
