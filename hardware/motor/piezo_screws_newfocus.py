@@ -283,29 +283,33 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         # TODO: there must be a better way to do this
 
-        axis_numbers = []
+        # axis_numbers = []
 
         for axis_label in param_dict:
-            if 'x' in axis_label:
-                axis_numbers.append(self.x_axis_channel)
-            if 'y' in axis_label:
-                axis_numbers.append(self.y_axis_channel)
-            if 'z' in axis_label:
-                axis_numbers.append(self.z_axis_channel)
+            axis_channel = self._configured_constraints[axis_label]['channel']
+            self._move_abs_axis(axis_channel, param_dict[axis_label])
 
-        for axis in axis_numbers:
-            if axis == self.x_axis_channel:
-                self._move_abs_axis(axis, param_dict['x'])
-            elif axis == self.y_axis_channel:
-                self._move_abs_axis(axis, param_dict['y'])
-            elif axis == self.z_axis_channel:
-                self._move_abs_axis(axis, param_dict['z'])
+        # for axis_label in param_dict:
+        #     if 'x' in axis_label:
+        #         axis_numbers.append(self.x_axis_channel)
+        #     if 'y' in axis_label:
+        #         axis_numbers.append(self.y_axis_channel)
+        #     if 'z' in axis_label:
+        #         axis_numbers.append(self.z_axis_channel)
 
-        log_file = open("hardware/motor/newfocusdatalog.txt", "w")
-        log_file.write(str(param_dict))
-        log_file.close()
+        # for axis in axis_numbers:
+        #     if axis == self.x_axis_channel:
+        #         self._move_abs_axis(axis, param_dict['x'])
+        #     elif axis == self.y_axis_channel:
+        #         self._move_abs_axis(axis, param_dict['y'])
+        #     elif axis == self.z_axis_channel:
+        #         self._move_abs_axis(axis, param_dict['z'])
 
-        # return move_pos_dict
+        # log_file = open("hardware/motor/newfocusdatalog.txt", "w")
+        # log_file.write(str(param_dict))
+        # log_file.close()
+
+        return self.get_pos()
 
     def abort(self):
         """Stop movement of the stage with no deceleration
@@ -339,7 +343,6 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         # TODO: there still must be a better way to do this
         
-        axis_numbers = []
         pos_dict = {}
 
         if param_dict is not None:
