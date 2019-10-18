@@ -289,7 +289,8 @@ class PiezoScrewsNF(Base, MotorInterface):
 
         for axis_label in param_dict:
             axis_channel = self._configured_constraints[axis_label]['channel']
-            self._move_abs_axis(axis_channel, param_dict[axis_label])
+            # self._move_abs_axis(axis_channel, param_dict[axis_label])
+            self._do_move_abs(axis_label, axis_channel, param_dict[axis_label])
 
         # for axis_label in param_dict:
         #     if 'x' in axis_label:
@@ -618,17 +619,15 @@ class PiezoScrewsNF(Base, MotorInterface):
 
 ########################## internal methods ###################################
 
-    def _do_move_abs(self, axis, move):
+    def _do_move_abs(self, axis, channel, move):
         """ Internal method for the absolute move in meter
 
         @param str axis   : name of the axis that should be moved
-               float move : desired position in meter
+               float move : desired position in meters
 
         @return str axis   : axis which is moved
                 float move : absolute position to move to
         """
-
-        # TODO: implement this
 
         #self.log.info(axis + 'MA{0}'.format(int(move*1e8)))
         if not(self._configured_constraints[axis]['pos_min'] <= move <= self._configured_constraints[axis]['pos_max']):
@@ -638,7 +637,8 @@ class PiezoScrewsNF(Base, MotorInterface):
                                        self._configured_constraints[axis]['pos_min'],
                                        self._configured_constraints[axis]['pos_max']))
         else:
-            self._write_xyz(axis, 'MA{0}'.format(int(move * 1e7)))  # 1e7 to convert meter to SI units
+            self._move_abs_axis(channel, move)
+            # self._write_xyz(axis, 'MA{0}'.format(int(move * 1e7)))  # 1e7 to convert meter to SI units
             #self._write_xyz(axis, 'MP')
         return axis, move
 
