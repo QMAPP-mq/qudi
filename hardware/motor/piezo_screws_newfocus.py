@@ -259,7 +259,8 @@ class PiezoScrewsNF(Base, MotorInterface):
             for axis in invalid_axis:      
                 self.log.warning('Desired axis {axis} is undefined'
                                 .format(axis=axis))
-                param_dict.remove(axis)
+                # param_dict.remove(axis)
+                del param_dict[axis] #  unsure truely why sometimes param_dict is set or dict
 
         for axis_label in param_dict:
             axis_channel = self._configured_constraints[axis_label]['channel']
