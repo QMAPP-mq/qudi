@@ -665,7 +665,7 @@ class PiezoScrewsNF(Base, MotorInterface):
                    float distance : distance to be moved
         """
         
-        steps = int(float(distance)/float(0.00000003))
+        steps = int(float(distance)/float(0.00000003)) #  each step is (apparently) 30nm
         self._do('PR', axis, steps)
 
         # while not self._on_target(axis):
@@ -686,7 +686,7 @@ class PiezoScrewsNF(Base, MotorInterface):
                    float distance : distance to be moved
         """
         
-        steps = int(float(distance)/float(0.00000003))
+        steps = int(float(distance)/float(0.00000003)) #  each step is (apparently) 30nm
         self._do('PA', axis, steps)
 
         # while not self._on_target():
