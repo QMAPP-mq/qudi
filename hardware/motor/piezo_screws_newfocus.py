@@ -3,6 +3,11 @@
 """
 This file contains the hardware control for New Focus piezo screws.
 
+NOTE: I followed the instructions here 
+https://github.com/libusb/libusb/wiki/Windows#How_to_use_libusb_on_Windows
+to be able to communicate with the screws on Windows. I need to install 
+https://zadig.akeo.ie and select the libusb driver.
+
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
