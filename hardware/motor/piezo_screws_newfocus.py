@@ -238,6 +238,7 @@ class PiezoScrewsNF(Base, MotorInterface):
             for axis in invalid_axis:      
                 self.log.warning('Desired axis {axis} is undefined'
                                 .format(axis=axis))
+                param_dict.remove(axis)
 
         # TODO: there must be a better way to do this
 
@@ -280,6 +281,7 @@ class PiezoScrewsNF(Base, MotorInterface):
             for axis in invalid_axis:      
                 self.log.warning('Desired axis {axis} is undefined'
                                 .format(axis=axis))
+                param_dict.remove(axis)
 
         # TODO: there must be a better way to do this
 
@@ -340,6 +342,7 @@ class PiezoScrewsNF(Base, MotorInterface):
                 for axis in invalid_axis:      
                     self.log.warning('Desired axis {axis} is undefined'
                                     .format(axis=axis))
+                    param_dict.remove(axis)
 
         # TODO: there still must be a better way to do this
         
@@ -431,6 +434,7 @@ class PiezoScrewsNF(Base, MotorInterface):
                 for axis in invalid_axis:      
                     self.log.warning('Desired axis {axis} is undefined'
                                     .format(axis=axis))
+                param_dict.remove(axis)
 
         axis_numbers = []
         status_dict = {}
